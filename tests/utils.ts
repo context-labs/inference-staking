@@ -1,5 +1,10 @@
 import { getProvider } from "@coral-xyz/anchor";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import {
+  createMint,
+  getOrCreateAssociatedTokenAccount,
+  mintTo,
+} from "@solana/spl-token";
 
 const INF_STAKING = new PublicKey(
   "7NuTZJFDezrh8n73HxY22gvPrXnGeRqDAoFDnXHnMjQb"
@@ -15,7 +20,7 @@ export async function setupTests() {
   const user3Kp = new Keypair();
   const provider = getProvider();
 
-  // airdrop to all users
+  // Airdrop SOL to all users
   const txns = await Promise.all([
     provider.connection.requestAirdrop(payerKp.publicKey, LAMPORTS_PER_SOL),
     provider.connection.requestAirdrop(signer1Kp.publicKey, LAMPORTS_PER_SOL),
@@ -30,8 +35,42 @@ export async function setupTests() {
     txns.map((txn) => provider.connection.confirmTransaction(txn, "finalized"))
   );
 
-  const tokenMintKp = Keypair.generate();
-  const tokenMint = tokenMintKp.publicKey;
+  const tokenMint = await createMint(
+    provider.connection,
+    payerKp,
+    signer1Kp.publicKey,
+    signer1Kp.publicKey,
+    9
+  );
+
+  // Mint tokens to all users
+  const createAndMintToAta = async (user: Keypair) => {
+    const ata = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      payerKp,
+      tokenMint,
+      user.publicKey
+    );
+    return mintTo(
+      provider.connection,
+      payerKp,
+      tokenMint,
+      ata.address,
+      signer1Kp,
+      10 ** 10
+    );
+  };
+  const txns2 = await Promise.all([
+    createAndMintToAta(signer1Kp),
+    createAndMintToAta(signer2Kp),
+    createAndMintToAta(signer3Kp),
+    createAndMintToAta(user1Kp),
+    createAndMintToAta(user2Kp),
+    createAndMintToAta(user3Kp),
+  ]);
+  await Promise.all(
+    txns2.map((txn) => provider.connection.confirmTransaction(txn, "finalized"))
+  );
 
   const [poolOverview] = PublicKey.findProgramAddressSync(
     [Buffer.from("PoolOverview")],
@@ -55,7 +94,6 @@ export async function setupTests() {
     user3Kp,
     user3: user3Kp.publicKey,
     tokenMint,
-    tokenMintKp,
     poolOverview,
   };
 }

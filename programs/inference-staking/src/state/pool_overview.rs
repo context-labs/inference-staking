@@ -3,11 +3,11 @@ use anchor_lang::prelude::*;
 #[derive(InitSpace)]
 #[account]
 pub struct PoolOverview {
+    /// Mint address of token to be staked.
+    pub mint: Pubkey,
+
     /// Authority allowed to change settings on the acount.
     pub admin: Pubkey,
-
-    /// Total number of pools created.
-    pub total_pools: u64,
 
     /// List of signers authorized to halt OperatorPools.
     #[max_len(10)]
@@ -25,6 +25,9 @@ pub struct PoolOverview {
 
     /// Delay for unstaking in seconds.
     pub unstake_delay_seconds: u64,
+
+    /// Total number of pools created.
+    pub total_pools: u64,
 
     /// Number of completed epochs.
     pub completed_reward_epoch: u64,
