@@ -1,4 +1,4 @@
-import { getProvider } from "@coral-xyz/anchor";
+import { BN, getProvider } from "@coral-xyz/anchor";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import {
   createMint,
@@ -76,6 +76,29 @@ export async function setupTests() {
     [Buffer.from("PoolOverview")],
     INF_STAKING
   );
+  const [operatorPool1] = PublicKey.findProgramAddressSync(
+    [new BN(1).toArrayLike(Buffer, "le", 8), Buffer.from("OperatorPool")],
+    INF_STAKING
+  );
+  const pool1 = {
+    pool: operatorPool1,
+    stakedTokenAccount: PublicKey.findProgramAddressSync(
+      [operatorPool1.toBuffer(), Buffer.from("StakedToken")],
+      INF_STAKING
+    )[0],
+    feeTokenAccount: PublicKey.findProgramAddressSync(
+      [operatorPool1.toBuffer(), Buffer.from("FeeToken")],
+      INF_STAKING
+    )[0],
+    signer1Record: PublicKey.findProgramAddressSync(
+      [
+        operatorPool1.toBuffer(),
+        signer1Kp.publicKey.toBuffer(),
+        Buffer.from("StakingRecord"),
+      ],
+      INF_STAKING
+    )[0],
+  };
 
   return {
     payerKp,
@@ -95,6 +118,7 @@ export async function setupTests() {
     user3: user3Kp.publicKey,
     tokenMint,
     poolOverview,
+    pool1,
   };
 }
 

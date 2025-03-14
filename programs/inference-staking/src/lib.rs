@@ -41,6 +41,15 @@ pub mod inference_staking {
             unstake_delay_seconds,
         )
     }
+
+    pub fn create_operator_pool(
+        ctx: Context<CreateOperatorPool>,
+        auto_stake_fees: bool,
+        commission_rate_bps: u16,
+        allow_delegation: bool,
+    ) -> Result<()> {
+        create_operator_pool::handler(ctx, auto_stake_fees, commission_rate_bps, allow_delegation)
+    }
 }
 
 #[derive(Accounts)]
