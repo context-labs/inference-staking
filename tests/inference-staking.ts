@@ -139,4 +139,27 @@ describe("inference-staking", () => {
     assert(stakingRecord.unstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
+
+  it("Create StakingRecord successfully", async () => {
+    await program.methods
+      .createStakingRecord()
+      .accountsStrict({
+        payer: setup.payer,
+        owner: setup.user1,
+        operatorPool: setup.pool1.pool,
+        stakingRecord: setup.pool1.user1Record,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([setup.payerKp, setup.user1Kp])
+      .rpc();
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.user1Record
+    );
+    assert(stakingRecord.owner.equals(setup.user1));
+    assert(stakingRecord.operatorPool.equals(setup.pool1.pool));
+    assert(stakingRecord.shares.isZero());
+    assert(stakingRecord.unstakeAmount.isZero());
+    assert(stakingRecord.unstakeAtTimestamp.isZero());
+  });
 });

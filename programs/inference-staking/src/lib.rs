@@ -50,6 +50,10 @@ pub mod inference_staking {
     ) -> Result<()> {
         create_operator_pool::handler(ctx, auto_stake_fees, commission_rate_bps, allow_delegation)
     }
+
+    pub fn create_staking_record(ctx: Context<CreateStakingRecord>) -> Result<()> {
+        create_staking_record::handler(ctx)
+    }
 }
 
 #[derive(Accounts)]

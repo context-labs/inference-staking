@@ -98,6 +98,14 @@ export async function setupTests() {
       ],
       INF_STAKING
     )[0],
+    user1Record: PublicKey.findProgramAddressSync(
+      [
+        operatorPool1.toBuffer(),
+        user1Kp.publicKey.toBuffer(),
+        Buffer.from("StakingRecord"),
+      ],
+      INF_STAKING
+    )[0],
   };
 
   return {

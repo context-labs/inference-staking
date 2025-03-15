@@ -23,16 +23,16 @@ pub struct CreateOperatorPool<'info> {
     )]
     pub operator_pool: Box<Account<'info, OperatorPool>>,
     #[account(
-      init,
-      seeds = [
-        operator_pool.key().as_ref(),
-        admin.key().as_ref(),
-        b"StakingRecord".as_ref()
-      ],
-      bump,
-      payer = payer,
-      space = 8 + StakingRecord::INIT_SPACE
-  )]
+        init,
+        seeds = [
+          operator_pool.key().as_ref(),
+          admin.key().as_ref(),
+          b"StakingRecord".as_ref()
+        ],
+        bump,
+        payer = payer,
+        space = 8 + StakingRecord::INIT_SPACE
+    )]
     pub staking_record: Box<Account<'info, StakingRecord>>,
     #[account(
         mut,
