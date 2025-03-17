@@ -77,6 +77,7 @@ pub fn handler(
 
     let operator_pool = &mut ctx.accounts.operator_pool;
     operator_pool.pool_id = pool_overview.total_pools;
+    operator_pool.bump = ctx.bumps.operator_pool;
     operator_pool.admin = ctx.accounts.admin.key();
     operator_pool.operator_staking_record = ctx.accounts.staking_record.key();
     operator_pool.auto_stake_fees = auto_stake_fees;

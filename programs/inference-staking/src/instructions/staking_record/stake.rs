@@ -22,7 +22,7 @@ pub struct Stake<'info> {
         token::mint = staked_token_account.mint,
         token::authority = owner
     )]
-    pub user_token_account: Box<Account<'info, TokenAccount>>,
+    pub owner_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         seeds = [operator_pool.key().as_ref(), b"StakedToken".as_ref()],
@@ -58,8 +58,8 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
         operator_pool.reward_last_claimed_epoch
     );
 
-    let user_token_account = &ctx.accounts.user_token_account;
-    require_gte!(user_token_account.amount, token_amount);
+    let owner_token_account = &ctx.accounts.owner_token_account;
+    require_gte!(owner_token_account.amount, token_amount);
 
     // Calculate number of shares to create, and update token and share amounts on OperatorPool.
     let shares_created = operator_pool.stake_tokens(token_amount);
@@ -72,7 +72,7 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
-                from: ctx.accounts.user_token_account.to_account_info(),
+                from: ctx.accounts.owner_token_account.to_account_info(),
                 to: ctx.accounts.staked_token_account.to_account_info(),
                 authority: ctx.accounts.owner.to_account_info(),
             },

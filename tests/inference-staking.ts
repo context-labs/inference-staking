@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { InferenceStaking } from "../target/types/inference_staking";
-import { setupTests } from "./utils";
+import { setupTests, sleep } from "./utils";
 import { SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 import {
@@ -17,9 +17,10 @@ describe("inference-staking", () => {
 
   const program = anchor.workspace
     .inferenceStaking as Program<InferenceStaking>;
+  const connection = program.provider.connection;
 
   // Configs
-  const unstakeDelaySeconds = new anchor.BN(20);
+  const unstakeDelaySeconds = new anchor.BN(8);
 
   before(async () => {
     setup = await setupTests();
@@ -169,7 +170,7 @@ describe("inference-staking", () => {
   });
 
   it("Stake for operator successfully", async () => {
-    const userTokenAccount = getAssociatedTokenAddressSync(
+    const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
       setup.signer1
     );
@@ -185,7 +186,7 @@ describe("inference-staking", () => {
         operatorStakingRecord: setup.pool1.signer1Record,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
-        userTokenAccount,
+        ownerTokenAccount,
       })
       .signers([setup.signer1Kp])
       .rpc();
@@ -210,7 +211,7 @@ describe("inference-staking", () => {
   });
 
   it("Stake for user successfully", async () => {
-    const userTokenAccount = getAssociatedTokenAddressSync(
+    const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
       setup.user1
     );
@@ -229,7 +230,7 @@ describe("inference-staking", () => {
         operatorStakingRecord: setup.pool1.signer1Record,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
-        userTokenAccount,
+        ownerTokenAccount,
       })
       .signers([setup.user1Kp])
       .rpc();
@@ -260,7 +261,7 @@ describe("inference-staking", () => {
   });
 
   it("Unstake for user successfully", async () => {
-    const userTokenAccount = getAssociatedTokenAddressSync(
+    const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
       setup.user1
     );
@@ -312,5 +313,61 @@ describe("inference-staking", () => {
       currentTimestamp + unstakeDelaySeconds.toNumber(),
       3
     );
+  });
+
+  it("Claim unstake for user successfully", async () => {
+    await sleep(unstakeDelaySeconds.toNumber() * 1000);
+
+    const ownerTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.user1
+    );
+    const tokenBalancePre = await connection.getTokenAccountBalance(
+      ownerTokenAccount
+    );
+    const operatorPoolPre = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    const stakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.user1Record
+    );
+
+    await program.methods
+      .claimUnstake()
+      .accountsStrict({
+        owner: setup.user1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.user1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        ownerTokenAccount,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(
+      operatorPoolPre.totalUnstaking
+        .sub(operatorPool.totalUnstaking)
+        .eq(stakingRecordPre.tokensUnstakeAmount)
+    );
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.user1Record
+    );
+    const tokenBalancePost = await connection.getTokenAccountBalance(
+      ownerTokenAccount
+    );
+    const amountClaimed =
+      Number(tokenBalancePost.value.amount) -
+      Number(tokenBalancePre.value.amount);
+
+    assert(stakingRecordPre.tokensUnstakeAmount.eqn(amountClaimed));
+    assert(stakingRecord.tokensUnstakeAmount.isZero());
+    assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 });

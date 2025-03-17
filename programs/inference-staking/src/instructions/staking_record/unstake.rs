@@ -27,7 +27,7 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
     let is_operator_unstaking =
         operator_staking_record.key() == ctx.accounts.owner_staking_record.key();
 
-    // Check that pool is not halted or operator is not unstaking.
+    // Check that operator is not unstaking when pool is halted.
     require!(
         !is_operator_unstaking || !operator_pool.is_halted,
         ErrorCode::UnstakingNotAllowed

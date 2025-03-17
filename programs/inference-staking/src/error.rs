@@ -10,4 +10,8 @@ pub enum ErrorCode {
     UnclaimedRewards,
     #[msg("Min. operator shares % in pool violated")]
     MinOperatorSharesNotMet,
+    #[msg("No tokens to be claimed")]
+    NoTokensToClaim,
+    #[msg("Pending delay duration to elapse")]
+    PendingDelay,
 }

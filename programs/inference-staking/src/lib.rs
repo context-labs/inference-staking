@@ -63,6 +63,10 @@ pub mod inference_staking {
     pub fn unstake(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
         unstake::handler(ctx, share_amount)
     }
+
+    pub fn claim_unstake(ctx: Context<ClaimUnstake>) -> Result<()> {
+        claim_unstake::handler(ctx)
+    }
 }
 
 #[derive(Accounts)]

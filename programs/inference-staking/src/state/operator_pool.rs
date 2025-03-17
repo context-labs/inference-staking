@@ -6,6 +6,9 @@ pub struct OperatorPool {
     /// ID of Pool. Equal to (PoolOverview.totalPools + 1) at time of creation.
     pub pool_id: u64,
 
+    /// PDA Bump
+    pub bump: u8,
+
     /// Authority allowed to configure settings for this account.
     pub admin: Pubkey,
 
