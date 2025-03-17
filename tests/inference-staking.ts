@@ -4,7 +4,10 @@ import { InferenceStaking } from "../target/types/inference_staking";
 import { setupTests } from "./utils";
 import { SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  getAssociatedTokenAddressSync,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 
 describe("inference-staking", () => {
   let setup;
@@ -159,6 +162,97 @@ describe("inference-staking", () => {
     assert(stakingRecord.owner.equals(setup.user1));
     assert(stakingRecord.operatorPool.equals(setup.pool1.pool));
     assert(stakingRecord.shares.isZero());
+    assert(stakingRecord.unstakeAmount.isZero());
+    assert(stakingRecord.unstakeAtTimestamp.isZero());
+  });
+
+  it("Stake for operator successfully", async () => {
+    const userTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.signer1
+    );
+    const stakeAmount = new anchor.BN(150_000);
+
+    await program.methods
+      .stake(stakeAmount)
+      .accountsStrict({
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        stakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        userTokenAccount,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(operatorPool.totalStakedAmount.eq(stakeAmount));
+    assert(operatorPool.totalShares.eq(stakeAmount));
+    assert(operatorPool.totalUnstaking.isZero());
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+    assert(stakingRecord.shares.eq(stakeAmount));
+
+    // Verify remaining fields are unchanged.
+    assert(stakingRecord.owner.equals(setup.signer1));
+    assert(stakingRecord.operatorPool.equals(setup.pool1.pool));
+    assert(stakingRecord.unstakeAmount.isZero());
+    assert(stakingRecord.unstakeAtTimestamp.isZero());
+  });
+
+  it("Stake for user successfully", async () => {
+    const userTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.user1
+    );
+    const stakeAmount = new anchor.BN(400_000);
+    const operatorPoolPre = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    await program.methods
+      .stake(stakeAmount)
+      .accountsStrict({
+        owner: setup.user1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        stakingRecord: setup.pool1.user1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        userTokenAccount,
+      })
+      .signers([setup.user1Kp])
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(
+      operatorPool.totalStakedAmount
+        .sub(operatorPoolPre.totalStakedAmount)
+        .eq(stakeAmount)
+    );
+    assert(
+      operatorPool.totalShares.sub(operatorPoolPre.totalShares).eq(stakeAmount)
+    );
+    assert(operatorPool.totalUnstaking.isZero());
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.user1Record
+    );
+    assert(stakingRecord.shares.eq(stakeAmount));
+
+    // Verify remaining fields are unchanged.
+    assert(stakingRecord.owner.equals(setup.user1));
+    assert(stakingRecord.operatorPool.equals(setup.pool1.pool));
     assert(stakingRecord.unstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });

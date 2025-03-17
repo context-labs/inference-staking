@@ -1,5 +1,6 @@
 #![allow(ambiguous_glob_reexports)]
 
+pub mod error;
 pub mod instructions;
 pub mod state;
 
@@ -53,6 +54,10 @@ pub mod inference_staking {
 
     pub fn create_staking_record(ctx: Context<CreateStakingRecord>) -> Result<()> {
         create_staking_record::handler(ctx)
+    }
+
+    pub fn stake(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
+        stake::handler(ctx, token_amount)
     }
 }
 
