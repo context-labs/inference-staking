@@ -18,6 +18,9 @@ describe("inference-staking", () => {
   const program = anchor.workspace
     .inferenceStaking as Program<InferenceStaking>;
 
+  // Configs
+  const unstakeDelaySeconds = new anchor.BN(20);
+
   before(async () => {
     setup = await setupTests();
   });
@@ -53,7 +56,6 @@ describe("inference-staking", () => {
   });
 
   it("Update PoolOverview successfully", async () => {
-    const unstakeDelaySeconds = new anchor.BN(20);
     const minOperatorShareBps = 1000;
     const allowPoolCreation = true;
     const isWithdrawalHalted = false;
@@ -139,7 +141,7 @@ describe("inference-staking", () => {
     assert(stakingRecord.owner.equals(setup.signer1));
     assert(stakingRecord.operatorPool.equals(setup.pool1.pool));
     assert(stakingRecord.shares.isZero());
-    assert(stakingRecord.unstakeAmount.isZero());
+    assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
@@ -162,7 +164,7 @@ describe("inference-staking", () => {
     assert(stakingRecord.owner.equals(setup.user1));
     assert(stakingRecord.operatorPool.equals(setup.pool1.pool));
     assert(stakingRecord.shares.isZero());
-    assert(stakingRecord.unstakeAmount.isZero());
+    assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
@@ -179,7 +181,7 @@ describe("inference-staking", () => {
         owner: setup.signer1,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
-        stakingRecord: setup.pool1.signer1Record,
+        ownerStakingRecord: setup.pool1.signer1Record,
         operatorStakingRecord: setup.pool1.signer1Record,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -203,7 +205,7 @@ describe("inference-staking", () => {
     // Verify remaining fields are unchanged.
     assert(stakingRecord.owner.equals(setup.signer1));
     assert(stakingRecord.operatorPool.equals(setup.pool1.pool));
-    assert(stakingRecord.unstakeAmount.isZero());
+    assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
@@ -223,7 +225,7 @@ describe("inference-staking", () => {
         owner: setup.user1,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
-        stakingRecord: setup.pool1.user1Record,
+        ownerStakingRecord: setup.pool1.user1Record,
         operatorStakingRecord: setup.pool1.signer1Record,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -253,7 +255,62 @@ describe("inference-staking", () => {
     // Verify remaining fields are unchanged.
     assert(stakingRecord.owner.equals(setup.user1));
     assert(stakingRecord.operatorPool.equals(setup.pool1.pool));
-    assert(stakingRecord.unstakeAmount.isZero());
+    assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
+  });
+
+  it("Unstake for user successfully", async () => {
+    const userTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.user1
+    );
+    const unstakeAmount = new anchor.BN(10_000);
+    const operatorPoolPre = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    const stakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.user1Record
+    );
+
+    await program.methods
+      .unstake(unstakeAmount)
+      .accountsStrict({
+        owner: setup.user1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.user1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+      })
+      .signers([setup.user1Kp])
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(
+      operatorPoolPre.totalStakedAmount
+        .sub(operatorPool.totalStakedAmount)
+        .eq(unstakeAmount)
+    );
+    assert(
+      operatorPoolPre.totalShares
+        .sub(operatorPool.totalShares)
+        .eq(unstakeAmount)
+    );
+    // Token:Share at 1:1 ratio
+    assert(operatorPool.totalUnstaking.eq(unstakeAmount));
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.user1Record
+    );
+    assert(stakingRecordPre.shares.sub(stakingRecord.shares).eq(unstakeAmount));
+    assert(stakingRecord.tokensUnstakeAmount.eq(unstakeAmount));
+
+    const currentTimestamp = Date.now() / 1000;
+    assert.approximately(
+      stakingRecord.unstakeAtTimestamp.toNumber(),
+      currentTimestamp + unstakeDelaySeconds.toNumber(),
+      3
+    );
   });
 });

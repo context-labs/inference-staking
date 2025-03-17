@@ -59,6 +59,10 @@ pub mod inference_staking {
     pub fn stake(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
         stake::handler(ctx, token_amount)
     }
+
+    pub fn unstake(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
+        unstake::handler(ctx, share_amount)
+    }
 }
 
 #[derive(Accounts)]

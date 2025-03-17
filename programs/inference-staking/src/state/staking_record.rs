@@ -16,5 +16,5 @@ pub struct StakingRecord {
     pub unstake_at_timestamp: i64,
 
     /// Amount of tokens to be unstaked
-    pub unstake_amount: i64,
+    pub tokens_unstake_amount: u64,
 }

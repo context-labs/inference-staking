@@ -15,7 +15,7 @@ pub struct Stake<'info> {
         has_one = owner,
         has_one = operator_pool,
     )]
-    pub staking_record: Box<Account<'info, StakingRecord>>,
+    pub owner_staking_record: Box<Account<'info, StakingRecord>>,
     pub operator_staking_record: Box<Account<'info, StakingRecord>>,
     #[account(
         mut,
@@ -39,7 +39,8 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     let operator_staking_record = &ctx.accounts.operator_staking_record;
 
     // Check that delegation is enabled or operator is staking.
-    let is_operator_staking = operator_staking_record.key() == ctx.accounts.staking_record.key();
+    let is_operator_staking =
+        operator_staking_record.key() == ctx.accounts.owner_staking_record.key();
     require!(
         operator_pool.allow_delegation || is_operator_staking,
         ErrorCode::StakingNotAllowed
@@ -63,8 +64,8 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     // Calculate number of shares to create, and update token and share amounts on OperatorPool.
     let shares_created = operator_pool.stake_tokens(token_amount);
 
-    // Add shares created to StakingRecord.
-    let staking_record = &mut ctx.accounts.staking_record;
+    // Add shares created to owner's StakingRecord.
+    let staking_record = &mut ctx.accounts.owner_staking_record;
     staking_record.shares = staking_record.shares.checked_add(shares_created).unwrap();
 
     token::transfer(

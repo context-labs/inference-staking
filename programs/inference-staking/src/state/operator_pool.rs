@@ -55,7 +55,7 @@ pub struct OperatorPool {
 impl OperatorPool {
     /// Calculates number of shares equivalent to token amount.
     /// Uses a default 1:1 rate if total_shares i 0.
-    /// Final result is rounded down  as part of integer division.
+    /// Final result is rounded down as part of integer division.
     pub fn calc_shares_for_token_amount(&self, token_amount: u64) -> u64 {
         if self.total_shares == 0 {
             return token_amount;
@@ -71,6 +71,19 @@ impl OperatorPool {
         u64::try_from(shares).unwrap()
     }
 
+    /// Calculates number of tokens equivalent to share amount.
+    /// Final result is rounded down as part of integer division.
+    pub fn calc_tokens_for_share_amount(&self, share_amount: u64) -> u64 {
+        // Tokens = (share_amount / total_shares) * total_staked_amount
+        let tokens = u128::from(share_amount)
+            .checked_mul(u128::from(self.total_staked_amount))
+            .unwrap()
+            .checked_div(u128::from(self.total_shares))
+            .unwrap();
+
+        u64::try_from(tokens).unwrap()
+    }
+
     /// Updates OperatorPool total_shares and total_staked_amount after staking of
     /// token_amount tokens.
     /// Returns number of shares created.
@@ -80,5 +93,20 @@ impl OperatorPool {
         self.total_shares = self.total_shares.checked_add(shares_created).unwrap();
 
         shares_created
+    }
+
+    /// Updates OperatorPool total_shares, total_staked_amount and total_unstaking after
+    /// unstaking of share_amount shares.
+    /// Returns number of tokens unstaked.
+    pub fn unstake_tokens(&mut self, share_amount: u64) -> u64 {
+        let tokens_unstaked = self.calc_tokens_for_share_amount(share_amount);
+        self.total_staked_amount = self
+            .total_staked_amount
+            .checked_sub(tokens_unstaked)
+            .unwrap();
+        self.total_shares = self.total_shares.checked_sub(share_amount).unwrap();
+        self.total_unstaking = self.total_unstaking.checked_add(tokens_unstaked).unwrap();
+
+        tokens_unstaked
     }
 }
