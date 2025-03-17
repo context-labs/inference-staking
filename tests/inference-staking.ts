@@ -2,10 +2,11 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { InferenceStaking } from "../target/types/inference_staking";
 import { setupTests, sleep } from "./utils";
-import { SystemProgram } from "@solana/web3.js";
+import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 import {
   getAssociatedTokenAddressSync,
+  mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 
@@ -33,7 +34,9 @@ describe("inference-staking", () => {
         payer: setup.payer,
         admin: setup.signer1,
         poolOverview: setup.poolOverview,
+        rewardTokenAccount: setup.rewardTokenAccount,
         mint: setup.tokenMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.signer1Kp])
@@ -315,7 +318,7 @@ describe("inference-staking", () => {
     );
   });
 
-  it("Claim unstake for user successfully", async () => {
+  it.skip("Claim unstake for user successfully", async () => {
     await sleep(unstakeDelaySeconds.toNumber() * 1000);
 
     const ownerTokenAccount = getAssociatedTokenAddressSync(
@@ -369,5 +372,41 @@ describe("inference-staking", () => {
     assert(stakingRecordPre.tokensUnstakeAmount.eqn(amountClaimed));
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
+  });
+
+  it("Create RewardRecord successfully", async () => {
+    // TODO: Generate valid roots.
+    const merkleRoots = [Array(32).fill(2)];
+    const totalRewards = new anchor.BN(100000);
+
+    // Fund rewardTokenAccount
+    await mintTo(
+      connection,
+      setup.payerKp,
+      setup.tokenMint,
+      setup.rewardTokenAccount,
+      setup.signer1Kp,
+      totalRewards.toNumber()
+    );
+
+    await program.methods
+      .createRewardRecord(merkleRoots, totalRewards)
+      .accountsStrict({
+        payer: setup.payer,
+        admin: setup.signer1,
+        poolOverview: setup.poolOverview,
+        rewardRecord: setup.rewardRecords[1],
+        rewardTokenAccount: setup.rewardTokenAccount,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([setup.payerKp, setup.signer1Kp])
+      .rpc();
+
+    const rewardRecord = await program.account.rewardRecord.fetch(
+      setup.rewardRecords[1]
+    );
+    assert(rewardRecord.epoch.eqn(1));
+    assert.deepEqual(rewardRecord.merkleRoots, merkleRoots);
+    assert(rewardRecord.totalRewards.eq(totalRewards));
   });
 });

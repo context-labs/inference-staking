@@ -76,6 +76,10 @@ export async function setupTests() {
     [Buffer.from("PoolOverview")],
     INF_STAKING
   );
+  const [rewardTokenAccount] = PublicKey.findProgramAddressSync(
+    [Buffer.from("RewardToken")],
+    INF_STAKING
+  );
   const [operatorPool1] = PublicKey.findProgramAddressSync(
     [new BN(1).toArrayLike(Buffer, "le", 8), Buffer.from("OperatorPool")],
     INF_STAKING
@@ -108,6 +112,13 @@ export async function setupTests() {
     )[0],
   };
 
+  const rewardRecords = {
+    1: PublicKey.findProgramAddressSync(
+      [new BN(1).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
+      INF_STAKING
+    )[0],
+  };
+
   return {
     payerKp,
     payer: payerKp.publicKey,
@@ -127,6 +138,8 @@ export async function setupTests() {
     tokenMint,
     poolOverview,
     pool1,
+    rewardTokenAccount,
+    rewardRecords,
   };
 }
 

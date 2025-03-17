@@ -14,4 +14,6 @@ pub enum ErrorCode {
     NoTokensToClaim,
     #[msg("Pending delay duration to elapse")]
     PendingDelay,
+    #[msg("Insufficient reward tokens to issue")]
+    InsufficientRewards,
 }

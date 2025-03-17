@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::Mint;
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::PoolOverview;
 
@@ -16,7 +16,17 @@ pub struct CreatePoolOverview<'info> {
         space = 8 + PoolOverview::INIT_SPACE
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
+    #[account(
+        init,
+        seeds = [b"RewardToken".as_ref()],
+        bump,
+        payer = payer,
+        token::mint = mint,
+        token::authority = pool_overview
+    )]
+    pub reward_token_account: Box<Account<'info, TokenAccount>>,
     pub mint: Box<Account<'info, Mint>>,
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
 
