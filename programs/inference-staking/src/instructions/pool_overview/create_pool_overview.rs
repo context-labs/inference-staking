@@ -35,6 +35,7 @@ pub fn handler(ctx: Context<CreatePoolOverview>) -> Result<()> {
     let pool_overview = &mut ctx.accounts.pool_overview;
     pool_overview.admin = ctx.accounts.admin.key();
     pool_overview.mint = ctx.accounts.mint.key();
+    pool_overview.bump = ctx.bumps.pool_overview;
 
     Ok(())
 }

@@ -16,4 +16,6 @@ pub enum ErrorCode {
     PendingDelay,
     #[msg("Insufficient reward tokens to issue")]
     InsufficientRewards,
+    #[msg("Pool is closed")]
+    ClosedPool,
 }

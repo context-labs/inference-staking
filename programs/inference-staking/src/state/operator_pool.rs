@@ -46,11 +46,11 @@ pub struct OperatorPool {
     /// Epoch in which reward was last claimed.
     pub reward_last_claimed_epoch: u64,
 
-    /// Rewards that have been calculated in `claimRewards`, that are yet to be physically transferred to staking account.
+    /// Rewards that have been calculated in `accrueRewards`, that are yet to be physically transferred to staking account.
     /// Used to optimize compute.
     pub accrued_rewards: u64,
 
-    /// Commission that have been calculated in `claimRewards` , that are yet to be physically transferred to fee account.
+    /// Commission that have been calculated in `accrueRewards` , that are yet to be physically transferred to fee account.
     /// Used to optimize compute.
     pub accrued_commission: u64,
 }
