@@ -10,6 +10,11 @@ const INF_STAKING = new PublicKey(
   "7NuTZJFDezrh8n73HxY22gvPrXnGeRqDAoFDnXHnMjQb"
 );
 
+export const arraysEqual = (a, b) => {
+  if (a.length !== b.length) return false;
+  return a.every((val, i) => val === b[i]);
+};
+
 export async function setupTests() {
   const payerKp = new Keypair();
   const signer1Kp = new Keypair();
@@ -119,6 +124,19 @@ export async function setupTests() {
     )[0],
   };
 
+  const epoch1Wallets = [
+    user1Kp.publicKey.toString(),
+    user2Kp.publicKey.toString(),
+    user3Kp.publicKey.toString(),
+  ];
+  const epoch1Amounts = [100, 200, 300];
+  const rewardEpochs = {
+    1: {
+      wallets: epoch1Wallets,
+      amounts: epoch1Amounts,
+    },
+  };
+
   return {
     payerKp,
     payer: payerKp.publicKey,
@@ -140,6 +158,7 @@ export async function setupTests() {
     pool1,
     rewardTokenAccount,
     rewardRecords,
+    rewardEpochs,
   };
 }
 
