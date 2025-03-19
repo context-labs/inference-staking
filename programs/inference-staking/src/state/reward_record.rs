@@ -18,8 +18,8 @@ pub struct RewardRecord {
 }
 
 impl RewardRecord {
-    /// Verify that pool_address and reward_amount exist in Merkle Tree by attempting to
-    /// generate the root node through iteratively hashing the leaf/computed node with its
+    /// Verify that given pool_address and reward_amount exist in Merkle Tree by attempting to
+    /// generate the known root node through iteratively hashing the leaf/computed node with its
     /// sibling node provided in the proof.
     pub fn verify_proof(
         &self,
@@ -32,8 +32,9 @@ impl RewardRecord {
         require_eq!(proof.len(), proof_path.len(), ErrorCode::InvalidProof);
 
         let root = self.merkle_roots.get(usize::from(merkle_index)).unwrap();
-        let data = format!("{},{}", pool_address, reward_amount);
-        let mut node = hash::hash(data.as_bytes());
+
+        let leaf_data = format!("{},{}", pool_address, reward_amount);
+        let mut node = hash::hash(leaf_data.as_bytes());
 
         for i in 0..proof.len() {
             let sibling_node = proof[i];
