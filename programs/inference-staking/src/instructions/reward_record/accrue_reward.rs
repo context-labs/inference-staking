@@ -37,19 +37,26 @@ pub struct AccrueReward<'info> {
 /// Instruction to accrue reward issued for an OperatorPool.
 pub fn handler(
     ctx: Context<AccrueReward>,
-    _merkle_index: u8,
-    _proof: Vec<[u8; 32]>,
+    merkle_index: u8,
+    proof: Vec<[u8; 32]>,
+    proof_path: Vec<bool>,
     reward_amount: u64,
 ) -> Result<()> {
-    let pool_overview = &ctx.accounts.pool_overview;
     let reward_record = &ctx.accounts.reward_record;
     let operator_pool = &mut ctx.accounts.operator_pool;
+    reward_record.verify_proof(
+        merkle_index,
+        operator_pool.key(),
+        proof,
+        proof_path,
+        reward_amount,
+    )?;
+
+    let pool_overview = &ctx.accounts.pool_overview;
     let operator_staking_record: &mut Box<Account<'_, StakingRecord>> =
         &mut ctx.accounts.operator_staking_record;
 
     let is_most_recent = pool_overview.completed_reward_epoch == reward_record.epoch;
-
-    // TODO: Verify proof to check operator has earned specified amount of reward.
 
     if operator_pool.closed_at.is_some() {
         let closed_at = operator_pool.closed_at.unwrap();
@@ -138,10 +145,7 @@ pub fn handler(
             .unwrap();
 
         // Update commission rate if new rate is set.
-        if operator_pool.new_commission_rate_bps.is_some() {
-            operator_pool.commission_rate_bps = operator_pool.new_commission_rate_bps.unwrap();
-            operator_pool.new_commission_rate_bps = None;
-        }
+        operator_pool.update_commission_rate();
 
         // Reset accrued rewards and commission.
         operator_pool.accrued_rewards = 0;

@@ -43,7 +43,8 @@ pub struct OperatorPool {
     /// claim or withdraw rewards. Other users can still unstake or claim.
     pub is_halted: bool,
 
-    /// Epoch in which reward was last claimed.
+    /// Epoch in which reward was last claimed. Defaults to poolOverview.completed_reward_epoch + 1
+    /// at initialization, as rewards will only be issued from next epoch.
     pub reward_last_claimed_epoch: u64,
 
     /// Rewards that have been calculated in `accrueRewards`, that are yet to be physically transferred to staking account.
@@ -111,5 +112,13 @@ impl OperatorPool {
         self.total_unstaking = self.total_unstaking.checked_add(tokens_unstaked).unwrap();
 
         tokens_unstaked
+    }
+
+    /// Updates commission to new rate. Called after accrual of all issued rewards.
+    pub fn update_commission_rate(&mut self) {
+        if self.new_commission_rate_bps.is_some() {
+            self.commission_rate_bps = self.new_commission_rate_bps.unwrap();
+            self.new_commission_rate_bps = None;
+        }
     }
 }

@@ -18,4 +18,6 @@ pub enum ErrorCode {
     InsufficientRewards,
     #[msg("Pool is closed")]
     ClosedPool,
+    #[msg("Invalid Proof")]
+    InvalidProof,
 }

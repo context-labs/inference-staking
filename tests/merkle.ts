@@ -1,23 +1,24 @@
 import { PublicKey } from "@solana/web3.js";
 import { createHash } from "crypto";
 import { arraysEqual } from "./utils";
+import bs58 from "bs58";
 
 function sha256(message: Uint8Array) {
   const hash = createHash("sha256").update(message).digest();
   return new Uint8Array(hash);
 }
 
-// Check that input wallets and amounts are of valid type and length.
-const validateInputs = (wallets: string[], amounts: number[]) => {
-  if (wallets.length != amounts.length)
-    throw new Error("Wallets and amounts length mismatch");
-  if (wallets.length == 0) throw new Error("Wallets length cannot be zero");
+// Check that input addresses and amounts are of valid type and length.
+const validateInputs = (addresses: string[], amounts: number[]) => {
+  if (addresses.length != amounts.length)
+    throw new Error("Addresses and amounts length mismatch");
+  if (addresses.length == 0) throw new Error("Addresses length cannot be zero");
 
-  for (let i = 0; i < wallets.length; i++) {
+  for (let i = 0; i < addresses.length; i++) {
     try {
-      new PublicKey(wallets[i]);
+      new PublicKey(addresses[i]);
     } catch (err) {
-      throw new Error(`${wallets[i]} is not a valid wallet pubkey`);
+      throw new Error(`${addresses[i]} is not a valid wallet pubkey`);
     }
     if (!Number.isInteger(amounts[i])) {
       throw new Error(`${amounts[i]} is not an integer`);
@@ -25,21 +26,21 @@ const validateInputs = (wallets: string[], amounts: number[]) => {
   }
 };
 
-// Fill the list of wallets to the next power of 2 (2^N) length with dummy wallets
+// Fill the list of addresses to the next power of 2 (2^N) length with dummy addresses
 // (using the system default address with an amount of 0) so a complete binary tree can be built.
-const fillWallets = (wallets: string[], amounts: number[]) => {
-  const curLength = wallets.length;
-  const lenWithPadding = Math.pow(2, Math.ceil(Math.log2(wallets.length)));
+const fillAddresses = (addresses: string[], amounts: number[]) => {
+  const curLength = addresses.length;
+  const lenWithPadding = Math.pow(2, Math.ceil(Math.log2(addresses.length)));
 
   for (let i = curLength; i < lenWithPadding; i++) {
-    wallets.push(PublicKey.default.toString());
+    addresses.push(PublicKey.default.toString());
     amounts.push(0);
   }
 };
 
-export const constructMerkleTree = (wallets: string[], amounts: number[]) => {
-  validateInputs(wallets, amounts);
-  fillWallets(wallets, amounts);
+export const constructMerkleTree = (addresses: string[], amounts: number[]) => {
+  validateInputs(addresses, amounts);
+  fillAddresses(addresses, amounts);
 
   const encoder = new TextEncoder();
 
@@ -50,8 +51,8 @@ export const constructMerkleTree = (wallets: string[], amounts: number[]) => {
 
   // Create the initial level of tree nodes by hashing each wallet and its token amount,
   // separated by a comma.
-  for (let i = 0; i < wallets.length; i++) {
-    const data = encoder.encode(`${wallets[i]},${amounts[i]}`);
+  for (let i = 0; i < addresses.length; i++) {
+    const data = encoder.encode(`${addresses[i]},${amounts[i]}`);
     const hash = sha256(data);
     tree[0].push(hash);
   }
@@ -78,16 +79,16 @@ export const constructMerkleTree = (wallets: string[], amounts: number[]) => {
 // of a merkle tree. The proof contains all the sibling nodes of the leaf node or its subsequent parent
 // node, for each level from leaf to root-1.
 export const generateMerkleProof = (
-  wallets: string[],
+  addresses: string[],
   amounts: number[],
   index: number,
   merkleTree?: Uint8Array[][]
 ) => {
-  const tree = merkleTree ?? constructMerkleTree(wallets, amounts);
+  const tree = merkleTree ?? constructMerkleTree(addresses, amounts);
 
-  // Get hash of leaf node for target wallet.
+  // Get hash of leaf node for target address.
   const encoder = new TextEncoder();
-  const data = encoder.encode(`${wallets[index]},${amounts[index]}`);
+  const data = encoder.encode(`${addresses[index]},${amounts[index]}`);
   const hash = sha256(data);
 
   // Verify that leaf node matches expected hash.
@@ -95,7 +96,13 @@ export const generateMerkleProof = (
     throw new Error("Wallet does not match expected value in tree");
   }
 
+  // Contains sibling nodes of traversal path required to recompute root starting
+  // from target leaf node.
   const proof: Uint8Array[] = [];
+
+  // Contains a flag for each sibling node to indicate if they are on the
+  // left of the leaf/computed node.
+  const proofPath: boolean[] = [];
   let nodeIdx = index;
   let level = 0;
 
@@ -104,8 +111,10 @@ export const generateMerkleProof = (
     // Push sibling node depending if current node is left (even) or right (odd).
     if (nodeIdx % 2 == 0) {
       proof.push(tree[level][nodeIdx + 1]);
+      proofPath.push(false);
     } else {
       proof.push(tree[level][nodeIdx - 1]);
+      proofPath.push(true);
     }
 
     // Parent node is at nodeIdx // 2 in next level.
@@ -113,27 +122,15 @@ export const generateMerkleProof = (
     level += 1;
   }
 
-  return proof;
+  return { proof, proofPath };
 };
 
-export const logTreeInHexString = (tree: Uint8Array[][]) => {
+export const logTreeInBase58 = (tree: Uint8Array[][]) => {
   console.log(
-    tree.map((innerArray) =>
-      innerArray.map((uint8) =>
-        Array.from(uint8)
-          .map((byte) => byte.toString(16).padStart(2, "0"))
-          .join("")
-      )
-    )
+    tree.map((innerArray) => innerArray.map((uint8) => bs58.encode(uint8)))
   );
 };
 
-export const logProofInHexString = (proof: Uint8Array[]) => {
-  console.log(
-    proof.map((uint8) =>
-      Array.from(uint8)
-        .map((byte) => byte.toString(16).padStart(2, "0"))
-        .join("")
-    )
-  );
+export const logProofInBase58 = (proof: Uint8Array[]) => {
+  console.log(proof.map((uint8) => bs58.encode(uint8)));
 };

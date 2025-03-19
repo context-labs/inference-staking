@@ -80,8 +80,9 @@ pub mod inference_staking {
         ctx: Context<AccrueReward>,
         merkle_index: u8,
         proof: Vec<[u8; 32]>,
+        proof_path: Vec<bool>,
         reward_amount: u64,
     ) -> Result<()> {
-        accrue_reward::handler(ctx, merkle_index, proof, reward_amount)
+        accrue_reward::handler(ctx, merkle_index, proof, proof_path, reward_amount)
     }
 }
