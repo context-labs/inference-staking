@@ -48,6 +48,7 @@ pub fn handler(
         .unclaimed_rewards
         .checked_add(total_rewards)
         .unwrap();
+    pool_overview.completed_reward_epoch = reward_record.epoch;
 
     // Ensure that there's sufficient reward tokens funded.
     let reward_token_account = &ctx.accounts.reward_token_account;

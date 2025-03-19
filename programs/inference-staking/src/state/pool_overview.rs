@@ -6,6 +6,9 @@ pub struct PoolOverview {
     /// Mint address of token to be staked.
     pub mint: Pubkey,
 
+    /// PDA Bump
+    pub bump: u8,
+
     /// Authority allowed to change settings on the acount.
     pub admin: Pubkey,
 

@@ -75,7 +75,14 @@ pub mod inference_staking {
     ) -> Result<()> {
         create_reward_record::handler(ctx, merkle_roots, total_rewards)
     }
-}
 
-#[derive(Accounts)]
-pub struct Initialize {}
+    pub fn accrue_reward(
+        ctx: Context<AccrueReward>,
+        merkle_index: u8,
+        proof: Vec<[u8; 32]>,
+        proof_path: Vec<bool>,
+        reward_amount: u64,
+    ) -> Result<()> {
+        accrue_reward::handler(ctx, merkle_index, proof, proof_path, reward_amount)
+    }
+}

@@ -10,6 +10,11 @@ const INF_STAKING = new PublicKey(
   "7NuTZJFDezrh8n73HxY22gvPrXnGeRqDAoFDnXHnMjQb"
 );
 
+export const arraysEqual = (a, b) => {
+  if (a.length !== b.length) return false;
+  return a.every((val, i) => val === b[i]);
+};
+
 export async function setupTests() {
   const payerKp = new Keypair();
   const signer1Kp = new Keypair();
@@ -84,6 +89,18 @@ export async function setupTests() {
     [new BN(1).toArrayLike(Buffer, "le", 8), Buffer.from("OperatorPool")],
     INF_STAKING
   );
+  const [operatorPool2] = PublicKey.findProgramAddressSync(
+    [new BN(2).toArrayLike(Buffer, "le", 8), Buffer.from("OperatorPool")],
+    INF_STAKING
+  );
+  const [operatorPool3] = PublicKey.findProgramAddressSync(
+    [new BN(3).toArrayLike(Buffer, "le", 8), Buffer.from("OperatorPool")],
+    INF_STAKING
+  );
+  const [operatorPool4] = PublicKey.findProgramAddressSync(
+    [new BN(4).toArrayLike(Buffer, "le", 8), Buffer.from("OperatorPool")],
+    INF_STAKING
+  );
   const pool1 = {
     pool: operatorPool1,
     stakedTokenAccount: PublicKey.findProgramAddressSync(
@@ -117,6 +134,24 @@ export async function setupTests() {
       [new BN(1).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
       INF_STAKING
     )[0],
+    2: PublicKey.findProgramAddressSync(
+      [new BN(2).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
+      INF_STAKING
+    )[0],
+  };
+
+  const epoch1Addresses = [
+    operatorPool1.toString(),
+    operatorPool2.toString(),
+    operatorPool3.toString(),
+    operatorPool4.toString(),
+  ];
+  const epoch1Amounts = [100, 200, 300, 400];
+  const rewardEpochs = {
+    1: {
+      addresses: epoch1Addresses,
+      amounts: epoch1Amounts,
+    },
   };
 
   return {
@@ -140,6 +175,7 @@ export async function setupTests() {
     pool1,
     rewardTokenAccount,
     rewardRecords,
+    rewardEpochs,
   };
 }
 

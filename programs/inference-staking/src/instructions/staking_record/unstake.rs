@@ -41,7 +41,7 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
 
     // Check that all rewards have been claimed, unless pool is closed and all rewards
     // up to (but excluding) epoch in which pool was closed at have been claimed.
-    if pool_overview.completed_reward_epoch != operator_pool.reward_last_claimed_epoch {
+    if pool_overview.completed_reward_epoch > operator_pool.reward_last_claimed_epoch {
         if operator_pool.closed_at.is_some() {
             let closed_at = operator_pool.closed_at.unwrap();
             require_gte!(

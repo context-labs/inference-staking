@@ -52,10 +52,10 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
         ErrorCode::StakingNotAllowed
     );
 
-    // Check that all rewards have been claimed.
-    require_eq!(
+    // Check that all issued rewards have been claimed.
+    require_gte!(
+        operator_pool.reward_last_claimed_epoch,
         pool_overview.completed_reward_epoch,
-        operator_pool.reward_last_claimed_epoch
     );
 
     let owner_token_account = &ctx.accounts.owner_token_account;
