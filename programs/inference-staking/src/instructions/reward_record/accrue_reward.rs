@@ -12,6 +12,7 @@ pub struct AccrueReward<'info> {
     pub reward_record: Box<Account<'info, RewardRecord>>,
     #[account(mut, has_one = operator_staking_record)]
     pub operator_pool: Box<Account<'info, OperatorPool>>,
+    #[account(mut)]
     pub operator_staking_record: Box<Account<'info, StakingRecord>>,
     #[account(
         mut,

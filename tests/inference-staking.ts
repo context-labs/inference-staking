@@ -23,6 +23,9 @@ describe("inference-staking", () => {
 
   // Configs
   const unstakeDelaySeconds = new anchor.BN(8);
+  const autoStakeFees = false;
+  const commissionRateBps = 1500;
+  const allowDelegation = true;
 
   before(async () => {
     setup = await setupTests();
@@ -98,10 +101,6 @@ describe("inference-staking", () => {
   });
 
   it("Create OperatorPool 1 successfully", async () => {
-    const autoStakeFees = false;
-    const commissionRateBps = 1500;
-    const allowDelegation = true;
-
     await program.methods
       .createOperatorPool(autoStakeFees, commissionRateBps, allowDelegation)
       .accountsStrict({
@@ -264,11 +263,7 @@ describe("inference-staking", () => {
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
-  it.skip("Unstake for user successfully", async () => {
-    const ownerTokenAccount = getAssociatedTokenAddressSync(
-      setup.tokenMint,
-      setup.user1
-    );
+  it("Unstake for user successfully", async () => {
     const unstakeAmount = new anchor.BN(10_000);
     const operatorPoolPre = await program.account.operatorPool.fetch(
       setup.pool1.pool
@@ -317,60 +312,6 @@ describe("inference-staking", () => {
       currentTimestamp + unstakeDelaySeconds.toNumber(),
       3
     );
-  });
-
-  it.skip("Claim unstake for user successfully", async () => {
-    await sleep(unstakeDelaySeconds.toNumber() * 1000);
-
-    const ownerTokenAccount = getAssociatedTokenAddressSync(
-      setup.tokenMint,
-      setup.user1
-    );
-    const tokenBalancePre =
-      await connection.getTokenAccountBalance(ownerTokenAccount);
-    const operatorPoolPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-
-    const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.user1Record
-    );
-
-    await program.methods
-      .claimUnstake()
-      .accountsStrict({
-        owner: setup.user1,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-        ownerStakingRecord: setup.pool1.user1Record,
-        operatorStakingRecord: setup.pool1.signer1Record,
-        ownerTokenAccount,
-        stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc();
-
-    const operatorPool = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    assert(
-      operatorPoolPre.totalUnstaking
-        .sub(operatorPool.totalUnstaking)
-        .eq(stakingRecordPre.tokensUnstakeAmount)
-    );
-
-    const stakingRecord = await program.account.stakingRecord.fetch(
-      setup.pool1.user1Record
-    );
-    const tokenBalancePost =
-      await connection.getTokenAccountBalance(ownerTokenAccount);
-    const amountClaimed =
-      Number(tokenBalancePost.value.amount) -
-      Number(tokenBalancePre.value.amount);
-
-    assert(stakingRecordPre.tokensUnstakeAmount.eqn(amountClaimed));
-    assert(stakingRecord.tokensUnstakeAmount.isZero());
-    assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
   it("Create RewardRecord 1 successfully", async () => {
@@ -443,9 +384,28 @@ describe("inference-staking", () => {
       rewardAmounts,
       0
     );
+    const poolOverviewPre = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    const operatorPre = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    const operatorStakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+    const rewardBalancePre = await connection.getTokenAccountBalance(
+      setup.rewardTokenAccount
+    );
+    const stakedBalancePre = await connection.getTokenAccountBalance(
+      setup.pool1.stakedTokenAccount
+    );
+    const feeBalancePre = await connection.getTokenAccountBalance(
+      setup.pool1.feeTokenAccount
+    );
 
+    const rewardAmount = new anchor.BN(100);
     await program.methods
-      .accrueReward(0, proof, proofPath, new anchor.BN(100))
+      .accrueReward(0, proof, proofPath, rewardAmount)
       .accountsStrict({
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
@@ -457,5 +417,127 @@ describe("inference-staking", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
+
+    // Verify that unclaimedRewards on PoolOverview is updated.
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    assert(
+      poolOverviewPre.unclaimedRewards
+        .sub(poolOverview.unclaimedRewards)
+        .eq(rewardAmount)
+    );
+
+    const commissionFees = rewardAmount.muln(commissionRateBps / 10000);
+    const delegatorRewards = rewardAmount.sub(commissionFees);
+
+    // Verify that claimed delegator rewards are added to OperatorPool
+    // and rewardLastClaimedEpoch is updated.
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(
+      operatorPool.totalStakedAmount
+        .sub(operatorPre.totalStakedAmount)
+        .eq(delegatorRewards)
+    );
+    assert(operatorPool.rewardLastClaimedEpoch.eqn(2));
+    assert(operatorPool.totalShares.eq(operatorPre.totalShares));
+    assert(operatorPool.totalUnstaking.eq(operatorPre.totalUnstaking));
+    assert(operatorPool.accruedRewards.isZero());
+    assert(operatorPool.accruedCommission.isZero());
+    assert.isNull(operatorPool.newCommissionRateBps);
+
+    // Verify that operator's shares remain unchanged with auto-stake disabled.
+    const operatorStakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+    assert(operatorStakingRecordPre.shares.eq(operatorStakingRecord.shares));
+
+    // Verify that token balance changes are correct.
+    const rewardBalance = await connection.getTokenAccountBalance(
+      setup.rewardTokenAccount
+    );
+    const stakedBalance = await connection.getTokenAccountBalance(
+      setup.pool1.stakedTokenAccount
+    );
+    const feeBalance = await connection.getTokenAccountBalance(
+      setup.pool1.feeTokenAccount
+    );
+    assert(
+      rewardAmount.eqn(
+        Number(rewardBalancePre.value.amount) -
+          Number(rewardBalance.value.amount)
+      )
+    );
+    assert(
+      commissionFees.eqn(
+        Number(feeBalance.value.amount) - Number(feeBalancePre.value.amount)
+      )
+    );
+    assert(
+      delegatorRewards.eqn(
+        Number(stakedBalance.value.amount) -
+          Number(stakedBalancePre.value.amount)
+      )
+    );
   });
+
+  it.skip("Claim unstake for user successfully", async () => {
+    await sleep(unstakeDelaySeconds.toNumber() * 1000);
+
+    const ownerTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.user1
+    );
+    const tokenBalancePre =
+      await connection.getTokenAccountBalance(ownerTokenAccount);
+    const operatorPoolPre = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    const stakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.user1Record
+    );
+
+    await program.methods
+      .claimUnstake()
+      .accountsStrict({
+        owner: setup.user1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.user1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        ownerTokenAccount,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(
+      operatorPoolPre.totalUnstaking
+        .sub(operatorPool.totalUnstaking)
+        .eq(stakingRecordPre.tokensUnstakeAmount)
+    );
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.user1Record
+    );
+    const tokenBalancePost =
+      await connection.getTokenAccountBalance(ownerTokenAccount);
+    const amountClaimed =
+      Number(tokenBalancePost.value.amount) -
+      Number(tokenBalancePre.value.amount);
+
+    assert(stakingRecordPre.tokensUnstakeAmount.eqn(amountClaimed));
+    assert(stakingRecord.tokensUnstakeAmount.isZero());
+    assert(stakingRecord.unstakeAtTimestamp.isZero());
+  });
+
+  // TODO: Add test for accruing of past epoch rewards for same OperatorPool.
+  // TODO: Add test for accruing with auto-stake enabled for same OperatorPool.
+  // TODO: Add test for accruing with commission fee change for OperatorPool.
 });
