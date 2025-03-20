@@ -1,0 +1,26 @@
+{
+  "name": "inference-staking",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:package": "yarn clean && rollup -c",
+    "clean": "rm -rf ./dist",
+    "prepublishOnly": "node ./scripts/preparePkgForRegistry.js && rollup -c",
+    "postpublish": "node ./scripts/rollbackPkg.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "rollup": "^4.36.0",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.0"
+  }
+}

@@ -1,6 +1,4 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { InferenceStaking } from "../target/types/inference_staking";
 import { SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 import {
@@ -10,6 +8,7 @@ import {
 } from "@solana/spl-token";
 import { setupTests, sleep } from "./utils";
 import { constructMerkleTree, generateMerkleProof } from "./merkle";
+import { createProgram } from "inference-staking";
 
 describe("inference-staking", () => {
   let setup;
@@ -17,8 +16,8 @@ describe("inference-staking", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
-  const program = anchor.workspace
-    .inferenceStaking as Program<InferenceStaking>;
+  const program = createProgram(anchor.AnchorProvider.env());
+
   const connection = program.provider.connection;
 
   // Configs
