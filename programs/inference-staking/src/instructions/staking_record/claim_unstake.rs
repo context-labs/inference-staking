@@ -8,6 +8,10 @@ use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 pub struct ClaimUnstake<'info> {
     /// CHECK: No signer enforced on owner account as ix is permissionless.
     pub owner: UncheckedAccount<'info>,
+    #[account(
+        seeds = [b"PoolOverview".as_ref()],
+        bump = pool_overview.bump,
+    )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
     #[account(mut, has_one = operator_staking_record)]
     pub operator_pool: Box<Account<'info, OperatorPool>>,

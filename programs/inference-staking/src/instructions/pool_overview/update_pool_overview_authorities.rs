@@ -5,7 +5,12 @@ use crate::PoolOverview;
 #[derive(Accounts)]
 pub struct UpdatePoolOverviewAuthorities<'info> {
     pub admin: Signer<'info>,
-    #[account(mut, has_one = admin)]
+    #[account(
+        mut,
+        seeds = [b"PoolOverview".as_ref()],
+        bump = pool_overview.bump,
+        has_one = admin
+    )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
 }
 

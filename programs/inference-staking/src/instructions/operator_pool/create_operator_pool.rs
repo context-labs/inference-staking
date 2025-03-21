@@ -36,6 +36,8 @@ pub struct CreateOperatorPool<'info> {
     pub staking_record: Box<Account<'info, StakingRecord>>,
     #[account(
         mut,
+        seeds = [b"PoolOverview".as_ref()],
+        bump = pool_overview.bump,
         has_one = mint,
         constraint = pool_overview.allow_pool_creation,
     )]

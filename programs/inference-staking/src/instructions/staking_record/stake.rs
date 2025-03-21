@@ -7,6 +7,10 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 #[derive(Accounts)]
 pub struct Stake<'info> {
     pub owner: Signer<'info>,
+    #[account(
+        seeds = [b"PoolOverview".as_ref()],
+        bump = pool_overview.bump,
+    )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
     #[account(mut, has_one = operator_staking_record)]
     pub operator_pool: Box<Account<'info, OperatorPool>>,

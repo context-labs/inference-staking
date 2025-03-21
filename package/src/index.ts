@@ -6,6 +6,6 @@ import { IDL } from "./idl";
  * @param provider
  * @returns
  */
-export const createProgram = (provider: AnchorProvider) => {
+export const createProgram = (provider: AnchorProvider): Program<typeof IDL> => {
   return new Program(IDL, provider);
 };

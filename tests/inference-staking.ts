@@ -10,8 +10,9 @@ import { setupTests, sleep } from "./utils";
 import { constructMerkleTree, generateMerkleProof } from "./merkle";
 import { createProgram } from "inference-staking";
 
+// TODO should make operator admin different than PoolOverview admin
 describe("inference-staking", () => {
-  let setup;
+  let setup: Awaited<ReturnType<typeof setupTests>>;
 
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
@@ -212,6 +213,7 @@ describe("inference-staking", () => {
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
+  // TODO should verify the token amount was transferred correctly?
   it("Stake for user successfully", async () => {
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
@@ -489,8 +491,9 @@ describe("inference-staking", () => {
       setup.tokenMint,
       setup.user1
     );
-    const tokenBalancePre =
-      await connection.getTokenAccountBalance(ownerTokenAccount);
+    const tokenBalancePre = await connection.getTokenAccountBalance(
+      ownerTokenAccount
+    );
     const operatorPoolPre = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
@@ -525,8 +528,9 @@ describe("inference-staking", () => {
     const stakingRecord = await program.account.stakingRecord.fetch(
       setup.pool1.user1Record
     );
-    const tokenBalancePost =
-      await connection.getTokenAccountBalance(ownerTokenAccount);
+    const tokenBalancePost = await connection.getTokenAccountBalance(
+      ownerTokenAccount
+    );
     const amountClaimed =
       Number(tokenBalancePost.value.amount) -
       Number(tokenBalancePre.value.amount);
@@ -534,6 +538,98 @@ describe("inference-staking", () => {
     assert(stakingRecordPre.tokensUnstakeAmount.eqn(amountClaimed));
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
+  });
+
+  it("Admin should be able to slash OperatorPool 1 stake", async () => {
+    const destinationTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.signer1
+    );
+
+    const [
+      destinationBalancePre,
+      operatorPoolTokenAccountPre,
+      operatorStakingRecordPre,
+      operatorPoolPre,
+    ] = await Promise.all([
+      connection.getTokenAccountBalance(destinationTokenAccount),
+      connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      program.account.stakingRecord.fetch(setup.pool1.signer1Record),
+      program.account.operatorPool.fetch(setup.pool1.pool),
+    ]);
+
+    // Slash 5% of the operator's stake.
+    const sharesToSlash = operatorStakingRecordPre.shares.divn(20);
+    const expectedStakeRemoved = operatorPoolPre.totalStakedAmount
+      .mul(sharesToSlash)
+      .div(operatorPoolPre.totalShares);
+
+    await program.methods
+      .slashStake({ sharesAmount: sharesToSlash })
+      .accountsStrict({
+        admin: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        destination: destinationTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const [
+      destinationBalancePost,
+      operatorPoolTokenAccountPost,
+      operatorStakingRecordPost,
+      operatorPoolPost,
+    ] = await Promise.all([
+      connection.getTokenAccountBalance(destinationTokenAccount),
+      connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      program.account.stakingRecord.fetch(setup.pool1.signer1Record),
+      program.account.operatorPool.fetch(setup.pool1.pool),
+    ]);
+
+    // Assert change in Operator stake
+    assert(
+      operatorStakingRecordPost.shares
+        .add(sharesToSlash)
+        .eq(operatorStakingRecordPre.shares),
+      "StakingRecord Shares must decrement"
+    );
+    // Assert change in OperatorPool
+    assert(
+      operatorPoolPost.totalShares.eq(
+        operatorPoolPre.totalShares.sub(sharesToSlash)
+      ),
+      "OperatorPool total shares must decrement"
+    );
+    assert(
+      operatorPoolPost.totalStakedAmount.eq(
+        operatorPoolPre.totalStakedAmount.sub(expectedStakeRemoved)
+      ),
+      "OperatorPool total staked amount must decrement"
+    );
+
+    // Assert OperatorPool token account sent tokens
+    assert(
+      new anchor.BN(operatorPoolTokenAccountPost.value.amount).eq(
+        new anchor.BN(operatorPoolTokenAccountPre.value.amount).sub(
+          expectedStakeRemoved
+        )
+      ),
+      "OperatorPool token account must send the slashed amount"
+    );
+
+    // Assert destination recevied tokens
+    assert(
+      new anchor.BN(destinationBalancePost.value.amount).eq(
+        new anchor.BN(destinationBalancePre.value.amount).add(
+          expectedStakeRemoved
+        )
+      ),
+      "Destination token account must receive the slashed amount"
+    );
   });
 
   // TODO: Add test for accruing of past epoch rewards for same OperatorPool.

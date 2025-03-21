@@ -6,7 +6,11 @@ use crate::state::{OperatorPool, PoolOverview, RewardRecord, StakingRecord};
 
 #[derive(Accounts)]
 pub struct AccrueReward<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [b"PoolOverview".as_ref()],
+        bump = pool_overview.bump,
+    )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
     #[account(constraint = reward_record.epoch == operator_pool.reward_last_claimed_epoch + 1)]
     pub reward_record: Box<Account<'info, RewardRecord>>,
