@@ -2,6 +2,7 @@
 
 pub mod error;
 pub mod instructions;
+pub mod macros;
 pub mod state;
 
 use instructions::*;
@@ -84,5 +85,9 @@ pub mod inference_staking {
         reward_amount: u64,
     ) -> Result<()> {
         accrue_reward::handler(ctx, merkle_index, proof, proof_path, reward_amount)
+    }
+
+    pub fn slash_stake(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
+        slash_stake::handler(ctx, args)
     }
 }
