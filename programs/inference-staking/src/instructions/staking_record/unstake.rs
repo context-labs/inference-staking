@@ -19,6 +19,14 @@ pub struct Unstake<'info> {
         has_one = operator_pool,
     )]
     pub owner_staking_record: Box<Account<'info, StakingRecord>>,
+    #[account(
+        seeds = [
+          operator_pool.key().as_ref(),
+          operator_pool.admin.as_ref(),
+          b"StakingRecord".as_ref()
+        ],
+        bump,
+    )]
     pub operator_staking_record: Box<Account<'info, StakingRecord>>,
 }
 
