@@ -12,7 +12,14 @@ pub struct AccrueReward<'info> {
         bump = pool_overview.bump,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
-    #[account(constraint = reward_record.epoch == operator_pool.reward_last_claimed_epoch + 1)]
+    #[account(
+        seeds = [
+          &reward_record.epoch.to_le_bytes(),
+          b"RewardRecord".as_ref()
+        ],
+        bump,
+        constraint = reward_record.epoch == operator_pool.reward_last_claimed_epoch + 1
+    )]
     pub reward_record: Box<Account<'info, RewardRecord>>,
     #[account(
         mut, 
