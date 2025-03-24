@@ -12,11 +12,31 @@ pub struct AccrueReward<'info> {
         bump = pool_overview.bump,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
-    #[account(constraint = reward_record.epoch == operator_pool.reward_last_claimed_epoch + 1)]
+    #[account(
+        seeds = [
+          &reward_record.epoch.to_le_bytes(),
+          b"RewardRecord".as_ref()
+        ],
+        bump,
+        constraint = reward_record.epoch == operator_pool.reward_last_claimed_epoch + 1
+    )]
     pub reward_record: Box<Account<'info, RewardRecord>>,
-    #[account(mut, has_one = operator_staking_record)]
+    #[account(
+        mut, 
+        seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
+        bump = operator_pool.bump,
+        has_one = operator_staking_record,
+    )]
     pub operator_pool: Box<Account<'info, OperatorPool>>,
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [
+          operator_pool.key().as_ref(),
+          operator_pool.admin.as_ref(),
+          b"StakingRecord".as_ref()
+        ],
+        bump,
+    )]
     pub operator_staking_record: Box<Account<'info, StakingRecord>>,
     #[account(
         mut,
