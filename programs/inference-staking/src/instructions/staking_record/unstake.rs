@@ -11,7 +11,12 @@ pub struct Unstake<'info> {
         bump = pool_overview.bump,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
-    #[account(mut, has_one = operator_staking_record)]
+    #[account(
+        mut,
+        seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
+        bump = operator_pool.bump,
+        has_one = operator_staking_record,
+    )]
     pub operator_pool: Box<Account<'info, OperatorPool>>,
     #[account(
         mut,
