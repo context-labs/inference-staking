@@ -16,6 +16,12 @@ pub struct Stake<'info> {
     pub operator_pool: Box<Account<'info, OperatorPool>>,
     #[account(
         mut,
+        seeds = [
+          operator_pool.key().as_ref(),
+          owner.key().as_ref(),
+          b"StakingRecord".as_ref()
+        ],
+        bump,
         has_one = owner,
         has_one = operator_pool,
     )]
