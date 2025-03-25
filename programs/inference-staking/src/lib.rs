@@ -78,8 +78,15 @@ pub mod inference_staking {
         accrue_reward::handler(ctx, merkle_index, proof, proof_path, reward_amount)
     }
 
+    /* PoolOverview admin instructions */
+
     pub fn slash_stake(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
         slash_stake::handler(ctx, args)
+    }
+
+    /// PoolOverview admin sets the `is_halted` status of an OperatorPool.
+    pub fn set_halt_status(ctx: Context<SetHaltStatus>, args: SetHaltStatusArgs) -> Result<()> {
+        set_halt_status::handler(ctx, args)
     }
 
     /* OperatorPool admin instructions */
@@ -94,10 +101,5 @@ pub mod inference_staking {
 
     pub fn withdraw_operator_commission(ctx: Context<WithdrawOperatorCommission>) -> Result<()> {
         withdraw_operator_commission::handler(ctx)
-    }
-
-    /// OperatorPool admin sets the `is_halted` status of the OperatorPool.
-    pub fn set_halt_status(ctx: Context<SetHaltStatus>, args: SetHaltStatusArgs) -> Result<()> {
-        set_halt_status::handler(ctx, args)
     }
 }

@@ -38,3 +38,10 @@ pub struct PoolOverview {
     /// Total amount of reward tokens across all epochs that are issued, but yet to be paid out.
     pub unclaimed_rewards: u64,
 }
+
+impl PoolOverview {
+    /// Checks if the provided authority is a valid halt authority.
+    pub fn is_valid_halt_authority(&self, authority: &Pubkey) -> bool {
+        self.halt_authorities.iter().any(|a| a.eq(authority))
+    }
+}

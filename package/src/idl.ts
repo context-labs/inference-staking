@@ -558,14 +558,26 @@ const _IDL = {
     {
       name: "setHaltStatus",
       docs: [
-        "OperatorPool admin sets the `is_halted` status of the OperatorPool.",
+        "PoolOverview admin sets the `is_halted` status of an OperatorPool.",
       ],
       discriminator: [39, 9, 170, 100, 62, 112, 229, 71],
       accounts: [
         {
-          name: "admin",
+          name: "authority",
           signer: true,
-          relations: ["operatorPool"],
+        },
+        {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
         },
         {
           name: "operatorPool",
@@ -1133,6 +1145,11 @@ const _IDL = {
       code: 6010,
       name: "withdrawalsHalted",
       msg: "Withdrawals are halted",
+    },
+    {
+      code: 6011,
+      name: "invalidHaltAuthority",
+      msg: "Authority is not valid",
     },
   ],
   types: [
