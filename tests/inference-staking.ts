@@ -670,13 +670,6 @@ describe("inference-staking", () => {
       "Fee TokenAccount must have 0 balance"
     );
 
-    console.log(
-      "WHAT",
-      destinationPost.value.uiAmount,
-      destinationPre.value.uiAmount,
-      feeTokenAccountPre.value.uiAmount
-    );
-
     // Assert fee balance was transferred to destination
     assert(
       new anchor.BN(destinationPost.value.amount)
@@ -684,6 +677,42 @@ describe("inference-staking", () => {
         .eq(new anchor.BN(feeTokenAccountPre.value.amount)),
       "Destination must receive the fee balance"
     );
+  });
+
+  it("OperatorPool 1 admin should update halt status status", async () => {
+    await program.methods
+      .setHaltStatus({
+        isHalted: true,
+      })
+      .accountsStrict({
+        admin: setup.signer1,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    let operatorPoolPost = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(operatorPoolPost.isHalted, "OperatorPool must be halted");
+
+    // Set back to unhalted
+    await program.methods
+      .setHaltStatus({
+        isHalted: false,
+      })
+      .accountsStrict({
+        admin: setup.signer1,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    operatorPoolPost = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    assert(!operatorPoolPost.isHalted, "OperatorPool must be unhalted");
   });
 
   // TODO: Add test for accruing of past epoch rewards for same OperatorPool.
