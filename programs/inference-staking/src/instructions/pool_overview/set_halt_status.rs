@@ -1,16 +1,23 @@
 use anchor_lang::prelude::*;
 
-use crate::state::OperatorPool;
+use crate::{
+    error::ErrorCode,
+    state::{OperatorPool, PoolOverview},
+};
 
 #[derive(Accounts)]
 pub struct SetHaltStatus<'info> {
-    pub admin: Signer<'info>,
+    pub authority: Signer<'info>,
+    #[account(
+      seeds = [b"PoolOverview".as_ref()],
+      bump = pool_overview.bump,
+      constraint = pool_overview.is_valid_halt_authority(authority.key) @ ErrorCode::InvalidHaltAuthority,
+    )]
+    pub pool_overview: Account<'info, PoolOverview>,
     #[account(
       mut,
       seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
       bump = operator_pool.bump,
-      // Admin must sign to invoke this instruction
-      has_one = admin,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
 }

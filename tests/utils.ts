@@ -25,6 +25,7 @@ export async function setupTests() {
   const user1Kp = new Keypair();
   const user2Kp = new Keypair();
   const user3Kp = new Keypair();
+  const haltAuthority1Kp = new Keypair();
   const provider = getProvider();
 
   // Airdrop SOL to all users
@@ -165,6 +166,7 @@ export async function setupTests() {
     signer2: signer2Kp.publicKey,
     signer3Kp,
     signer3: signer3Kp.publicKey,
+    haltAuthority1Kp,
     provider,
     user1Kp,
     user1: user1Kp.publicKey,

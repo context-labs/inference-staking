@@ -100,6 +100,28 @@ describe("inference-staking", () => {
     assert(poolOverview.unclaimedRewards.isZero());
   });
 
+  it("Update PoolOverview authorities successfully", async () => {
+    await program.methods
+      .updatePoolOverviewAuthorities(setup.signer1, [
+        setup.haltAuthority1Kp.publicKey,
+      ])
+      .accountsStrict({
+        admin: setup.signer1,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    assert(poolOverview.admin.equals(setup.signer1));
+    assert(poolOverview.haltAuthorities.length === 1);
+    assert(
+      poolOverview.haltAuthorities[0].equals(setup.haltAuthority1Kp.publicKey)
+    );
+  });
+
   it("Create OperatorPool 1 successfully", async () => {
     await program.methods
       .createOperatorPool(autoStakeFees, commissionRateBps, allowDelegation)
@@ -679,16 +701,17 @@ describe("inference-staking", () => {
     );
   });
 
-  it("OperatorPool 1 admin should update halt status status", async () => {
+  it("PoolOverview admin should update halt status status", async () => {
     await program.methods
       .setHaltStatus({
         isHalted: true,
       })
       .accountsStrict({
-        admin: setup.signer1,
+        authority: setup.haltAuthority1Kp.publicKey,
+        poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
       })
-      .signers([setup.signer1Kp])
+      .signers([setup.haltAuthority1Kp])
       .rpc();
 
     let operatorPoolPost = await program.account.operatorPool.fetch(
@@ -702,10 +725,11 @@ describe("inference-staking", () => {
         isHalted: false,
       })
       .accountsStrict({
-        admin: setup.signer1,
+        authority: setup.haltAuthority1Kp.publicKey,
+        poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
       })
-      .signers([setup.signer1Kp])
+      .signers([setup.haltAuthority1Kp])
       .rpc();
 
     operatorPoolPost = await program.account.operatorPool.fetch(
