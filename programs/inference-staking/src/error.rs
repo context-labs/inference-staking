@@ -20,4 +20,8 @@ pub enum ErrorCode {
     ClosedPool,
     #[msg("Invalid Proof")]
     InvalidProof,
+    #[msg("OperatorPool is halted")]
+    OperatorPoolHalted,
+    #[msg("Withdrawals are halted")]
+    WithdrawalsHalted,
 }

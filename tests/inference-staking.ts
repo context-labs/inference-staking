@@ -632,6 +632,60 @@ describe("inference-staking", () => {
     );
   });
 
+  it("OperatorPool 1 Admin should be able to withdraw reward commission", async () => {
+    const destinationTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.signer1
+    );
+    const [operatorPoolPre, feeTokenAccountPre, destinationPre] =
+      await Promise.all([
+        program.account.operatorPool.fetch(setup.pool1.pool),
+        connection.getTokenAccountBalance(setup.pool1.feeTokenAccount),
+        connection.getTokenAccountBalance(destinationTokenAccount),
+      ]);
+
+    await program.methods
+      .withdrawOperatorCommission()
+      .accountsStrict({
+        admin: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        feeTokenAccount: setup.pool1.feeTokenAccount,
+        destination: destinationTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const [operatorPoolPost, feeTokenAccountPost, destinationPost] =
+      await Promise.all([
+        program.account.operatorPool.fetch(setup.pool1.pool),
+        connection.getTokenAccountBalance(setup.pool1.feeTokenAccount),
+        connection.getTokenAccountBalance(destinationTokenAccount),
+      ]);
+
+    // Assert Fee TokenAccount has 0 balance
+    assert(
+      feeTokenAccountPost.value.amount === "0",
+      "Fee TokenAccount must have 0 balance"
+    );
+
+    console.log(
+      "WHAT",
+      destinationPost.value.uiAmount,
+      destinationPre.value.uiAmount,
+      feeTokenAccountPre.value.uiAmount
+    );
+
+    // Assert fee balance was transferred to destination
+    assert(
+      new anchor.BN(destinationPost.value.amount)
+        .sub(new anchor.BN(destinationPre.value.amount))
+        .eq(new anchor.BN(feeTokenAccountPre.value.amount)),
+      "Destination must receive the fee balance"
+    );
+  });
+
   // TODO: Add test for accruing of past epoch rewards for same OperatorPool.
   // TODO: Add test for accruing with auto-stake enabled for same OperatorPool.
   // TODO: Add test for accruing with commission fee change for OperatorPool.

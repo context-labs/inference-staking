@@ -37,14 +37,61 @@ const _IDL = {
         },
         {
           name: "rewardRecord",
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "reward_record.epoch",
+                account: "rewardRecord",
+              },
+              {
+                kind: "const",
+                value: [82, 101, 119, 97, 114, 100, 82, 101, 99, 111, 114, 100],
+              },
+            ],
+          },
         },
         {
           name: "operatorPool",
           writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operator_pool.pool_id",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+            ],
+          },
         },
         {
           name: "operatorStakingRecord",
           writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+              {
+                kind: "account",
+                path: "operator_pool.admin",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
+                ],
+              },
+            ],
+          },
           relations: ["operatorPool"],
         },
         {
@@ -145,14 +192,66 @@ const _IDL = {
         {
           name: "operatorPool",
           writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operator_pool.pool_id",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+            ],
+          },
           relations: ["ownerStakingRecord"],
         },
         {
           name: "ownerStakingRecord",
           writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+              {
+                kind: "account",
+                path: "owner",
+              },
+              {
+                kind: "const",
+                value: [
+                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
+                ],
+              },
+            ],
+          },
         },
         {
           name: "operatorStakingRecord",
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+              {
+                kind: "account",
+                path: "operator_pool.admin",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
+                ],
+              },
+            ],
+          },
           relations: ["operatorPool"],
         },
         {
@@ -580,14 +679,66 @@ const _IDL = {
         {
           name: "operatorPool",
           writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operator_pool.pool_id",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+            ],
+          },
           relations: ["ownerStakingRecord"],
         },
         {
           name: "ownerStakingRecord",
           writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+              {
+                kind: "account",
+                path: "owner",
+              },
+              {
+                kind: "const",
+                value: [
+                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
+                ],
+              },
+            ],
+          },
         },
         {
           name: "operatorStakingRecord",
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+              {
+                kind: "account",
+                path: "operator_pool.admin",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
+                ],
+              },
+            ],
+          },
           relations: ["operatorPool"],
         },
         {
@@ -647,14 +798,66 @@ const _IDL = {
         {
           name: "operatorPool",
           writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operator_pool.pool_id",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+            ],
+          },
           relations: ["ownerStakingRecord"],
         },
         {
           name: "ownerStakingRecord",
           writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+              {
+                kind: "account",
+                path: "owner",
+              },
+              {
+                kind: "const",
+                value: [
+                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
+                ],
+              },
+            ],
+          },
         },
         {
           name: "operatorStakingRecord",
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+              {
+                kind: "account",
+                path: "operator_pool.admin",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
+                ],
+              },
+            ],
+          },
           relations: ["operatorPool"],
         },
       ],
@@ -745,6 +948,74 @@ const _IDL = {
         },
       ],
     },
+    {
+      name: "withdrawOperatorCommission",
+      discriminator: [235, 10, 174, 108, 185, 188, 152, 196],
+      accounts: [
+        {
+          name: "admin",
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+        {
+          name: "operatorPool",
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operator_pool.pool_id",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+            ],
+          },
+        },
+        {
+          name: "feeTokenAccount",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [70, 101, 101, 84, 111, 107, 101, 110],
+              },
+            ],
+          },
+        },
+        {
+          name: "destination",
+          docs: ["Destination for the commission."],
+          writable: true,
+        },
+        {
+          name: "tokenProgram",
+          address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        },
+      ],
+      args: [],
+    },
   ],
   accounts: [
     {
@@ -809,6 +1080,11 @@ const _IDL = {
       code: 6008,
       name: "invalidProof",
       msg: "Invalid Proof",
+    },
+    {
+      code: 6009,
+      name: "operatorPoolHalted",
+      msg: "OperatorPool is halted",
     },
   ],
   types: [

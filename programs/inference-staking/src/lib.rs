@@ -90,4 +90,8 @@ pub mod inference_staking {
     pub fn slash_stake(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
         slash_stake::handler(ctx, args)
     }
+
+    pub fn withdraw_operator_commission(ctx: Context<WithdrawOperatorCommission>) -> Result<()> {
+        withdraw_operator_commission::handler(ctx)
+    }
 }
