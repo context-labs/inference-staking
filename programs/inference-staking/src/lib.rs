@@ -44,15 +44,6 @@ pub mod inference_staking {
         )
     }
 
-    pub fn create_operator_pool(
-        ctx: Context<CreateOperatorPool>,
-        auto_stake_fees: bool,
-        commission_rate_bps: u16,
-        allow_delegation: bool,
-    ) -> Result<()> {
-        create_operator_pool::handler(ctx, auto_stake_fees, commission_rate_bps, allow_delegation)
-    }
-
     pub fn create_staking_record(ctx: Context<CreateStakingRecord>) -> Result<()> {
         create_staking_record::handler(ctx)
     }
@@ -91,7 +82,22 @@ pub mod inference_staking {
         slash_stake::handler(ctx, args)
     }
 
+    /* OperatorPool admin instructions */
+    pub fn create_operator_pool(
+        ctx: Context<CreateOperatorPool>,
+        auto_stake_fees: bool,
+        commission_rate_bps: u16,
+        allow_delegation: bool,
+    ) -> Result<()> {
+        create_operator_pool::handler(ctx, auto_stake_fees, commission_rate_bps, allow_delegation)
+    }
+
     pub fn withdraw_operator_commission(ctx: Context<WithdrawOperatorCommission>) -> Result<()> {
         withdraw_operator_commission::handler(ctx)
+    }
+
+    /// OperatorPool admin sets the `is_halted` status of the OperatorPool.
+    pub fn set_halt_status(ctx: Context<SetHaltStatus>, args: SetHaltStatusArgs) -> Result<()> {
+        set_halt_status::handler(ctx, args)
     }
 }

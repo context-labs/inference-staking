@@ -556,6 +556,49 @@ const _IDL = {
       args: [],
     },
     {
+      name: "setHaltStatus",
+      docs: [
+        "OperatorPool admin sets the `is_halted` status of the OperatorPool.",
+      ],
+      discriminator: [39, 9, 170, 100, 62, 112, 229, 71],
+      accounts: [
+        {
+          name: "admin",
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "operatorPool",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operator_pool.pool_id",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+            ],
+          },
+        },
+      ],
+      args: [
+        {
+          name: "args",
+          type: {
+            defined: {
+              name: "setHaltStatusArgs",
+            },
+          },
+        },
+      ],
+    },
+    {
       name: "slashStake",
       discriminator: [190, 242, 137, 27, 41, 18, 233, 37],
       accounts: [
@@ -1086,6 +1129,11 @@ const _IDL = {
       name: "operatorPoolHalted",
       msg: "OperatorPool is halted",
     },
+    {
+      code: 6010,
+      name: "withdrawalsHalted",
+      msg: "Withdrawals are halted",
+    },
   ],
   types: [
     {
@@ -1302,6 +1350,19 @@ const _IDL = {
             name: "totalRewards",
             docs: ["Amount of reward tokens issued for this epoch."],
             type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "setHaltStatusArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "isHalted",
+            docs: ["Whether the OperatorPool should be halted."],
+            type: "bool",
           },
         ],
       },
