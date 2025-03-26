@@ -10,7 +10,6 @@ import { setupTests, sleep } from "./utils";
 import { constructMerkleTree, generateMerkleProof } from "./merkle";
 import { createProgram } from "inference-staking";
 
-// TODO should make operator admin different than PoolOverview admin
 describe("inference-staking", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
 
