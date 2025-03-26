@@ -73,25 +73,6 @@ const _IDL = {
         {
           name: "operatorStakingRecord",
           writable: true,
-          pda: {
-            seeds: [
-              {
-                kind: "account",
-                path: "operatorPool",
-              },
-              {
-                kind: "account",
-                path: "operator_pool.admin",
-                account: "operatorPool",
-              },
-              {
-                kind: "const",
-                value: [
-                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
-                ],
-              },
-            ],
-          },
           relations: ["operatorPool"],
         },
         {
@@ -169,6 +150,87 @@ const _IDL = {
       ],
     },
     {
+      name: "changeOperatorStakingRecord",
+      docs: [
+        "OperatorPool admin-only instruction to change the StakingRecord associated with",
+        "the OperatorPool.",
+      ],
+      discriminator: [142, 191, 20, 77, 230, 99, 245, 184],
+      accounts: [
+        {
+          name: "admin",
+          docs: ["Admin of the OperatorPool"],
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "owner",
+          docs: [
+            "Owner of the current StakingRecord that will become the OperatorPool StakingRecord",
+          ],
+          signer: true,
+          relations: ["newStakingRecord"],
+        },
+        {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+        {
+          name: "operatorPool",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operator_pool.pool_id",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+            ],
+          },
+        },
+        {
+          name: "operatorStakingRecord",
+        },
+        {
+          name: "newStakingRecord",
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+              {
+                kind: "account",
+                path: "owner",
+              },
+              {
+                kind: "const",
+                value: [
+                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
+                ],
+              },
+            ],
+          },
+        },
+      ],
+      args: [],
+    },
+    {
       name: "claimUnstake",
       discriminator: [172, 113, 117, 178, 223, 245, 247, 118],
       accounts: [
@@ -233,25 +295,6 @@ const _IDL = {
         },
         {
           name: "operatorStakingRecord",
-          pda: {
-            seeds: [
-              {
-                kind: "account",
-                path: "operatorPool",
-              },
-              {
-                kind: "account",
-                path: "operator_pool.admin",
-                account: "operatorPool",
-              },
-              {
-                kind: "const",
-                value: [
-                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
-                ],
-              },
-            ],
-          },
           relations: ["operatorPool"],
         },
         {
@@ -654,24 +697,6 @@ const _IDL = {
         {
           name: "operatorStakingRecord",
           writable: true,
-          pda: {
-            seeds: [
-              {
-                kind: "account",
-                path: "operatorPool",
-              },
-              {
-                kind: "account",
-                path: "admin",
-              },
-              {
-                kind: "const",
-                value: [
-                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
-                ],
-              },
-            ],
-          },
         },
         {
           name: "stakedTokenAccount",
@@ -775,25 +800,6 @@ const _IDL = {
         },
         {
           name: "operatorStakingRecord",
-          pda: {
-            seeds: [
-              {
-                kind: "account",
-                path: "operatorPool",
-              },
-              {
-                kind: "account",
-                path: "operator_pool.admin",
-                account: "operatorPool",
-              },
-              {
-                kind: "const",
-                value: [
-                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
-                ],
-              },
-            ],
-          },
           relations: ["operatorPool"],
         },
         {
@@ -894,25 +900,6 @@ const _IDL = {
         },
         {
           name: "operatorStakingRecord",
-          pda: {
-            seeds: [
-              {
-                kind: "account",
-                path: "operatorPool",
-              },
-              {
-                kind: "account",
-                path: "operator_pool.admin",
-                account: "operatorPool",
-              },
-              {
-                kind: "const",
-                value: [
-                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
-                ],
-              },
-            ],
-          },
           relations: ["operatorPool"],
         },
       ],

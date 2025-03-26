@@ -10,7 +10,6 @@ import { setupTests, sleep } from "./utils";
 import { constructMerkleTree, generateMerkleProof } from "./merkle";
 import { createProgram } from "inference-staking";
 
-// TODO should make operator admin different than PoolOverview admin
 describe("inference-staking", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
 
@@ -102,7 +101,7 @@ describe("inference-staking", () => {
 
   it("Update PoolOverview authorities successfully", async () => {
     await program.methods
-      .updatePoolOverviewAuthorities(setup.signer1, [
+      .updatePoolOverviewAuthorities(setup.poolOverviewAdminKp.publicKey, [
         setup.haltAuthority1Kp.publicKey,
       ])
       .accountsStrict({
@@ -115,7 +114,7 @@ describe("inference-staking", () => {
     const poolOverview = await program.account.poolOverview.fetch(
       setup.poolOverview
     );
-    assert(poolOverview.admin.equals(setup.signer1));
+    assert(poolOverview.admin.equals(setup.poolOverviewAdminKp.publicKey));
     assert(poolOverview.haltAuthorities.length === 1);
     assert(
       poolOverview.haltAuthorities[0].equals(setup.haltAuthority1Kp.publicKey)
@@ -343,13 +342,13 @@ describe("inference-staking", () => {
       .createRewardRecord([], new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
-        admin: setup.signer1,
+        admin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[1],
         rewardTokenAccount: setup.rewardTokenAccount,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.signer1Kp])
+      .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
   });
 
@@ -380,13 +379,13 @@ describe("inference-staking", () => {
       .createRewardRecord(merkleRoots, totalRewards)
       .accountsStrict({
         payer: setup.payer,
-        admin: setup.signer1,
+        admin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
         rewardTokenAccount: setup.rewardTokenAccount,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.signer1Kp])
+      .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
 
     const rewardRecord = await program.account.rewardRecord.fetch(
@@ -589,7 +588,7 @@ describe("inference-staking", () => {
     await program.methods
       .slashStake({ sharesAmount: sharesToSlash })
       .accountsStrict({
-        admin: setup.signer1,
+        admin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
         operatorStakingRecord: setup.pool1.signer1Record,
@@ -597,7 +596,7 @@ describe("inference-staking", () => {
         destination: destinationTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
-      .signers([setup.signer1Kp])
+      .signers([setup.poolOverviewAdminKp])
       .rpc();
 
     const [
@@ -737,6 +736,52 @@ describe("inference-staking", () => {
     );
 
     assert(!operatorPoolPost.isHalted, "OperatorPool must be unhalted");
+  });
+
+  it("OperatorPool admin should update StakingRecord successfully", async () => {
+    // Set StakingRecord to user1's, then changes it back.
+    await program.methods
+      .changeOperatorStakingRecord()
+      .accountsStrict({
+        admin: setup.signer1,
+        owner: setup.user1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        newStakingRecord: setup.pool1.user1Record,
+      })
+      .signers([setup.signer1Kp, setup.user1Kp])
+      .rpc();
+
+    let operatorPoolPost = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    assert(
+      operatorPoolPost.operatorStakingRecord.equals(setup.pool1.user1Record),
+      "OperatorPool1 should use user1 StakingRecord"
+    );
+
+    await program.methods
+      .changeOperatorStakingRecord()
+      .accountsStrict({
+        admin: setup.signer1,
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        operatorStakingRecord: setup.pool1.user1Record,
+        newStakingRecord: setup.pool1.signer1Record,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    operatorPoolPost = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(
+      operatorPoolPost.operatorStakingRecord.equals(setup.pool1.signer1Record),
+      "OperatorPool1 should use signer1 StakingRecord"
+    );
   });
 
   // TODO: Add test for accruing of past epoch rewards for same OperatorPool.

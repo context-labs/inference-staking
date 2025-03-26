@@ -30,12 +30,7 @@ pub struct AccrueReward<'info> {
     pub operator_pool: Box<Account<'info, OperatorPool>>,
     #[account(
         mut,
-        seeds = [
-          operator_pool.key().as_ref(),
-          operator_pool.admin.as_ref(),
-          b"StakingRecord".as_ref()
-        ],
-        bump,
+        address = operator_pool.operator_staking_record,
     )]
     pub operator_staking_record: Box<Account<'info, StakingRecord>>,
     #[account(

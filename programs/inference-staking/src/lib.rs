@@ -102,4 +102,10 @@ pub mod inference_staking {
     pub fn withdraw_operator_commission(ctx: Context<WithdrawOperatorCommission>) -> Result<()> {
         withdraw_operator_commission::handler(ctx)
     }
+
+    /// OperatorPool admin-only instruction to change the StakingRecord associated with
+    /// the OperatorPool.
+    pub fn change_operator_staking_record(ctx: Context<ChangeOperatorStakingRecord>) -> Result<()> {
+        change_operator_staking_record::handler(ctx)
+    }
 }
