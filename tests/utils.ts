@@ -19,6 +19,7 @@ export const arraysEqual = (a, b) => {
 
 export async function setupTests() {
   const payerKp = new Keypair();
+  const poolOverviewAdminKp = new Keypair();
   const signer1Kp = new Keypair();
   const signer2Kp = new Keypair();
   const signer3Kp = new Keypair();
@@ -160,6 +161,7 @@ export async function setupTests() {
   return {
     payerKp,
     payer: payerKp.publicKey,
+    poolOverviewAdminKp,
     signer1Kp,
     signer1: signer1Kp.publicKey,
     signer2Kp,

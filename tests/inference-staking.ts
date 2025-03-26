@@ -102,7 +102,7 @@ describe("inference-staking", () => {
 
   it("Update PoolOverview authorities successfully", async () => {
     await program.methods
-      .updatePoolOverviewAuthorities(setup.signer1, [
+      .updatePoolOverviewAuthorities(setup.poolOverviewAdminKp.publicKey, [
         setup.haltAuthority1Kp.publicKey,
       ])
       .accountsStrict({
@@ -115,7 +115,7 @@ describe("inference-staking", () => {
     const poolOverview = await program.account.poolOverview.fetch(
       setup.poolOverview
     );
-    assert(poolOverview.admin.equals(setup.signer1));
+    assert(poolOverview.admin.equals(setup.poolOverviewAdminKp.publicKey));
     assert(poolOverview.haltAuthorities.length === 1);
     assert(
       poolOverview.haltAuthorities[0].equals(setup.haltAuthority1Kp.publicKey)
@@ -343,13 +343,13 @@ describe("inference-staking", () => {
       .createRewardRecord([], new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
-        admin: setup.signer1,
+        admin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[1],
         rewardTokenAccount: setup.rewardTokenAccount,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.signer1Kp])
+      .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
   });
 
@@ -380,13 +380,13 @@ describe("inference-staking", () => {
       .createRewardRecord(merkleRoots, totalRewards)
       .accountsStrict({
         payer: setup.payer,
-        admin: setup.signer1,
+        admin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
         rewardTokenAccount: setup.rewardTokenAccount,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.signer1Kp])
+      .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
 
     const rewardRecord = await program.account.rewardRecord.fetch(
@@ -589,7 +589,7 @@ describe("inference-staking", () => {
     await program.methods
       .slashStake({ sharesAmount: sharesToSlash })
       .accountsStrict({
-        admin: setup.signer1,
+        admin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
         operatorStakingRecord: setup.pool1.signer1Record,
@@ -597,7 +597,7 @@ describe("inference-staking", () => {
         destination: destinationTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
-      .signers([setup.signer1Kp])
+      .signers([setup.poolOverviewAdminKp])
       .rpc();
 
     const [

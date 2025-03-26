@@ -33,12 +33,7 @@ pub struct ClaimUnstake<'info> {
     )]
     pub owner_staking_record: Box<Account<'info, StakingRecord>>,
     #[account(
-        seeds = [
-          operator_pool.key().as_ref(),
-          operator_pool.admin.as_ref(),
-          b"StakingRecord".as_ref()
-        ],
-        bump,
+        address = operator_pool.operator_staking_record,
     )]
     pub operator_staking_record: Box<Account<'info, StakingRecord>>,
     #[account(
