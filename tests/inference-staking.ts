@@ -739,6 +739,52 @@ describe("inference-staking", () => {
     assert(!operatorPoolPost.isHalted, "OperatorPool must be unhalted");
   });
 
+  it("OperatorPool admin should update StakingRecord successfully", async () => {
+    // Set StakingRecord to user1's, then changes it back.
+    await program.methods
+      .changeOperatorStakingRecord()
+      .accountsStrict({
+        admin: setup.signer1,
+        owner: setup.user1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        newStakingRecord: setup.pool1.user1Record,
+      })
+      .signers([setup.signer1Kp, setup.user1Kp])
+      .rpc();
+
+    let operatorPoolPost = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    assert(
+      operatorPoolPost.operatorStakingRecord.equals(setup.pool1.user1Record),
+      "OperatorPool1 should use user1 StakingRecord"
+    );
+
+    await program.methods
+      .changeOperatorStakingRecord()
+      .accountsStrict({
+        admin: setup.signer1,
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        operatorStakingRecord: setup.pool1.user1Record,
+        newStakingRecord: setup.pool1.signer1Record,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    operatorPoolPost = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(
+      operatorPoolPost.operatorStakingRecord.equals(setup.pool1.signer1Record),
+      "OperatorPool1 should use signer1 StakingRecord"
+    );
+  });
+
   // TODO: Add test for accruing of past epoch rewards for same OperatorPool.
   // TODO: Add test for accruing with auto-stake enabled for same OperatorPool.
   // TODO: Add test for accruing with commission fee change for OperatorPool.

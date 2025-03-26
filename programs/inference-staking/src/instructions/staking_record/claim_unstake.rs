@@ -133,12 +133,7 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
     // If Operator is claiming, check that they still maintain min. share percentage of pool after.
     if is_operator_claiming {
         let min_operator_share_bps = pool_overview.min_operator_share_bps;
-        let min_operator_shares = operator_pool
-            .total_shares
-            .checked_mul(min_operator_share_bps.into())
-            .unwrap()
-            .checked_div(10000)
-            .unwrap();
+        let min_operator_shares = operator_pool.calc_min_operator_shares(min_operator_share_bps);
         require_gte!(
             staking_record.shares,
             min_operator_shares,

@@ -121,4 +121,14 @@ impl OperatorPool {
             self.new_commission_rate_bps = None;
         }
     }
+
+    /// Calculate the discrete amount of shares an Operator must own of it's pool.
+    pub fn calc_min_operator_shares(&self, min_operator_share_bps: u16) -> u64 {
+        let shares_amount_u128 = u128::from(self.total_shares)
+            .checked_mul(min_operator_share_bps.into())
+            .unwrap()
+            .checked_div(10_000)
+            .unwrap();
+        u64::try_from(shares_amount_u128).unwrap()
+    }
 }

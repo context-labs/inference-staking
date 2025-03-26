@@ -100,12 +100,7 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
 
     // Check that operator still maintains min. share percentage of pool.
     let min_operator_share_bps = pool_overview.min_operator_share_bps;
-    let min_operator_shares = operator_pool
-        .total_shares
-        .checked_mul(min_operator_share_bps.into())
-        .unwrap()
-        .checked_div(10000)
-        .unwrap();
+    let min_operator_shares = operator_pool.calc_min_operator_shares(min_operator_share_bps);
     let operator_shares = if is_operator_staking {
         staking_record.shares
     } else {
