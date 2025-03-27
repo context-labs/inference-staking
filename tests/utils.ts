@@ -132,6 +132,16 @@ export async function setupTests() {
       INF_STAKING
     )[0],
   };
+  const pool2 = {
+    pool: operatorPool2
+  };
+  const pool3 = {
+    pool: operatorPool3
+  };
+  const pool4 = {
+    pool: operatorPool4
+  };
+
 
   const rewardRecords = {
     1: PublicKey.findProgramAddressSync(
@@ -179,6 +189,9 @@ export async function setupTests() {
     tokenMint,
     poolOverview,
     pool1,
+    pool2,
+    pool3,
+    pool4,
     rewardTokenAccount,
     rewardRecords,
     rewardEpochs,

@@ -376,6 +376,7 @@ describe("inference-staking", () => {
 
     // Create a record for epoch 2 with rewards for Operator 1 to 4.
     await program.methods
+      // @ts-ignore
       .createRewardRecord(merkleRoots, totalRewards)
       .accountsStrict({
         payer: setup.payer,
@@ -396,6 +397,63 @@ describe("inference-staking", () => {
     for (let i = 0; i < rewardRecord.merkleRoots.length; i++) {
       assert.deepEqual(rewardRecord.merkleRoots[i], Array.from(merkleRoots[i]));
     }
+  });
+
+  it("PoolOverview admin modifies RewardRecord successfully", async () => {
+    const epoch1Addresses = [
+      setup.pool1.pool.toString(),
+      setup.pool2.pool.toString(),
+      setup.pool3.pool.toString(),
+      setup.pool4.pool.toString(),
+    ];
+    const epoch1Amounts = [200, 100, 300, 400];
+
+    const merkleTree = constructMerkleTree(epoch1Addresses, epoch1Amounts);
+
+    const merkleRoots = [merkleTree[merkleTree.length - 1][0]];
+    let epoch1RewardRecord = await program.account.rewardRecord.fetch(
+      setup.rewardRecords[2]
+    );
+    const prevMerkleRoots = epoch1RewardRecord.merkleRoots;
+
+    await program.methods
+      // @ts-ignore
+      .modifyRewardRecord({
+        merkleRoots: merkleRoots,
+      })
+      .accountsStrict({
+        admin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        rewardRecord: setup.rewardRecords[2],
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    epoch1RewardRecord = await program.account.rewardRecord.fetch(
+      setup.rewardRecords[2]
+    );
+    assert.deepEqual(
+      epoch1RewardRecord.merkleRoots,
+      merkleRoots.map((root) => Array.from(root))
+    );
+
+    // Set root back to previous
+    await program.methods
+      // @ts-ignore
+      .modifyRewardRecord({
+        merkleRoots: prevMerkleRoots,
+      })
+      .accountsStrict({
+        admin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        rewardRecord: setup.rewardRecords[2],
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+    epoch1RewardRecord = await program.account.rewardRecord.fetch(
+      setup.rewardRecords[2]
+    );
+    assert.deepEqual(epoch1RewardRecord.merkleRoots, prevMerkleRoots);
   });
 
   it("Accrue Rewards successfully", async () => {

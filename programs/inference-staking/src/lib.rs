@@ -89,6 +89,13 @@ pub mod inference_staking {
         set_halt_status::handler(ctx, args)
     }
 
+    /// Instruction to allow the PoolOverview admin to update the merkle roots on an existing RewardRecord.
+    /// This currently does not allow the update of `total_rewards` to prevent accounting
+    /// complexities when some rewards may have already been accrued to the OperatorPool
+    pub fn modify_reward_record(ctx: Context<ModifyRewardRecord>, args: ModifyRewardRecordArgs) -> Result<()> {
+        modify_reward_record::handler(ctx, args)
+    }
+
     /* OperatorPool admin instructions */
     pub fn create_operator_pool(
         ctx: Context<CreateOperatorPool>,
