@@ -150,6 +150,41 @@ const _IDL = {
       ],
     },
     {
+      name: "changeOperatorAdmin",
+      discriminator: [54, 235, 203, 165, 49, 205, 221, 109],
+      accounts: [
+        {
+          name: "admin",
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "newAdmin",
+          signer: true,
+        },
+        {
+          name: "operatorPool",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operator_pool.pool_id",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+            ],
+          },
+        },
+      ],
+      args: [],
+    },
+    {
       name: "changeOperatorStakingRecord",
       docs: [
         "OperatorPool admin-only instruction to change the StakingRecord associated with",
