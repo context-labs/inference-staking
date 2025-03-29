@@ -170,6 +170,34 @@ describe("inference-staking", () => {
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
+  it("OperatorPool change admin successfully", async () => {
+    await program.methods
+      .changeOperatorAdmin()
+      .accountsStrict({
+        admin: setup.signer1,
+        newAdmin: setup.signer2,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.signer1Kp, setup.signer2Kp])
+      .rpc();
+
+      let operatorPool = await program.account.operatorPool.fetch(setup.pool1.pool);
+      assert(operatorPool.admin.equals(setup.signer2), "Admin should be signer2");
+
+      // Set back to signer 1
+      await program.methods
+      .changeOperatorAdmin()
+      .accountsStrict({
+        admin: setup.signer2,
+        newAdmin: setup.signer1,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.signer1Kp, setup.signer2Kp])
+      .rpc();
+      operatorPool = await program.account.operatorPool.fetch(setup.pool1.pool);
+      assert(operatorPool.admin.equals(setup.signer1), "Admin should be signer1");
+  });
+
   it("Create StakingRecord successfully", async () => {
     await program.methods
       .createStakingRecord()

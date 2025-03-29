@@ -115,4 +115,8 @@ pub mod inference_staking {
     pub fn change_operator_staking_record(ctx: Context<ChangeOperatorStakingRecord>) -> Result<()> {
         change_operator_staking_record::handler(ctx)
     }
+
+    pub fn change_operator_admin(ctx: Context<ChangeOperatorAdmin>) -> Result<()> {
+        change_operator_admin::handler(ctx)
+    }
 }
