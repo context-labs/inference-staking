@@ -202,6 +202,7 @@ const _IDL = {
               },
             ],
           },
+          relations: ["operatorStakingRecord", "newStakingRecord"],
         },
         {
           name: "operatorStakingRecord",
@@ -597,6 +598,62 @@ const _IDL = {
         },
       ],
       args: [],
+    },
+    {
+      name: "modifyRewardRecord",
+      docs: [
+        "Instruction to allow the PoolOverview admin to update the merkle roots on an existing RewardRecord.",
+        "This currently does not allow the update of `total_rewards` to prevent accounting",
+        "complexities when some rewards may have already been accrued to the OperatorPool",
+      ],
+      discriminator: [16, 109, 128, 67, 141, 121, 47, 186],
+      accounts: [
+        {
+          name: "admin",
+          signer: true,
+          relations: ["poolOverview"],
+        },
+        {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+        {
+          name: "rewardRecord",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "reward_record.epoch",
+                account: "rewardRecord",
+              },
+              {
+                kind: "const",
+                value: [82, 101, 119, 97, 114, 100, 82, 101, 99, 111, 114, 100],
+              },
+            ],
+          },
+        },
+      ],
+      args: [
+        {
+          name: "args",
+          type: {
+            defined: {
+              name: "modifyRewardRecordArgs",
+            },
+          },
+        },
+      ],
     },
     {
       name: "setHaltStatus",
@@ -1140,6 +1197,22 @@ const _IDL = {
     },
   ],
   types: [
+    {
+      name: "modifyRewardRecordArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "merkleRoots",
+            type: {
+              vec: {
+                array: ["u8", 32],
+              },
+            },
+          },
+        ],
+      },
+    },
     {
       name: "operatorPool",
       type: {
