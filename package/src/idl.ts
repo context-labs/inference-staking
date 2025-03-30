@@ -1040,7 +1040,11 @@ const _IDL = {
           type: "u16",
         },
         {
-          name: "unstakeDelaySeconds",
+          name: "delegatorUnstakeDelaySeconds",
+          type: "u64",
+        },
+        {
+          name: "operatorUnstakeDelaySeconds",
           type: "u64",
         },
       ],
@@ -1412,8 +1416,13 @@ const _IDL = {
             type: "u16",
           },
           {
-            name: "unstakeDelaySeconds",
-            docs: ["Delay for unstaking in seconds."],
+            name: "delegatorUnstakeDelaySeconds",
+            docs: ["Delay for unstaking in seconds for Delegators."],
+            type: "u64",
+          },
+          {
+            name: "operatorUnstakeDelaySeconds",
+            docs: ["Delay for unstaking in seconds for Operators."],
             type: "u64",
           },
           {

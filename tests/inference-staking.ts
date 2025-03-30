@@ -21,7 +21,8 @@ describe("inference-staking", () => {
   const connection = program.provider.connection;
 
   // Configs
-  const unstakeDelaySeconds = new anchor.BN(8);
+  const delegatorUnstakeDelaySeconds = new anchor.BN(8);
+  const operatorUnstakeDelaySeconds = new anchor.BN(20);
   const autoStakeFees = false;
   const commissionRateBps = 1500;
   const allowDelegation = true;
@@ -56,7 +57,8 @@ describe("inference-staking", () => {
     assert(!poolOverview.isWithdrawalHalted);
     assert(!poolOverview.allowPoolCreation);
     assert.equal(poolOverview.minOperatorShareBps, 0);
-    assert(poolOverview.unstakeDelaySeconds.isZero());
+    assert(poolOverview.delegatorUnstakeDelaySeconds.isZero());
+    assert(poolOverview.operatorUnstakeDelaySeconds.isZero());
     assert(poolOverview.totalPools.isZero());
     assert(poolOverview.completedRewardEpoch.isZero());
     assert(poolOverview.unclaimedRewards.isZero());
@@ -72,7 +74,8 @@ describe("inference-staking", () => {
         isWithdrawalHalted,
         allowPoolCreation,
         minOperatorShareBps,
-        unstakeDelaySeconds
+        delegatorUnstakeDelaySeconds,
+        operatorUnstakeDelaySeconds
       )
       .accountsStrict({
         admin: setup.signer1,
@@ -88,7 +91,12 @@ describe("inference-staking", () => {
     assert.equal(poolOverview.isWithdrawalHalted, isWithdrawalHalted);
     assert.equal(poolOverview.allowPoolCreation, allowPoolCreation);
     assert.equal(poolOverview.minOperatorShareBps, minOperatorShareBps);
-    assert(poolOverview.unstakeDelaySeconds.eq(unstakeDelaySeconds));
+    assert(
+      poolOverview.delegatorUnstakeDelaySeconds.eq(delegatorUnstakeDelaySeconds)
+    );
+    assert(
+      poolOverview.operatorUnstakeDelaySeconds.eq(operatorUnstakeDelaySeconds)
+    );
 
     // Check that all other values remain the same.
     assert(poolOverview.admin.equals(setup.signer1));
@@ -181,11 +189,13 @@ describe("inference-staking", () => {
       .signers([setup.signer1Kp, setup.signer2Kp])
       .rpc();
 
-      let operatorPool = await program.account.operatorPool.fetch(setup.pool1.pool);
-      assert(operatorPool.admin.equals(setup.signer2), "Admin should be signer2");
+    let operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(operatorPool.admin.equals(setup.signer2), "Admin should be signer2");
 
-      // Set back to signer 1
-      await program.methods
+    // Set back to signer 1
+    await program.methods
       .changeOperatorAdmin()
       .accountsStrict({
         admin: setup.signer2,
@@ -194,8 +204,8 @@ describe("inference-staking", () => {
       })
       .signers([setup.signer1Kp, setup.signer2Kp])
       .rpc();
-      operatorPool = await program.account.operatorPool.fetch(setup.pool1.pool);
-      assert(operatorPool.admin.equals(setup.signer1), "Admin should be signer1");
+    operatorPool = await program.account.operatorPool.fetch(setup.pool1.pool);
+    assert(operatorPool.admin.equals(setup.signer1), "Admin should be signer1");
   });
 
   it("Create StakingRecord successfully", async () => {
@@ -359,7 +369,62 @@ describe("inference-staking", () => {
     const currentTimestamp = Date.now() / 1000;
     assert.approximately(
       stakingRecord.unstakeAtTimestamp.toNumber(),
-      currentTimestamp + unstakeDelaySeconds.toNumber(),
+      currentTimestamp + delegatorUnstakeDelaySeconds.toNumber(),
+      3
+    );
+  });
+
+  it("Unstake for operator successfully", async () => {
+    const unstakeAmount = new anchor.BN(10_000);
+    const operatorPoolPre = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    const stakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+
+    await program.methods
+      .unstake(unstakeAmount)
+      .accountsStrict({
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(
+      operatorPoolPre.totalStakedAmount
+        .sub(operatorPool.totalStakedAmount)
+        .eq(unstakeAmount)
+    );
+    assert(
+      operatorPoolPre.totalShares
+        .sub(operatorPool.totalShares)
+        .eq(unstakeAmount)
+    );
+    // Token:Share at 1:1 ratio
+    assert(
+      operatorPool.totalUnstaking.eq(
+        operatorPoolPre.totalUnstaking.add(unstakeAmount)
+      )
+    );
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+    assert(stakingRecordPre.shares.sub(stakingRecord.shares).eq(unstakeAmount));
+    assert(stakingRecord.tokensUnstakeAmount.eq(unstakeAmount));
+
+    const currentTimestamp = Date.now() / 1000;
+    assert.approximately(
+      stakingRecord.unstakeAtTimestamp.toNumber(),
+      currentTimestamp + operatorUnstakeDelaySeconds.toNumber(),
       3
     );
   });
@@ -592,7 +657,7 @@ describe("inference-staking", () => {
   });
 
   it.skip("Claim unstake for user successfully", async () => {
-    await sleep(unstakeDelaySeconds.toNumber() * 1000);
+    await sleep(delegatorUnstakeDelaySeconds.toNumber() * 1000);
 
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,

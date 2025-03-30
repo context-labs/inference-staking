@@ -33,14 +33,16 @@ pub mod inference_staking {
         is_withdrawal_halted: bool,
         allow_pool_creation: bool,
         min_operator_share_bps: u16,
-        unstake_delay_seconds: u64,
+        delegator_unstake_delay_seconds: u64,
+        operator_unstake_delay_seconds: u64,
     ) -> Result<()> {
         update_pool_overview::handler(
             ctx,
             is_withdrawal_halted,
             allow_pool_creation,
             min_operator_share_bps,
-            unstake_delay_seconds,
+            delegator_unstake_delay_seconds,
+            operator_unstake_delay_seconds,
         )
     }
 
@@ -92,7 +94,10 @@ pub mod inference_staking {
     /// Instruction to allow the PoolOverview admin to update the merkle roots on an existing RewardRecord.
     /// This currently does not allow the update of `total_rewards` to prevent accounting
     /// complexities when some rewards may have already been accrued to the OperatorPool
-    pub fn modify_reward_record(ctx: Context<ModifyRewardRecord>, args: ModifyRewardRecordArgs) -> Result<()> {
+    pub fn modify_reward_record(
+        ctx: Context<ModifyRewardRecord>,
+        args: ModifyRewardRecordArgs,
+    ) -> Result<()> {
         modify_reward_record::handler(ctx, args)
     }
 
