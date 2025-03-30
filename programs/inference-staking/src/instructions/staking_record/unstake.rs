@@ -78,6 +78,14 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
     // Calculate number of tokens to unstake, and update token and share amounts on OperatorPool.
     let tokens_unstaked = operator_pool.unstake_tokens(share_amount);
 
+    // Determine the correct unstake cooldown period on whether it's a delegator
+    // or operator.
+    let unstake_delay_seconds = if is_operator_unstaking {
+        pool_overview.operator_unstake_delay_seconds
+    } else {
+        pool_overview.delegator_unstake_delay_seconds
+    };
+
     // Update owner's StakingRecord with new unstake details.
     staking_record.shares = staking_record.shares.checked_sub(share_amount).unwrap();
     staking_record.tokens_unstake_amount = staking_record
@@ -86,7 +94,7 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
         .unwrap();
     staking_record.unstake_at_timestamp = Clock::get()?
         .unix_timestamp
-        .checked_add(pool_overview.delegator_unstake_delay_seconds.try_into().unwrap())
+        .checked_add(unstake_delay_seconds.try_into().unwrap())
         .unwrap();
 
     // If Operator is unstaking, check that they still maintain min. share percentage of pool after.

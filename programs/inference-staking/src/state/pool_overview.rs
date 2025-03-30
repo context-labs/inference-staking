@@ -26,8 +26,11 @@ pub struct PoolOverview {
     /// would not be allowed to reduce their stake and no further delegations are allowed (unless pool is closed).
     pub min_operator_share_bps: u16,
 
-    /// Delay for unstaking in seconds.
+    /// Delay for unstaking in seconds for Delegators.
     pub delegator_unstake_delay_seconds: u64,
+
+    /// Delay for unstaking in seconds for Operators.
+    pub operator_unstake_delay_seconds: u64,
 
     /// Total number of pools created.
     pub total_pools: u64,
