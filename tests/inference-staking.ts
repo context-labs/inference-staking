@@ -591,7 +591,7 @@ describe("inference-staking", () => {
     );
   });
 
-  it.skip("Claim unstake for user successfully", async () => {
+  it("Claim unstake for user successfully", async () => {
     await sleep(unstakeDelaySeconds.toNumber() * 1000);
 
     const ownerTokenAccount = getAssociatedTokenAddressSync(

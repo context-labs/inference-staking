@@ -28,7 +28,7 @@ pub fn handler(
     pool_overview.is_withdrawal_halted = is_withdrawal_halted;
     pool_overview.allow_pool_creation = allow_pool_creation;
     pool_overview.min_operator_share_bps = min_operator_share_bps;
-    pool_overview.unstake_delay_seconds = unstake_delay_seconds;
+    pool_overview.delegator_unstake_delay_seconds = unstake_delay_seconds;
 
     Ok(())
 }

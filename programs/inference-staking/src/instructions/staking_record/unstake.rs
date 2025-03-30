@@ -86,7 +86,7 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
         .unwrap();
     staking_record.unstake_at_timestamp = Clock::get()?
         .unix_timestamp
-        .checked_add(pool_overview.unstake_delay_seconds.try_into().unwrap())
+        .checked_add(pool_overview.delegator_unstake_delay_seconds.try_into().unwrap())
         .unwrap();
 
     // If Operator is unstaking, check that they still maintain min. share percentage of pool after.

@@ -27,7 +27,7 @@ pub struct PoolOverview {
     pub min_operator_share_bps: u16,
 
     /// Delay for unstaking in seconds.
-    pub unstake_delay_seconds: u64,
+    pub delegator_unstake_delay_seconds: u64,
 
     /// Total number of pools created.
     pub total_pools: u64,
