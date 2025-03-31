@@ -238,7 +238,7 @@ describe("inference-staking", () => {
     // Reset to original values
     await program.methods
       .updateOperatorPool({
-        newCommissionRateBps: 0,
+        newCommissionRateBps: null,
         autoStakeFees,
         allowDelegation,
       })
@@ -250,9 +250,9 @@ describe("inference-staking", () => {
       .rpc();
 
     operatorPool = await program.account.operatorPool.fetch(setup.pool1.pool);
-    assert(
-      operatorPool.newCommissionRateBps === 0,
-      "New commission rate should be set back to 0"
+    assert.isNull(
+      operatorPool.newCommissionRateBps,
+      "New commission rate should be set back to None"
     );
     assert(
       operatorPool.autoStakeFees === autoStakeFees,

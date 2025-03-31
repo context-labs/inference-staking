@@ -1585,7 +1585,9 @@ const _IDL = {
             docs: [
               "Update Operator commission rate that will become active next epoch",
             ],
-            type: "u16",
+            type: {
+              option: "u16",
+            },
           },
           {
             name: "allowDelegation",

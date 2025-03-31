@@ -20,7 +20,7 @@ pub struct UpdateOperatorPool<'info> {
 #[derive(AnchorDeserialize, AnchorSerialize)]
 pub struct UpdateOperatorPoolArgs {
     /// Update Operator commission rate that will become active next epoch
-    pub new_commission_rate_bps: u16,
+    pub new_commission_rate_bps: Option<u16>,
     /// Allow delegation from stakers that are not the Operator
     pub allow_delegation: bool,
     /// Auto stake operator fees
@@ -29,7 +29,7 @@ pub struct UpdateOperatorPoolArgs {
 
 pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
-    operator_pool.new_commission_rate_bps = Some(args.new_commission_rate_bps);
+    operator_pool.new_commission_rate_bps = args.new_commission_rate_bps;
     operator_pool.allow_delegation = args.allow_delegation;
     operator_pool.auto_stake_fees = args.auto_stake_fees;
 
