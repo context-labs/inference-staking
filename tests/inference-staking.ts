@@ -208,6 +208,62 @@ describe("inference-staking", () => {
     assert(operatorPool.admin.equals(setup.signer1), "Admin should be signer1");
   });
 
+  it("Should update OperatorPool successfully", async () => {
+    const newCommissionRateBps = 1500;
+    await program.methods
+      .updateOperatorPool({
+        newCommissionRateBps,
+        autoStakeFees: true,
+        allowDelegation: false,
+      })
+      .accountsStrict({
+        admin: setup.signer1,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    let operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(
+      operatorPool.newCommissionRateBps === newCommissionRateBps,
+      "New commission rate should be set"
+    );
+    assert(operatorPool.autoStakeFees === true, "Auto stake should be true");
+    assert(
+      operatorPool.allowDelegation === false,
+      "Allow delegation should be false"
+    );
+    // Reset to original values
+    await program.methods
+      .updateOperatorPool({
+        newCommissionRateBps: null,
+        autoStakeFees,
+        allowDelegation,
+      })
+      .accountsStrict({
+        admin: setup.signer1,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    operatorPool = await program.account.operatorPool.fetch(setup.pool1.pool);
+    assert.isNull(
+      operatorPool.newCommissionRateBps,
+      "New commission rate should be set back to None"
+    );
+    assert(
+      operatorPool.autoStakeFees === autoStakeFees,
+      "Auto stake should be original value"
+    );
+    assert(
+      operatorPool.allowDelegation === allowDelegation,
+      "Allow delegation should be original value"
+    );
+  });
+
   it("Create StakingRecord successfully", async () => {
     await program.methods
       .createStakingRecord()
