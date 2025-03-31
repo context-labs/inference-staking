@@ -124,4 +124,9 @@ pub mod inference_staking {
     pub fn change_operator_admin(ctx: Context<ChangeOperatorAdmin>) -> Result<()> {
         change_operator_admin::handler(ctx)
     }
+
+    /// Change configurable parameters on the OperatorPool.
+    pub fn update_operator_pool(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -> Result<()> {
+        update_operator_pool::handler(ctx, args)
+    }
 }

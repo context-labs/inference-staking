@@ -1003,6 +1003,47 @@ const _IDL = {
       ],
     },
     {
+      name: "updateOperatorPool",
+      docs: ["Change configurable parameters on the OperatorPool."],
+      discriminator: [33, 136, 60, 240, 111, 137, 216, 26],
+      accounts: [
+        {
+          name: "admin",
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "operatorPool",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operator_pool.pool_id",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+            ],
+          },
+        },
+      ],
+      args: [
+        {
+          name: "args",
+          type: {
+            defined: {
+              name: "updateOperatorPoolArgs",
+            },
+          },
+        },
+      ],
+    },
+    {
       name: "updatePoolOverview",
       discriminator: [107, 143, 107, 12, 150, 138, 52, 184],
       accounts: [
@@ -1530,6 +1571,31 @@ const _IDL = {
             name: "tokensUnstakeAmount",
             docs: ["Amount of tokens to be unstaked"],
             type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "updateOperatorPoolArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "newCommissionRateBps",
+            docs: [
+              "Update Operator commission rate that will become active next epoch",
+            ],
+            type: "u16",
+          },
+          {
+            name: "allowDelegation",
+            docs: ["Allow delegation from stakers that are not the Operator"],
+            type: "bool",
+          },
+          {
+            name: "autoStakeFees",
+            docs: ["Auto stake operator fees"],
+            type: "bool",
           },
         ],
       },
