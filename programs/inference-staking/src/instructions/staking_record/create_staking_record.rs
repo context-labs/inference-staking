@@ -7,6 +7,10 @@ pub struct CreateStakingRecord<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     pub owner: Signer<'info>,
+    #[account(
+        seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
+        bump,
+    )]
     pub operator_pool: Box<Account<'info, OperatorPool>>,
     #[account(
         init,

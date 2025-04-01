@@ -8,7 +8,7 @@ import {
 
 const { BN, getProvider } = anchor;
 
-const INF_STAKING = new PublicKey(
+export const INF_STAKING = new PublicKey(
   "7NuTZJFDezrh8n73HxY22gvPrXnGeRqDAoFDnXHnMjQb"
 );
 
