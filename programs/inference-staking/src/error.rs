@@ -26,4 +26,6 @@ pub enum ErrorCode {
     WithdrawalsHalted,
     #[msg("Authority is not valid")]
     InvalidHaltAuthority,
+    #[msg("Account not empty")]
+    AccountNotEmpty,
 }

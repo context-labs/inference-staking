@@ -80,6 +80,10 @@ pub mod inference_staking {
         accrue_reward::handler(ctx, merkle_index, proof, proof_path, reward_amount)
     }
 
+    pub fn close_staking_record(ctx: Context<CloseStakingRecord>) -> Result<()> {
+        close_staking_record::handler(ctx)
+    }
+
     /* PoolOverview admin instructions */
 
     pub fn slash_stake(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
@@ -126,7 +130,10 @@ pub mod inference_staking {
     }
 
     /// Change configurable parameters on the OperatorPool.
-    pub fn update_operator_pool(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -> Result<()> {
+    pub fn update_operator_pool(
+        ctx: Context<UpdateOperatorPool>,
+        args: UpdateOperatorPoolArgs,
+    ) -> Result<()> {
         update_operator_pool::handler(ctx, args)
     }
 }

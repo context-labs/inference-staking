@@ -1,12 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
-import { SystemProgram } from "@solana/web3.js";
+import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 import {
   getAssociatedTokenAddressSync,
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { setupTests, sleep } from "./utils";
+import { INF_STAKING, setupTests, sleep } from "./utils";
 import { constructMerkleTree, generateMerkleProof } from "./merkle";
 import { createProgram } from "inference-staking";
 
@@ -989,6 +989,48 @@ describe("inference-staking", () => {
       operatorPoolPost.operatorStakingRecord.equals(setup.pool1.signer1Record),
       "OperatorPool1 should use signer1 StakingRecord"
     );
+  });
+
+  it("Should close StakingRecord successfully", async () => {
+    const user2Record = PublicKey.findProgramAddressSync(
+      [
+        setup.pool1.pool.toBuffer(),
+        setup.user2.toBuffer(),
+        Buffer.from("StakingRecord"),
+      ],
+      INF_STAKING
+    )[0];
+    await program.methods
+      .createStakingRecord()
+      .accountsStrict({
+        payer: setup.payer,
+        owner: setup.user2,
+        operatorPool: setup.pool1.pool,
+        stakingRecord: user2Record,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([setup.payerKp, setup.user2Kp])
+      .rpc();
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      user2Record
+    );
+    assert.isNotNull(stakingRecord);
+    await program.methods
+      .closeStakingRecord()
+      .accountsStrict({
+        receiver: setup.payer,
+        owner: setup.user2,
+        stakingRecord: user2Record,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([setup.user2Kp])
+      .rpc();
+    const closedStakingRecord =
+      await program.account.stakingRecord.fetchNullable(
+        user2Record
+      );
+    assert.isNull(closedStakingRecord, "StakingRecord should have closed");
   });
 
   // TODO: Add test for accruing of past epoch rewards for same OperatorPool.

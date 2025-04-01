@@ -361,6 +361,50 @@ const _IDL = {
       args: [],
     },
     {
+      name: "closeStakingRecord",
+      discriminator: [208, 180, 58, 210, 55, 93, 23, 115],
+      accounts: [
+        {
+          name: "receiver",
+          docs: ["Account to receive the reclaimed rent from StakingRecord"],
+          writable: true,
+        },
+        {
+          name: "owner",
+          signer: true,
+          relations: ["stakingRecord"],
+        },
+        {
+          name: "stakingRecord",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "staking_record.operator_pool",
+                account: "stakingRecord",
+              },
+              {
+                kind: "account",
+                path: "owner",
+              },
+              {
+                kind: "const",
+                value: [
+                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
+                ],
+              },
+            ],
+          },
+        },
+        {
+          name: "systemProgram",
+          address: "11111111111111111111111111111111",
+        },
+      ],
+      args: [],
+    },
+    {
       name: "createOperatorPool",
       discriminator: [228, 137, 243, 99, 230, 195, 158, 152],
       accounts: [
@@ -604,6 +648,21 @@ const _IDL = {
         },
         {
           name: "operatorPool",
+          pda: {
+            seeds: [
+              {
+                kind: "account",
+                path: "operator_pool.pool_id",
+                account: "operatorPool",
+              },
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+            ],
+          },
         },
         {
           name: "stakingRecord",
