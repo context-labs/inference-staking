@@ -1027,13 +1027,33 @@ describe("inference-staking", () => {
       .signers([setup.user2Kp])
       .rpc();
     const closedStakingRecord =
-      await program.account.stakingRecord.fetchNullable(
-        user2Record
-      );
+      await program.account.stakingRecord.fetchNullable(user2Record);
     assert.isNull(closedStakingRecord, "StakingRecord should have closed");
+  });
+
+  it("Should close OperatorPool successfully", async () => {
+    await program.methods
+      .closeOperatorPool()
+      .accountsStrict({
+        admin: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(operatorPool.closedAt.eq(poolOverview.completedRewardEpoch));
   });
 
   // TODO: Add test for accruing of past epoch rewards for same OperatorPool.
   // TODO: Add test for accruing with auto-stake enabled for same OperatorPool.
   // TODO: Add test for accruing with commission fee change for OperatorPool.
+  // TODO: Add test for unstaking below min amount for Operator when pool is closed.
+  // TODO: Add test for staking to close OperatorPool.
 });

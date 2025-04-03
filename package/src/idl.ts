@@ -361,6 +361,25 @@ const _IDL = {
       args: [],
     },
     {
+      name: "closeOperatorPool",
+      discriminator: [5, 121, 71, 229, 187, 164, 51, 179],
+      accounts: [
+        {
+          name: "admin",
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "poolOverview",
+        },
+        {
+          name: "operatorPool",
+          writable: true,
+        },
+      ],
+      args: [],
+    },
+    {
       name: "closeStakingRecord",
       discriminator: [208, 180, 58, 210, 55, 93, 23, 115],
       accounts: [
@@ -1334,6 +1353,11 @@ const _IDL = {
       name: "invalidHaltAuthority",
       msg: "Authority is not valid",
     },
+    {
+      code: 6012,
+      name: "accountNotEmpty",
+      msg: "Account not empty",
+    },
   ],
   types: [
     {
@@ -1428,7 +1452,10 @@ const _IDL = {
           },
           {
             name: "closedAt",
-            docs: ["Epoch that pool was permanently closed at, if set."],
+            docs: [
+              "Epoch that pool was permanently closed at, if set. Once a pool is closed, the pool will stop accruing",
+              "any rewards starting from that epoch.",
+            ],
             type: {
               option: "u64",
             },
@@ -1437,7 +1464,7 @@ const _IDL = {
             name: "isHalted",
             docs: [
               "If Pool is halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,",
-              "claim or withdraw rewards. Other users can still unstake or claim.",
+              "claim, withdraw rewards or close a pool. Other users can still unstake or claim.",
             ],
             type: "bool",
           },
