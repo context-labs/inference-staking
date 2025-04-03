@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCode;
+use crate::events::CompleteAccrueRewardEvent;
 use crate::state::{OperatorPool, PoolOverview, RewardRecord, StakingRecord};
 
 #[derive(Accounts)]
@@ -22,7 +23,7 @@ pub struct AccrueReward<'info> {
     )]
     pub reward_record: Box<Account<'info, RewardRecord>>,
     #[account(
-        mut, 
+        mut,
         seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
         bump = operator_pool.bump,
         has_one = operator_staking_record,
@@ -170,6 +171,12 @@ pub fn handler(
         // Reset accrued rewards and commission.
         operator_pool.accrued_rewards = 0;
         operator_pool.accrued_commission = 0;
+
+        emit!(CompleteAccrueRewardEvent {
+            operator_pool: operator_pool.key(),
+            total_staked_amount: operator_pool.total_staked_amount,
+            total_unstaking: operator_pool.total_unstaking
+        });
     }
 
     Ok(())
