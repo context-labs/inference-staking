@@ -9,6 +9,13 @@ import {
 import { INF_STAKING, setupTests, sleep } from "./utils";
 import { constructMerkleTree, generateMerkleProof } from "./merkle";
 import { createProgram } from "inference-staking";
+import {
+  ClaimUnstakeEvent,
+  CompleteAccrueRewardEvent,
+  SlashStakeEvent,
+  StakeEvent,
+  UnstakeEvent,
+} from "inference-staking/src/eventTypes";
 
 describe("inference-staking", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
@@ -294,24 +301,37 @@ describe("inference-staking", () => {
     );
     const stakeAmount = new anchor.BN(150_000);
 
-    await program.methods
-      .stake(stakeAmount)
-      .accountsStrict({
-        owner: setup.signer1,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-        ownerStakingRecord: setup.pool1.signer1Record,
-        operatorStakingRecord: setup.pool1.signer1Record,
-        stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        ownerTokenAccount,
-      })
-      .signers([setup.signer1Kp])
-      .rpc();
+    let listenerId: number;
+    const event: StakeEvent = await new Promise<any>((res) => {
+      listenerId = program.addEventListener("stakeEvent", (event) => {
+        res(event);
+      });
+      program.methods
+        .stake(stakeAmount)
+        .accountsStrict({
+          owner: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+    });
+    await program.removeEventListener(listenerId);
 
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
+    assert(event.stakingRecord.equals(setup.pool1.signer1Record));
+    assert(event.operatorPool.equals(setup.pool1.pool));
+    assert(event.stakeAmount.eq(stakeAmount));
+    assert(event.totalStakedAmount.eq(operatorPool.totalStakedAmount));
+    assert(event.totalUnstaking.eq(operatorPool.totalUnstaking));
+
     assert(operatorPool.totalStakedAmount.eq(stakeAmount));
     assert(operatorPool.totalShares.eq(stakeAmount));
     assert(operatorPool.totalUnstaking.isZero());
@@ -388,21 +408,34 @@ describe("inference-staking", () => {
       setup.pool1.user1Record
     );
 
-    await program.methods
-      .unstake(unstakeAmount)
-      .accountsStrict({
-        owner: setup.user1,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-        ownerStakingRecord: setup.pool1.user1Record,
-        operatorStakingRecord: setup.pool1.signer1Record,
-      })
-      .signers([setup.user1Kp])
-      .rpc();
+    let listenerId: number;
+    const event: UnstakeEvent = await new Promise<any>((res) => {
+      listenerId = program.addEventListener("unstakeEvent", (event) => {
+        res(event);
+      });
+      program.methods
+        .unstake(unstakeAmount)
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+    });
+    await program.removeEventListener(listenerId);
 
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
+    assert(event.stakingRecord.equals(setup.pool1.user1Record));
+    assert(event.operatorPool.equals(setup.pool1.pool));
+    assert(event.unstakeAmount.eq(unstakeAmount));
+    assert(event.totalStakedAmount.eq(operatorPool.totalStakedAmount));
+    assert(event.totalUnstaking.eq(operatorPool.totalUnstaking));
+
     assert(
       operatorPoolPre.totalStakedAmount
         .sub(operatorPool.totalStakedAmount)
@@ -633,19 +666,37 @@ describe("inference-staking", () => {
     );
 
     const rewardAmount = new anchor.BN(100);
-    await program.methods
-      .accrueReward(0, proof, proofPath, rewardAmount)
-      .accountsStrict({
-        poolOverview: setup.poolOverview,
-        rewardRecord: setup.rewardRecords[2],
-        operatorPool: setup.pool1.pool,
-        operatorStakingRecord: setup.pool1.signer1Record,
-        rewardTokenAccount: setup.rewardTokenAccount,
-        stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc();
+
+    let listenerId: number;
+    const event: CompleteAccrueRewardEvent = await new Promise<any>((res) => {
+      listenerId = program.addEventListener(
+        "completeAccrueRewardEvent",
+        (event) => {
+          res(event);
+        }
+      );
+      program.methods
+        .accrueReward(0, proof, proofPath, rewardAmount)
+        .accountsStrict({
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[2],
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+    });
+    await program.removeEventListener(listenerId);
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(event.operatorPool.equals(setup.pool1.pool));
+    assert(event.totalStakedAmount.eq(operatorPool.totalStakedAmount));
+    assert(event.totalUnstaking.eq(operatorPool.totalUnstaking));
 
     // Verify that unclaimedRewards on PoolOverview is updated.
     const poolOverview = await program.account.poolOverview.fetch(
@@ -662,9 +713,6 @@ describe("inference-staking", () => {
 
     // Verify that claimed delegator rewards are added to OperatorPool
     // and rewardLastClaimedEpoch is updated.
-    const operatorPool = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
     assert(
       operatorPool.totalStakedAmount
         .sub(operatorPre.totalStakedAmount)
@@ -730,23 +778,36 @@ describe("inference-staking", () => {
       setup.pool1.user1Record
     );
 
-    await program.methods
-      .claimUnstake()
-      .accountsStrict({
-        owner: setup.user1,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-        ownerStakingRecord: setup.pool1.user1Record,
-        operatorStakingRecord: setup.pool1.signer1Record,
-        ownerTokenAccount,
-        stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc();
+    let listenerId: number;
+    const event: ClaimUnstakeEvent = await new Promise<any>((res) => {
+      listenerId = program.addEventListener("claimUnstakeEvent", (event) => {
+        res(event);
+      });
+      program.methods
+        .claimUnstake()
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          ownerTokenAccount,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+    });
+    await program.removeEventListener(listenerId);
 
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
+    assert(event.stakingRecord.equals(setup.pool1.signer1Record));
+    assert(event.operatorPool.equals(setup.pool1.pool));
+    assert(event.unstakeAmount.eq(stakingRecordPre.tokensUnstakeAmount));
+    assert(event.totalStakedAmount.eq(operatorPool.totalStakedAmount));
+    assert(event.totalUnstaking.eq(operatorPool.totalUnstaking));
+
     assert(
       operatorPoolPre.totalUnstaking
         .sub(operatorPool.totalUnstaking)
@@ -792,19 +853,26 @@ describe("inference-staking", () => {
       .mul(sharesToSlash)
       .div(operatorPoolPre.totalShares);
 
-    await program.methods
-      .slashStake({ sharesAmount: sharesToSlash })
-      .accountsStrict({
-        admin: setup.poolOverviewAdminKp.publicKey,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-        operatorStakingRecord: setup.pool1.signer1Record,
-        stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        destination: destinationTokenAccount,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .signers([setup.poolOverviewAdminKp])
-      .rpc();
+    let listenerId: number;
+    const event: SlashStakeEvent = await new Promise<any>((res) => {
+      listenerId = program.addEventListener("slashStakeEvent", (event) => {
+        res(event);
+      });
+      program.methods
+        .slashStake({ sharesAmount: sharesToSlash })
+        .accountsStrict({
+          admin: setup.poolOverviewAdminKp.publicKey,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          destination: destinationTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([setup.poolOverviewAdminKp])
+        .rpc();
+    });
+    await program.removeEventListener(listenerId);
 
     const [
       destinationBalancePost,
@@ -817,6 +885,12 @@ describe("inference-staking", () => {
       program.account.stakingRecord.fetch(setup.pool1.signer1Record),
       program.account.operatorPool.fetch(setup.pool1.pool),
     ]);
+
+    assert(event.stakingRecord.equals(setup.pool1.signer1Record));
+    assert(event.operatorPool.equals(setup.pool1.pool));
+    assert(event.slashedAmount.eq(expectedStakeRemoved));
+    assert(event.totalStakedAmount.eq(operatorPoolPost.totalStakedAmount));
+    assert(event.totalUnstaking.eq(operatorPoolPost.totalUnstaking));
 
     // Assert change in Operator stake
     assert(
@@ -1027,9 +1101,7 @@ describe("inference-staking", () => {
       .signers([setup.user2Kp])
       .rpc();
     const closedStakingRecord =
-      await program.account.stakingRecord.fetchNullable(
-        user2Record
-      );
+      await program.account.stakingRecord.fetchNullable(user2Record);
     assert.isNull(closedStakingRecord, "StakingRecord should have closed");
   });
 
