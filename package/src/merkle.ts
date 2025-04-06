@@ -1,7 +1,11 @@
 import { PublicKey } from "@solana/web3.js";
 import { createHash } from "crypto";
-import { arraysEqual } from "./utils";
 import bs58 from "bs58";
+
+const arraysEqual = (a, b) => {
+  if (a.length !== b.length) return false;
+  return a.every((val, i) => val === b[i]);
+};
 
 function sha256(message: Uint8Array) {
   const hash = createHash("sha256").update(message).digest();

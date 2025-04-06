@@ -7,8 +7,11 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { INF_STAKING, setupTests, sleep } from "./utils";
-import { constructMerkleTree, generateMerkleProof } from "./merkle";
-import { createProgram } from "inference-staking";
+import {
+  createProgram,
+  constructMerkleTree,
+  generateMerkleProof,
+} from "inference-staking";
 
 describe("inference-staking", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
@@ -1027,9 +1030,7 @@ describe("inference-staking", () => {
       .signers([setup.user2Kp])
       .rpc();
     const closedStakingRecord =
-      await program.account.stakingRecord.fetchNullable(
-        user2Record
-      );
+      await program.account.stakingRecord.fetchNullable(user2Record);
     assert.isNull(closedStakingRecord, "StakingRecord should have closed");
   });
 

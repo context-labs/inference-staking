@@ -12,11 +12,6 @@ export const INF_STAKING = new PublicKey(
   "7NuTZJFDezrh8n73HxY22gvPrXnGeRqDAoFDnXHnMjQb"
 );
 
-export const arraysEqual = (a, b) => {
-  if (a.length !== b.length) return false;
-  return a.every((val, i) => val === b[i]);
-};
-
 export async function setupTests() {
   const payerKp = new Keypair();
   const poolOverviewAdminKp = new Keypair();
@@ -133,15 +128,14 @@ export async function setupTests() {
     )[0],
   };
   const pool2 = {
-    pool: operatorPool2
+    pool: operatorPool2,
   };
   const pool3 = {
-    pool: operatorPool3
+    pool: operatorPool3,
   };
   const pool4 = {
-    pool: operatorPool4
+    pool: operatorPool4,
   };
-
 
   const rewardRecords = {
     1: PublicKey.findProgramAddressSync(
