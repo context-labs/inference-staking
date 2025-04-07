@@ -505,8 +505,8 @@ describe("inference-staking", () => {
   });
 
   it("Create RewardRecord 2 successfully", async () => {
-    const rewardAddresses = setup.rewardEpochs[1].addresses;
-    const rewardAmounts = setup.rewardEpochs[1].amounts;
+    const rewardAddresses = setup.rewardEpochs[2].addresses;
+    const rewardAmounts = setup.rewardEpochs[2].amounts;
 
     const merkleTree = constructMerkleTree(rewardAddresses, rewardAmounts);
 
@@ -609,8 +609,8 @@ describe("inference-staking", () => {
   });
 
   it("Accrue Rewards successfully", async () => {
-    const rewardAddresses = setup.rewardEpochs[1].addresses;
-    const rewardAmounts = setup.rewardEpochs[1].amounts;
+    const rewardAddresses = setup.rewardEpochs[2].addresses;
+    const rewardAmounts = setup.rewardEpochs[2].amounts;
     const { proof, proofPath } = generateMerkleProof(
       rewardAddresses,
       rewardAmounts,
@@ -637,7 +637,7 @@ describe("inference-staking", () => {
 
     const rewardAmount = new anchor.BN(100);
     await program.methods
-      .accrueReward(0, proof, proofPath, rewardAmount)
+      .accrueReward(0, proof as unknown as number[][], proofPath, rewardAmount)
       .accountsStrict({
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],

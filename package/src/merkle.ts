@@ -82,6 +82,7 @@ export const constructMerkleTree = (addresses: string[], amounts: number[]) => {
 // Generates a proof that can be verified through recursive hashing to match against the root node
 // of a merkle tree. The proof contains all the sibling nodes of the leaf node or its subsequent parent
 // node, for each level from leaf to root-1.
+// Index refers to index of node in addresses and amounts array for proof to be generated for.
 export const generateMerkleProof = (
   addresses: string[],
   amounts: number[],
