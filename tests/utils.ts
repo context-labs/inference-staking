@@ -146,6 +146,10 @@ export async function setupTests() {
       [new BN(2).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
       INF_STAKING
     )[0],
+    3: PublicKey.findProgramAddressSync(
+      [new BN(3).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
+      INF_STAKING
+    )[0],
   };
 
   const epoch1Addresses = [
@@ -156,7 +160,7 @@ export async function setupTests() {
   ];
   const epoch1Amounts = [100, 200, 300, 400];
   const rewardEpochs = {
-    1: {
+    2: {
       addresses: epoch1Addresses,
       amounts: epoch1Amounts,
     },

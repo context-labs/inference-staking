@@ -505,8 +505,8 @@ describe("inference-staking", () => {
   });
 
   it("Create RewardRecord 2 successfully", async () => {
-    const rewardAddresses = setup.rewardEpochs[1].addresses;
-    const rewardAmounts = setup.rewardEpochs[1].amounts;
+    const rewardAddresses = setup.rewardEpochs[2].addresses;
+    const rewardAmounts = setup.rewardEpochs[2].amounts;
 
     const merkleTree = constructMerkleTree(rewardAddresses, rewardAmounts);
 
@@ -609,8 +609,8 @@ describe("inference-staking", () => {
   });
 
   it("Accrue Rewards successfully", async () => {
-    const rewardAddresses = setup.rewardEpochs[1].addresses;
-    const rewardAmounts = setup.rewardEpochs[1].amounts;
+    const rewardAddresses = setup.rewardEpochs[2].addresses;
+    const rewardAmounts = setup.rewardEpochs[2].amounts;
     const { proof, proofPath } = generateMerkleProof(
       rewardAddresses,
       rewardAmounts,
