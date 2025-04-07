@@ -637,7 +637,7 @@ describe("inference-staking", () => {
 
     const rewardAmount = new anchor.BN(100);
     await program.methods
-      .accrueReward(0, proof, proofPath, rewardAmount)
+      .accrueReward(0, proof as unknown as number[][], proofPath, rewardAmount)
       .accountsStrict({
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
