@@ -488,6 +488,68 @@ describe("inference-staking", () => {
     );
   });
 
+  it("Cancel unstake successfully", async () => {
+    const unstakeShares = new anchor.BN(10_000);
+    const operatorPoolPre = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    const stakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+
+    await program.methods
+      .cancelUnstake()
+      .accountsStrict({
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.signer1Record,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    // Token:Share at 1:1 ratio
+    assert(
+      operatorPool.totalStakedAmount
+        .sub(operatorPoolPre.totalStakedAmount)
+        .eq(unstakeShares)
+    );
+    assert(
+      operatorPool.totalShares
+        .sub(operatorPoolPre.totalShares)
+        .eq(unstakeShares)
+    );
+    assert(
+      operatorPoolPre.totalUnstaking.eq(
+        operatorPool.totalUnstaking.add(unstakeShares)
+      )
+    );
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+    assert(stakingRecord.shares.sub(stakingRecordPre.shares).eq(unstakeShares));
+    assert(stakingRecord.tokensUnstakeAmount.isZero());
+    assert(stakingRecord.unstakeAtTimestamp.isZero());
+
+    // Resume unstaking
+    await program.methods
+      .unstake(unstakeShares)
+      .accountsStrict({
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+  });
+
   it("Create RewardRecord 1 successfully", async () => {
     // Create an empty record with no rewards.
     await program.methods

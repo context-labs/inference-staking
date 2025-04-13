@@ -62,6 +62,10 @@ pub mod inference_staking {
         claim_unstake::handler(ctx)
     }
 
+    pub fn cancel_unstake(ctx: Context<CancelUnstake>) -> Result<()> {
+        cancel_unstake::handler(ctx)
+    }
+
     pub fn create_reward_record(
         ctx: Context<CreateRewardRecord>,
         merkle_roots: Vec<[u8; 32]>,

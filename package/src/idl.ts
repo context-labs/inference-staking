@@ -150,6 +150,30 @@ const _IDL = {
       ],
     },
     {
+      name: "cancelUnstake",
+      discriminator: [64, 65, 53, 227, 125, 153, 3, 167],
+      accounts: [
+        {
+          name: "owner",
+          signer: true,
+          relations: ["ownerStakingRecord"],
+        },
+        {
+          name: "poolOverview",
+        },
+        {
+          name: "operatorPool",
+          writable: true,
+          relations: ["ownerStakingRecord"],
+        },
+        {
+          name: "ownerStakingRecord",
+          writable: true,
+        },
+      ],
+      args: [],
+    },
+    {
       name: "changeOperatorAdmin",
       discriminator: [54, 235, 203, 165, 49, 205, 221, 109],
       accounts: [
@@ -1333,6 +1357,11 @@ const _IDL = {
       code: 6011,
       name: "invalidHaltAuthority",
       msg: "Authority is not valid",
+    },
+    {
+      code: 6012,
+      name: "accountNotEmpty",
+      msg: "Account not empty",
     },
   ],
   types: [
