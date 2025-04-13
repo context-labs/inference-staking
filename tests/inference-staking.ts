@@ -39,7 +39,7 @@ describe("inference-staking", () => {
       .createPoolOverview()
       .accountsStrict({
         payer: setup.payer,
-        admin: setup.signer1,
+        programAdmin: setup.signer1,
         poolOverview: setup.poolOverview,
         rewardTokenAccount: setup.rewardTokenAccount,
         mint: setup.tokenMint,
@@ -52,7 +52,7 @@ describe("inference-staking", () => {
     const poolOverview = await program.account.poolOverview.fetch(
       setup.poolOverview
     );
-    assert(poolOverview.admin.equals(setup.signer1));
+    assert(poolOverview.programAdmin.equals(setup.signer1));
     assert(poolOverview.mint.equals(setup.tokenMint));
 
     // Check that all other values are set to default.
@@ -81,7 +81,7 @@ describe("inference-staking", () => {
         operatorUnstakeDelaySeconds
       )
       .accountsStrict({
-        admin: setup.signer1,
+        programAdmin: setup.signer1,
         poolOverview: setup.poolOverview,
       })
       .signers([setup.signer1Kp])
@@ -102,7 +102,7 @@ describe("inference-staking", () => {
     );
 
     // Check that all other values remain the same.
-    assert(poolOverview.admin.equals(setup.signer1));
+    assert(poolOverview.programAdmin.equals(setup.signer1));
     assert(poolOverview.mint.equals(setup.tokenMint));
     assert.isEmpty(poolOverview.haltAuthorities);
     assert(poolOverview.totalPools.isZero());
@@ -112,11 +112,14 @@ describe("inference-staking", () => {
 
   it("Update PoolOverview authorities successfully", async () => {
     await program.methods
-      .updatePoolOverviewAuthorities(setup.poolOverviewAdminKp.publicKey, [
-        setup.haltAuthority1Kp.publicKey,
-      ])
+      .updatePoolOverviewAuthorities(
+        setup.poolOverviewAdminKp.publicKey,
+        [setup.poolOverviewAdminKp.publicKey],
+        [setup.haltAuthority1Kp.publicKey],
+        [setup.poolOverviewAdminKp.publicKey]
+      )
       .accountsStrict({
-        admin: setup.signer1,
+        programAdmin: setup.signer1,
         poolOverview: setup.poolOverview,
       })
       .signers([setup.signer1Kp])
@@ -125,10 +128,24 @@ describe("inference-staking", () => {
     const poolOverview = await program.account.poolOverview.fetch(
       setup.poolOverview
     );
-    assert(poolOverview.admin.equals(setup.poolOverviewAdminKp.publicKey));
+    assert(
+      poolOverview.programAdmin.equals(setup.poolOverviewAdminKp.publicKey)
+    );
+    assert(poolOverview.slashingAuthorities.length === 1);
+    assert(
+      poolOverview.slashingAuthorities[0].equals(
+        setup.poolOverviewAdminKp.publicKey
+      )
+    );
     assert(poolOverview.haltAuthorities.length === 1);
     assert(
       poolOverview.haltAuthorities[0].equals(setup.haltAuthority1Kp.publicKey)
+    );
+    assert(poolOverview.rewardDistributionAuthorities.length === 1);
+    assert(
+      poolOverview.rewardDistributionAuthorities[0].equals(
+        setup.poolOverviewAdminKp.publicKey
+      )
     );
   });
 
@@ -556,7 +573,7 @@ describe("inference-staking", () => {
       .createRewardRecord([], new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
-        admin: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[1],
         rewardTokenAccount: setup.rewardTokenAccount,
@@ -594,7 +611,7 @@ describe("inference-staking", () => {
       .createRewardRecord(merkleRoots, totalRewards)
       .accountsStrict({
         payer: setup.payer,
-        admin: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
         rewardTokenAccount: setup.rewardTokenAccount,
@@ -636,7 +653,7 @@ describe("inference-staking", () => {
         merkleRoots: merkleRoots,
       })
       .accountsStrict({
-        admin: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
       })
@@ -658,7 +675,7 @@ describe("inference-staking", () => {
         merkleRoots: prevMerkleRoots,
       })
       .accountsStrict({
-        admin: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
       })
@@ -860,7 +877,7 @@ describe("inference-staking", () => {
     await program.methods
       .slashStake({ sharesAmount: sharesToSlash })
       .accountsStrict({
-        admin: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
         operatorStakingRecord: setup.pool1.signer1Record,

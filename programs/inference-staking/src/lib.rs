@@ -22,10 +22,18 @@ pub mod inference_staking {
 
     pub fn update_pool_overview_authorities(
         ctx: Context<UpdatePoolOverviewAuthorities>,
-        new_admin: Pubkey,
+        new_program_admin: Pubkey,
+        new_reward_distribution_authorities: Vec<Pubkey>,
         new_halt_authorites: Vec<Pubkey>,
+        new_slashing_authorities: Vec<Pubkey>,
     ) -> Result<()> {
-        update_pool_overview_authorities::handler(ctx, new_admin, new_halt_authorites)
+        update_pool_overview_authorities::handler(
+            ctx,
+            new_program_admin,
+            new_reward_distribution_authorities,
+            new_halt_authorites,
+            new_slashing_authorities,
+        )
     }
 
     pub fn update_pool_overview(

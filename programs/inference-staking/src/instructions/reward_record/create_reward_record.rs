@@ -8,12 +8,13 @@ use crate::state::{PoolOverview, RewardRecord};
 pub struct CreateRewardRecord<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    pub admin: Signer<'info>,
+    pub authority: Signer<'info>,
     #[account(
         mut,
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
-        has_one = admin
+        constraint = pool_overview.reward_distribution_authorities.contains(authority.key) 
+            @ ErrorCode::InvalidAuthority,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
     #[account(

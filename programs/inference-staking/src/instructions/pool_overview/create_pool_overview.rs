@@ -7,7 +7,7 @@ use crate::PoolOverview;
 pub struct CreatePoolOverview<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    pub admin: Signer<'info>,
+    pub program_admin: Signer<'info>,
     #[account(
         init,
         seeds = [b"PoolOverview".as_ref()],
@@ -33,7 +33,7 @@ pub struct CreatePoolOverview<'info> {
 /// Instruction to setup a PoolOverview singleton. To be called after initial program deployment.
 pub fn handler(ctx: Context<CreatePoolOverview>) -> Result<()> {
     let pool_overview = &mut ctx.accounts.pool_overview;
-    pool_overview.admin = ctx.accounts.admin.key();
+    pool_overview.program_admin = ctx.accounts.program_admin.key();
     pool_overview.mint = ctx.accounts.mint.key();
     pool_overview.bump = ctx.bumps.pool_overview;
 

@@ -2,18 +2,19 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::{
+    error::ErrorCode,
     operator_pool_signer_seeds,
     state::{OperatorPool, PoolOverview, StakingRecord},
 };
 
 #[derive(Accounts)]
 pub struct SlashStake<'info> {
-    pub admin: Signer<'info>,
+    pub authority: Signer<'info>,
     #[account(
       seeds = [b"PoolOverview".as_ref()],
       bump = pool_overview.bump,
-      // Admin must sign to invoke this instruction
-      has_one = admin,
+      constraint = pool_overview.slashing_authorities.contains(authority.key) 
+          @ ErrorCode::InvalidAuthority,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
     #[account(
@@ -48,7 +49,7 @@ pub struct SlashStakeArgs {
     pub shares_amount: u64,
 }
 
-/// Instruction to slash and Operator's stake.
+/// Instruction to slash an Operator's stake.
 pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
     let operator_staking_record = &mut ctx.accounts.operator_staking_record;

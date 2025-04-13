@@ -9,12 +9,20 @@ pub struct PoolOverview {
     /// PDA Bump
     pub bump: u8,
 
-    /// Authority allowed to change settings on the acount.
-    pub admin: Pubkey,
+    /// Authority allowed to update authorities and other pool settings.
+    pub program_admin: Pubkey,
 
-    /// List of signers authorized to halt OperatorPools.
-    #[max_len(10)]
+    /// List of signers authorized to create or modify RewardRecord.
+    #[max_len(5)]
+    pub reward_distribution_authorities: Vec<Pubkey>,
+
+    /// List of signers authorized to set OperatorPool.is_halted.
+    #[max_len(5)]
     pub halt_authorities: Vec<Pubkey>,
+
+    /// List of signers authorized to slash Operator's stake.
+    #[max_len(5)]
+    pub slashing_authorities: Vec<Pubkey>,
 
     /// Halts all withdrawal instructions when true. Used as a security backstop.
     pub is_withdrawal_halted: bool,
@@ -40,11 +48,4 @@ pub struct PoolOverview {
 
     /// Total amount of reward tokens across all epochs that are issued, but yet to be paid out.
     pub unclaimed_rewards: u64,
-}
-
-impl PoolOverview {
-    /// Checks if the provided authority is a valid halt authority.
-    pub fn is_valid_halt_authority(&self, authority: &Pubkey) -> bool {
-        self.halt_authorities.iter().any(|a| a.eq(authority))
-    }
 }
