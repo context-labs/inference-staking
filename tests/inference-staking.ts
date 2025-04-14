@@ -940,6 +940,33 @@ describe("inference-staking", () => {
     );
   });
 
+  it("Fail to claim unstake before delay is complete", async () => {
+    try {
+      const ownerTokenAccount = getAssociatedTokenAddressSync(
+        setup.tokenMint,
+        setup.user1
+      );
+      await program.methods
+        .claimUnstake()
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          ownerTokenAccount,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "PendingDelay");
+    }
+  });
+
   it.skip("Claim unstake for user successfully", async () => {
     await sleep(delegatorUnstakeDelaySeconds.toNumber() * 1000);
 
@@ -1141,6 +1168,156 @@ describe("inference-staking", () => {
     );
   });
 
+  it("Fail to set halt status with invalid authority", async () => {
+    try {
+      await program.methods
+        .setHaltStatus({
+          isHalted: true,
+        })
+        .accountsStrict({
+          authority: setup.signer1Kp.publicKey,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidAuthority");
+    }
+  });
+
+  it("PoolOverview admin should set halt status", async () => {
+    await program.methods
+      .setHaltStatus({
+        isHalted: true,
+      })
+      .accountsStrict({
+        authority: setup.haltAuthority1Kp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.haltAuthority1Kp])
+      .rpc();
+
+    let operatorPoolPost = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(operatorPoolPost.isHalted, "OperatorPool must be halted");
+  });
+
+  it("Fail to unstake for Operator when pool is halted", async () => {
+    try {
+      await program.methods
+        .unstake(new anchor.BN(1))
+        .accountsStrict({
+          owner: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "UnstakingNotAllowed");
+    }
+  });
+
+  it("Fail to stake to OperatorPool when it's halted", async () => {
+    try {
+      const ownerTokenAccount = getAssociatedTokenAddressSync(
+        setup.tokenMint,
+        setup.user1
+      );
+      await program.methods
+        .stake(new anchor.BN(400_000))
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "OperatorPoolHalted");
+    }
+  });
+
+  it("Fail to close OperatorPool when it's halted", async () => {
+    try {
+      await program.methods
+        .closeOperatorPool()
+        .accountsStrict({
+          admin: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "OperatorPoolHalted");
+    }
+  });
+
+  it("Fail to withdraw Operator commission if pool is halted", async () => {
+    try {
+      const destinationTokenAccount = getAssociatedTokenAddressSync(
+        setup.tokenMint,
+        setup.signer1
+      );
+      await program.methods
+        .withdrawOperatorCommission()
+        .accountsStrict({
+          admin: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          destination: destinationTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "OperatorPoolHalted");
+    }
+
+    // Set back to unhalted
+    await program.methods
+      .setHaltStatus({
+        isHalted: false,
+      })
+      .accountsStrict({
+        authority: setup.haltAuthority1Kp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.haltAuthority1Kp])
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(!operatorPool.isHalted, "OperatorPool must be unhalted");
+  });
+
   it("OperatorPool 1 Admin should be able to withdraw reward commission", async () => {
     const destinationTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
@@ -1186,65 +1363,6 @@ describe("inference-staking", () => {
         .eq(new anchor.BN(feeTokenAccountPre.value.amount)),
       "Destination must receive the fee balance"
     );
-  });
-
-  it("Fail to set halt status with invalid authority", async () => {
-    try {
-      await program.methods
-        .setHaltStatus({
-          isHalted: true,
-        })
-        .accountsStrict({
-          authority: setup.signer1Kp.publicKey,
-          poolOverview: setup.poolOverview,
-          operatorPool: setup.pool1.pool,
-        })
-        .signers([setup.signer1Kp])
-        .rpc();
-
-      assert(false);
-    } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
-    }
-  });
-
-  it("PoolOverview admin should set halt status", async () => {
-    await program.methods
-      .setHaltStatus({
-        isHalted: true,
-      })
-      .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-      })
-      .signers([setup.haltAuthority1Kp])
-      .rpc();
-
-    let operatorPoolPost = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    assert(operatorPoolPost.isHalted, "OperatorPool must be halted");
-
-    // Set back to unhalted
-    await program.methods
-      .setHaltStatus({
-        isHalted: false,
-      })
-      .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-      })
-      .signers([setup.haltAuthority1Kp])
-      .rpc();
-
-    operatorPoolPost = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-
-    assert(!operatorPoolPost.isHalted, "OperatorPool must be unhalted");
   });
 
   it("OperatorPool admin should update StakingRecord successfully", async () => {
@@ -1351,5 +1469,51 @@ describe("inference-staking", () => {
       setup.pool1.pool
     );
     assert(operatorPool.closedAt.eq(poolOverview.completedRewardEpoch));
+  });
+
+  it("Fail to close OperatorPool when it's already closed", async () => {
+    try {
+      await program.methods
+        .closeOperatorPool()
+        .accountsStrict({
+          admin: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "ClosedPool");
+    }
+  });
+
+  it("Fail to stake to OperatorPool when it's closed", async () => {
+    try {
+      const ownerTokenAccount = getAssociatedTokenAddressSync(
+        setup.tokenMint,
+        setup.user1
+      );
+      await program.methods
+        .stake(new anchor.BN(400_000))
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "ClosedPool");
+    }
   });
 });

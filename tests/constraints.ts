@@ -16,7 +16,7 @@ import {
 } from "inference-staking/src/eventTypes";
 import { createProgram, MerkleUtils } from "inference-staking";
 
-describe("inference-staking", () => {
+describe("Additional tests for instruction constraints", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
 
   // Configure the client to use the local cluster.
