@@ -7,11 +7,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { setupTests } from "./utils";
-import {
-  createProgram,
-  constructMerkleTree,
-  generateMerkleProof,
-} from "inference-staking";
+import { createProgram, MerkleUtils } from "inference-staking";
 
 describe("Test Reward Creation and Accrual", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
@@ -226,15 +222,11 @@ describe("Test Reward Creation and Accrual", () => {
   });
 
   it("Create RewardRecord with insufficient rewards", async () => {
-    const rewardAddresses = setup.rewardEpochs[2].addresses;
-    const rewardAmounts = setup.rewardEpochs[2].amounts;
-
-    const merkleTree = constructMerkleTree(rewardAddresses, rewardAmounts);
-
-    const merkleRoots = [merkleTree[merkleTree.length - 1][0]];
+    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+    const merkleRoots = [merkleTree.at(-1)[0]];
     let totalRewards = new anchor.BN(0);
-    for (const amount of rewardAmounts) {
-      totalRewards = totalRewards.addn(amount);
+    for (const addressInput of setup.rewardEpochs[2]) {
+      totalRewards = totalRewards.addn(addressInput.amount);
     }
 
     // Should fail with insufficent rewards.
@@ -285,24 +277,17 @@ describe("Test Reward Creation and Accrual", () => {
   });
 
   it("Create RewardRecord with multiple roots", async () => {
-    const rewardAddresses = setup.rewardEpochs[2].addresses;
-    const rewardAmounts = setup.rewardEpochs[2].amounts;
-
-    const merkleTree1 = constructMerkleTree(
-      [rewardAddresses[0]],
-      [rewardAmounts[0]]
+    const merkleTree1 = MerkleUtils.constructMerkleTree(
+      setup.rewardEpochs[2].slice(0, 1)
     );
-    const merkleTree2 = constructMerkleTree(
-      [rewardAddresses[1]],
-      [rewardAmounts[1]]
+    const merkleTree2 = MerkleUtils.constructMerkleTree(
+      setup.rewardEpochs[2].slice(1, 2)
     );
-    const merkleTree3 = constructMerkleTree(
-      [rewardAddresses[2]],
-      [rewardAmounts[2]]
+    const merkleTree3 = MerkleUtils.constructMerkleTree(
+      setup.rewardEpochs[2].slice(2, 3)
     );
-    const merkleTree4 = constructMerkleTree(
-      [rewardAddresses[3]],
-      [rewardAmounts[3]]
+    const merkleTree4 = MerkleUtils.constructMerkleTree(
+      setup.rewardEpochs[2].slice(3, 4)
     );
 
     const merkleRoots = [
@@ -312,8 +297,8 @@ describe("Test Reward Creation and Accrual", () => {
       merkleTree4.at(-1)[0],
     ];
     let totalRewards = new anchor.BN(0);
-    for (const amount of rewardAmounts) {
-      totalRewards = totalRewards.addn(amount);
+    for (const addressInput of setup.rewardEpochs[2]) {
+      totalRewards = totalRewards.addn(addressInput.amount);
     }
 
     // Fund rewardTokenAccount
@@ -351,21 +336,26 @@ describe("Test Reward Creation and Accrual", () => {
   });
 
   it("Accrue Rewards fail without claim next epoch first", async () => {
-    const rewardAddresses = setup.rewardEpochs[2].addresses;
-    const rewardAmounts = setup.rewardEpochs[2].amounts;
-    const { proof, proofPath } = generateMerkleProof(
-      [rewardAddresses[0]],
-      [rewardAmounts[0]],
-      0
+    const treeIndex = setup.rewardEpochs[2].findIndex(
+      (x) => x.address == setup.pool1.pool.toString()
     );
+    const merkleTree = MerkleUtils.constructMerkleTree(
+      setup.rewardEpochs[2].slice(treeIndex, treeIndex + 1)
+    );
+    const proofInputs = {
+      ...setup.rewardEpochs[2][treeIndex],
+      index: 0,
+      merkleTree,
+    };
+    const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
     try {
       await program.methods
         .accrueReward(
-          0,
+          treeIndex,
           proof as unknown as number[][],
           proofPath,
-          new anchor.BN(rewardAmounts[0])
+          new anchor.BN(proofInputs.amount)
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -385,13 +375,16 @@ describe("Test Reward Creation and Accrual", () => {
   });
 
   it("Accrue Rewards for epoch 2 sucessfully", async () => {
-    const rewardAddresses = setup.rewardEpochs[2].addresses;
-    const rewardAmounts = setup.rewardEpochs[2].amounts;
-    const { proof, proofPath } = generateMerkleProof(
-      rewardAddresses,
-      rewardAmounts,
-      0
+    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+    const nodeIndex = setup.rewardEpochs[2].findIndex(
+      (x) => x.address == setup.pool1.pool.toString()
     );
+    const proofInputs = {
+      ...setup.rewardEpochs[2][nodeIndex],
+      index: nodeIndex,
+      merkleTree,
+    };
+    const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
     const operatorPoolPre = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
@@ -399,7 +392,7 @@ describe("Test Reward Creation and Accrual", () => {
       setup.poolOverview
     );
 
-    const rewardAmount = new anchor.BN(rewardAmounts[0]);
+    const rewardAmount = new anchor.BN(proofInputs.amount);
     await program.methods
       .accrueReward(0, proof as unknown as number[][], proofPath, rewardAmount)
       .accountsStrict({
@@ -444,20 +437,22 @@ describe("Test Reward Creation and Accrual", () => {
 
   it("Fail to accrue epoch 2 again", async () => {
     try {
-      const rewardAddresses = setup.rewardEpochs[2].addresses;
-      const rewardAmounts = setup.rewardEpochs[2].amounts;
-      const { proof, proofPath } = generateMerkleProof(
-        rewardAddresses,
-        rewardAmounts,
-        0
+      const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+      const nodeIndex = setup.rewardEpochs[2].findIndex(
+        (x) => x.address == setup.pool1.pool.toString()
       );
-
+      const proofInputs = {
+        ...setup.rewardEpochs[2][nodeIndex],
+        index: nodeIndex,
+        merkleTree,
+      };
+      const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
       await program.methods
         .accrueReward(
           0,
           proof as unknown as number[][],
           proofPath,
-          new anchor.BN(rewardAmounts[0])
+          new anchor.BN(proofInputs.amount)
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -478,16 +473,18 @@ describe("Test Reward Creation and Accrual", () => {
   });
 
   it("Accrue Rewards for epoch 3 sucessfully", async () => {
-    const rewardAddresses = setup.rewardEpochs[2].addresses;
-    const rewardAmounts = setup.rewardEpochs[2].amounts;
-    const { proof, proofPath } = generateMerkleProof(
-      [rewardAddresses[0]],
-      [rewardAmounts[0]],
-      0
+    const treeIndex = setup.rewardEpochs[2].findIndex(
+      (x) => x.address == setup.pool1.pool.toString()
     );
-    const poolOverviewPre = await program.account.poolOverview.fetch(
-      setup.poolOverview
+    const merkleTree = MerkleUtils.constructMerkleTree(
+      setup.rewardEpochs[2].slice(treeIndex, treeIndex + 1)
     );
+    const proofInputs = {
+      ...setup.rewardEpochs[2][treeIndex],
+      index: 0,
+      merkleTree,
+    };
+    const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
     const operatorPre = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
@@ -500,13 +497,15 @@ describe("Test Reward Creation and Accrual", () => {
     const stakedBalancePre = await connection.getTokenAccountBalance(
       setup.pool1.stakedTokenAccount
     );
-    const feeBalancePre = await connection.getTokenAccountBalance(
-      setup.pool1.feeTokenAccount
-    );
 
-    const rewardAmount = new anchor.BN(rewardAmounts[0]);
+    const rewardAmount = new anchor.BN(proofInputs.amount);
     await program.methods
-      .accrueReward(0, proof as unknown as number[][], proofPath, rewardAmount)
+      .accrueReward(
+        treeIndex,
+        proof as unknown as number[][],
+        proofPath,
+        rewardAmount
+      )
       .accountsStrict({
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[3],
