@@ -1451,10 +1451,4 @@ describe("inference-staking", () => {
     );
     assert(operatorPool.closedAt.eq(poolOverview.completedRewardEpoch));
   });
-
-  // TODO: Add test for accruing of past epoch rewards for same OperatorPool.
-  // TODO: Add test for accruing with auto-stake enabled for same OperatorPool.
-  // TODO: Add test for accruing with commission fee change for OperatorPool.
-  // TODO: Add test for unstaking below min amount for Operator when pool is closed.
-  // TODO: Add test for staking to close OperatorPool.
 });
