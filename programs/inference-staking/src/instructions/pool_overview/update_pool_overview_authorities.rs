@@ -22,7 +22,17 @@ pub fn handler(
     new_halt_authorites: Vec<Pubkey>,
     new_slashing_authorities: Vec<Pubkey>,
 ) -> Result<()> {
-    require_gte!(10, new_halt_authorites.len());
+    require_gte!(
+        5,
+        new_reward_distribution_authorities.len(),
+        ErrorCode::AuthoritiesExceeded
+    );
+    require_gte!(
+        5,
+        new_slashing_authorities.len(),
+        ErrorCode::AuthoritiesExceeded
+    );
+    require_gte!(5, new_halt_authorites.len(), ErrorCode::AuthoritiesExceeded);
 
     let pool_overview = &mut ctx.accounts.pool_overview;
     pool_overview.program_admin = new_program_admin;

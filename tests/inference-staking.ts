@@ -157,6 +157,35 @@ describe("inference-staking", () => {
     }
   });
 
+  it("Fail to update PoolOverview authorities with more than 5 keys", async () => {
+    try {
+      await program.methods
+        .updatePoolOverviewAuthorities(
+          setup.poolOverviewAdminKp.publicKey,
+          [setup.poolOverviewAdminKp.publicKey],
+          [
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+          ],
+          [setup.poolOverviewAdminKp.publicKey]
+        )
+        .accountsStrict({
+          programAdmin: setup.signer1Kp.publicKey,
+          poolOverview: setup.poolOverview,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "AuthoritiesExceeded");
+    }
+  });
+
   it("Update PoolOverview authorities successfully", async () => {
     await program.methods
       .updatePoolOverviewAuthorities(
