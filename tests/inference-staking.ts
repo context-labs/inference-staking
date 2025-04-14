@@ -7,11 +7,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { INF_STAKING, setupTests, sleep } from "./utils";
-import {
-  createProgram,
-  constructMerkleTree,
-  generateMerkleProof,
-} from "inference-staking";
+import { createProgram, MerkleUtils } from "inference-staking";
 
 describe("inference-staking", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
@@ -567,15 +563,11 @@ describe("inference-staking", () => {
   });
 
   it("Create RewardRecord 2 successfully", async () => {
-    const rewardAddresses = setup.rewardEpochs[2].addresses;
-    const rewardAmounts = setup.rewardEpochs[2].amounts;
-
-    const merkleTree = constructMerkleTree(rewardAddresses, rewardAmounts);
-
-    const merkleRoots = [merkleTree[merkleTree.length - 1][0]];
+    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+    const merkleRoots = [merkleTree.at(-1)[0]];
     let totalRewards = new anchor.BN(0);
-    for (const amount of rewardAmounts) {
-      totalRewards = totalRewards.addn(amount);
+    for (const addressInput of setup.rewardEpochs[2]) {
+      totalRewards = totalRewards.addn(addressInput.amount);
     }
 
     // Fund rewardTokenAccount
@@ -614,17 +606,26 @@ describe("inference-staking", () => {
   });
 
   it("PoolOverview admin modifies RewardRecord successfully", async () => {
-    const epoch1Addresses = [
-      setup.pool1.pool.toString(),
-      setup.pool2.pool.toString(),
-      setup.pool3.pool.toString(),
-      setup.pool4.pool.toString(),
-    ];
-    const epoch1Amounts = [200, 100, 300, 400];
-
-    const merkleTree = constructMerkleTree(epoch1Addresses, epoch1Amounts);
-
-    const merkleRoots = [merkleTree[merkleTree.length - 1][0]];
+    const addressInputs = [
+      {
+        address: setup.pool1.pool.toString(),
+        amount: 200,
+      },
+      {
+        address: setup.pool2.pool.toString(),
+        amount: 100,
+      },
+      {
+        address: setup.pool3.pool.toString(),
+        amount: 300,
+      },
+      {
+        address: setup.pool4.pool.toString(),
+        amount: 400,
+      },
+    ].sort((a, b) => a.address.localeCompare(b.address));
+    const merkleTree = MerkleUtils.constructMerkleTree(addressInputs);
+    const merkleRoots = [merkleTree.at(-1)[0]];
     let epoch1RewardRecord = await program.account.rewardRecord.fetch(
       setup.rewardRecords[2]
     );
@@ -671,13 +672,17 @@ describe("inference-staking", () => {
   });
 
   it("Accrue Rewards successfully", async () => {
-    const rewardAddresses = setup.rewardEpochs[2].addresses;
-    const rewardAmounts = setup.rewardEpochs[2].amounts;
-    const { proof, proofPath } = generateMerkleProof(
-      rewardAddresses,
-      rewardAmounts,
-      0
+    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+    const nodeIndex = setup.rewardEpochs[2].findIndex(
+      (x) => x.address == setup.pool1.pool.toString()
     );
+    const proofInputs = {
+      ...setup.rewardEpochs[2][nodeIndex],
+      index: nodeIndex,
+      merkleTree,
+    };
+    const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+
     const poolOverviewPre = await program.account.poolOverview.fetch(
       setup.poolOverview
     );
@@ -697,7 +702,7 @@ describe("inference-staking", () => {
       setup.pool1.feeTokenAccount
     );
 
-    const rewardAmount = new anchor.BN(100);
+    const rewardAmount = new anchor.BN(proofInputs.amount);
     await program.methods
       .accrueReward(0, proof as unknown as number[][], proofPath, rewardAmount)
       .accountsStrict({

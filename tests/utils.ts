@@ -152,18 +152,25 @@ export async function setupTests() {
     )[0],
   };
 
-  const epoch1Addresses = [
-    operatorPool1.toString(),
-    operatorPool2.toString(),
-    operatorPool3.toString(),
-    operatorPool4.toString(),
-  ];
-  const epoch1Amounts = [100, 200, 300, 400];
   const rewardEpochs = {
-    2: {
-      addresses: epoch1Addresses,
-      amounts: epoch1Amounts,
-    },
+    2: [
+      {
+        address: operatorPool1.toString(),
+        amount: 100,
+      },
+      {
+        address: operatorPool2.toString(),
+        amount: 200,
+      },
+      {
+        address: operatorPool3.toString(),
+        amount: 300,
+      },
+      {
+        address: operatorPool4.toString(),
+        amount: 400,
+      },
+    ].sort((a, b) => a.address.localeCompare(b.address)),
   };
 
   return {
