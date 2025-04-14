@@ -96,6 +96,30 @@ describe("inference-staking", () => {
     }
   });
 
+  it("Fail to update PoolOverview with with invalid min operator share", async () => {
+    try {
+      // Expect failure as min operator share cannot exceed 100%
+      await program.methods
+        .updatePoolOverview(
+          isWithdrawalHalted,
+          allowPoolCreation,
+          100_01,
+          delegatorUnstakeDelaySeconds,
+          operatorUnstakeDelaySeconds
+        )
+        .accountsStrict({
+          programAdmin: setup.signer1,
+          poolOverview: setup.poolOverview,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "RequireGteViolated");
+    }
+  });
+
   it("Update PoolOverview successfully", async () => {
     await program.methods
       .updatePoolOverview(
@@ -225,6 +249,32 @@ describe("inference-staking", () => {
     );
   });
 
+  it("Fail to create OperatorPool with invalid commission rate", async () => {
+    try {
+      // Expect failure as commission cannot excceed 100%.
+      await program.methods
+        .createOperatorPool(autoStakeFees, 110_00, allowDelegation)
+        .accountsStrict({
+          payer: setup.payer,
+          admin: setup.signer1,
+          operatorPool: setup.pool1.pool,
+          stakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          poolOverview: setup.poolOverview,
+          mint: setup.tokenMint,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.payerKp, setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "RequireGteViolated");
+    }
+  });
+
   it("Create OperatorPool 1 successfully", async () => {
     await program.methods
       .createOperatorPool(autoStakeFees, commissionRateBps, allowDelegation)
@@ -302,6 +352,28 @@ describe("inference-staking", () => {
       .rpc();
     operatorPool = await program.account.operatorPool.fetch(setup.pool1.pool);
     assert(operatorPool.admin.equals(setup.signer1), "Admin should be signer1");
+  });
+
+  it("Fail to update operator pool with invalid commission rate", async () => {
+    try {
+      // Expect failure as commission cannot excceed 100%.
+      await program.methods
+        .updateOperatorPool({
+          newCommissionRateBps: 150_00,
+          autoStakeFees: true,
+          allowDelegation: false,
+        })
+        .accountsStrict({
+          admin: setup.signer1,
+          operatorPool: setup.pool1.pool,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "RequireGteViolated");
+    }
   });
 
   it("Should update OperatorPool successfully", async () => {
