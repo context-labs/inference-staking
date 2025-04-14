@@ -385,6 +385,25 @@ const _IDL = {
       args: [],
     },
     {
+      name: "closeOperatorPool",
+      discriminator: [5, 121, 71, 229, 187, 164, 51, 179],
+      accounts: [
+        {
+          name: "admin",
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "poolOverview",
+        },
+        {
+          name: "operatorPool",
+          writable: true,
+        },
+      ],
+      args: [],
+    },
+    {
       name: "closeStakingRecord",
       discriminator: [208, 180, 58, 210, 55, 93, 23, 115],
       accounts: [
@@ -1306,6 +1325,28 @@ const _IDL = {
       discriminator: [104, 155, 91, 97, 111, 66, 42, 128],
     },
   ],
+  events: [
+    {
+      name: "claimUnstakeEvent",
+      discriminator: [18, 255, 161, 59, 246, 47, 255, 127],
+    },
+    {
+      name: "completeAccrueRewardEvent",
+      discriminator: [149, 158, 93, 104, 228, 19, 24, 204],
+    },
+    {
+      name: "slashStakeEvent",
+      discriminator: [150, 87, 165, 208, 202, 50, 106, 12],
+    },
+    {
+      name: "stakeEvent",
+      discriminator: [226, 134, 188, 173, 19, 33, 75, 175],
+    },
+    {
+      name: "unstakeEvent",
+      discriminator: [162, 104, 137, 228, 81, 3, 79, 197],
+    },
+  ],
   errors: [
     {
       code: 6000,
@@ -1374,6 +1415,63 @@ const _IDL = {
     },
   ],
   types: [
+    {
+      name: "claimUnstakeEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "stakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "unstakeAmount",
+            docs: ["Amount being of tokens being claimed."],
+            type: "u64",
+          },
+          {
+            name: "totalStakedAmount",
+            docs: ["Total amount of remaining tokens staked in pool."],
+            type: "u64",
+          },
+          {
+            name: "totalUnstaking",
+            docs: [
+              "Total amount of remaining tokens being unstaked in the pool.",
+            ],
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "completeAccrueRewardEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "totalStakedAmount",
+            docs: ["Total amount of remaining tokens staked in pool."],
+            type: "u64",
+          },
+          {
+            name: "totalUnstaking",
+            docs: [
+              "Total amount of remaining tokens being unstaked in the pool.",
+            ],
+            type: "u64",
+          },
+        ],
+      },
+    },
     {
       name: "modifyRewardRecordArgs",
       type: {
@@ -1466,7 +1564,10 @@ const _IDL = {
           },
           {
             name: "closedAt",
-            docs: ["Epoch that pool was permanently closed at, if set."],
+            docs: [
+              "Epoch that pool was permanently closed at, if set. Once a pool is closed, the pool will stop accruing",
+              "any rewards starting from that epoch.",
+            ],
             type: {
               option: "u64",
             },
@@ -1475,7 +1576,7 @@ const _IDL = {
             name: "isHalted",
             docs: [
               "If Pool is halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,",
-              "claim or withdraw rewards. Other users can still unstake or claim.",
+              "claim, withdraw rewards or close a pool. Other users can still unstake or claim.",
             ],
             type: "bool",
           },
@@ -1658,6 +1759,72 @@ const _IDL = {
       },
     },
     {
+      name: "slashStakeEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "stakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "slashedAmount",
+            docs: ["Amount being of tokens being slashed."],
+            type: "u64",
+          },
+          {
+            name: "totalStakedAmount",
+            docs: ["Total amount of remaining tokens staked in pool."],
+            type: "u64",
+          },
+          {
+            name: "totalUnstaking",
+            docs: [
+              "Total amount of remaining tokens being unstaked in the pool.",
+            ],
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "stakeEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "stakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "stakeAmount",
+            docs: ["Amount being of tokens being delegated to pool."],
+            type: "u64",
+          },
+          {
+            name: "totalStakedAmount",
+            docs: ["Total amount of remaining tokens staked in pool."],
+            type: "u64",
+          },
+          {
+            name: "totalUnstaking",
+            docs: [
+              "Total amount of remaining tokens being unstaked in the pool.",
+            ],
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
       name: "stakingRecord",
       type: {
         kind: "struct",
@@ -1685,6 +1852,39 @@ const _IDL = {
           {
             name: "tokensUnstakeAmount",
             docs: ["Amount of tokens to be unstaked"],
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "unstakeEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "stakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "unstakeAmount",
+            docs: ["Amount being of tokens being unstaked from pool."],
+            type: "u64",
+          },
+          {
+            name: "totalStakedAmount",
+            docs: ["Total amount of remaining tokens staked in pool."],
+            type: "u64",
+          },
+          {
+            name: "totalUnstaking",
+            docs: [
+              "Total amount of remaining tokens being unstaked in the pool.",
+            ],
             type: "u64",
           },
         ],

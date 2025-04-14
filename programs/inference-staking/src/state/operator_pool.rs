@@ -36,11 +36,12 @@ pub struct OperatorPool {
     /// Total amount of tokens being unstaked.
     pub total_unstaking: u64,
 
-    /// Epoch that pool was permanently closed at, if set.
+    /// Epoch that pool was permanently closed at, if set. Once a pool is closed, the pool will stop accruing
+    /// any rewards starting from that epoch.
     pub closed_at: Option<u64>,
 
     /// If Pool is halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,
-    /// claim or withdraw rewards. Other users can still unstake or claim.
+    /// claim, withdraw rewards or close a pool. Other users can still unstake or claim.
     pub is_halted: bool,
 
     /// Epoch in which reward was last claimed. Defaults to poolOverview.completed_reward_epoch + 1

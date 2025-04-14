@@ -3,6 +3,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::{
     error::ErrorCode,
+    events::SlashStakeEvent,
     operator_pool_signer_seeds,
     state::{OperatorPool, PoolOverview, StakingRecord},
 };
@@ -85,6 +86,14 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
         .total_staked_amount
         .checked_sub(token_amount)
         .unwrap();
+
+    emit!(SlashStakeEvent {
+        staking_record: operator_staking_record.key(),
+        operator_pool: operator_pool.key(),
+        slashed_amount: token_amount,
+        total_staked_amount: operator_pool.total_staked_amount,
+        total_unstaking: operator_pool.total_unstaking
+    });
 
     Ok(())
 }

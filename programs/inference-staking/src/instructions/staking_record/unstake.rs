@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
+use crate::events::UnstakeEvent;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 
 #[derive(Accounts)]
@@ -97,8 +98,9 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
         .checked_add(unstake_delay_seconds.try_into().unwrap())
         .unwrap();
 
-    // If Operator is unstaking, check that they still maintain min. share percentage of pool after.
-    if is_operator_unstaking {
+    // If Operator is unstaking and pool is not closed, check that they still
+    // maintain min. share percentage of pool after.
+    if is_operator_unstaking && operator_pool.closed_at.is_none() {
         let min_operator_share_bps = pool_overview.min_operator_share_bps;
         let min_operator_shares = operator_pool.calc_min_operator_shares(min_operator_share_bps);
         require_gte!(
@@ -107,6 +109,14 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
             ErrorCode::MinOperatorSharesNotMet
         );
     }
+
+    emit!(UnstakeEvent {
+        staking_record: staking_record.key(),
+        operator_pool: operator_pool.key(),
+        unstake_amount: tokens_unstaked,
+        total_staked_amount: operator_pool.total_staked_amount,
+        total_unstaking: operator_pool.total_unstaking
+    });
 
     Ok(())
 }

@@ -1,6 +1,7 @@
 #![allow(ambiguous_glob_reexports)]
 
 pub mod error;
+pub mod events;
 pub mod instructions;
 pub mod macros;
 pub mod state;
@@ -129,6 +130,10 @@ pub mod inference_staking {
 
     pub fn withdraw_operator_commission(ctx: Context<WithdrawOperatorCommission>) -> Result<()> {
         withdraw_operator_commission::handler(ctx)
+    }
+
+    pub fn close_operator_pool(ctx: Context<CloseOperatorPool>) -> Result<()> {
+        close_operator_pool::handler(ctx)
     }
 
     /// OperatorPool admin-only instruction to change the StakingRecord associated with

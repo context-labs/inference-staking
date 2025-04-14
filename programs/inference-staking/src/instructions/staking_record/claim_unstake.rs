@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCode;
+use crate::events::ClaimUnstakeEvent;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 
 #[derive(Accounts)]
@@ -88,6 +89,7 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
     }
 
     let staking_record = &mut ctx.accounts.owner_staking_record;
+    let tokens_unstake_amount = staking_record.tokens_unstake_amount;
 
     // Check that unstake_at_timestamp has elapsed.
     require_gte!(
@@ -95,11 +97,7 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
         staking_record.unstake_at_timestamp,
         ErrorCode::PendingDelay
     );
-    require_gt!(
-        staking_record.tokens_unstake_amount,
-        0,
-        ErrorCode::NoTokensToClaim
-    );
+    require_gt!(tokens_unstake_amount, 0, ErrorCode::NoTokensToClaim);
 
     // Transfer claimed tokens to owner.
     token::transfer(
@@ -116,22 +114,23 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
                 &[operator_pool.bump],
             ]],
         ),
-        staking_record.tokens_unstake_amount,
+        tokens_unstake_amount,
     )?;
 
     // Update total_unstaking on OperatorPool for claim.
     let operator_pool = &mut ctx.accounts.operator_pool;
     operator_pool.total_unstaking = operator_pool
         .total_unstaking
-        .checked_sub(staking_record.tokens_unstake_amount)
+        .checked_sub(tokens_unstake_amount)
         .unwrap();
 
     // Reset owner's StakingRecord.
     staking_record.tokens_unstake_amount = 0;
     staking_record.unstake_at_timestamp = 0;
 
-    // If Operator is claiming, check that they still maintain min. share percentage of pool after.
-    if is_operator_claiming {
+    // If Operator is claiming and pool is not closed, check that they still
+    // maintain min. share percentage of pool after.
+    if is_operator_claiming && operator_pool.closed_at.is_none() {
         let min_operator_share_bps = pool_overview.min_operator_share_bps;
         let min_operator_shares = operator_pool.calc_min_operator_shares(min_operator_share_bps);
         require_gte!(
@@ -140,6 +139,14 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
             ErrorCode::MinOperatorSharesNotMet
         );
     }
+
+    emit!(ClaimUnstakeEvent {
+        staking_record: staking_record.key(),
+        operator_pool: operator_pool.key(),
+        unstake_amount: tokens_unstake_amount,
+        total_staked_amount: operator_pool.total_staked_amount,
+        total_unstaking: operator_pool.total_unstaking
+    });
 
     Ok(())
 }
