@@ -1,6 +1,7 @@
 #![allow(ambiguous_glob_reexports)]
 
 pub mod error;
+pub mod events;
 pub mod instructions;
 pub mod macros;
 pub mod state;
