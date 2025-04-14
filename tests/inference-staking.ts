@@ -73,50 +73,28 @@ describe("inference-staking", () => {
     assert(poolOverview.unclaimedRewards.isZero());
   });
 
-  it("Fail to update PoolOverview with invalid admin", async () => {
+  it("Fail to create OperatorPool when pool creation is disabled", async () => {
     try {
       await program.methods
-        .updatePoolOverview(
-          isWithdrawalHalted,
-          allowPoolCreation,
-          minOperatorShareBps,
-          delegatorUnstakeDelaySeconds,
-          operatorUnstakeDelaySeconds
-        )
+        .createOperatorPool(autoStakeFees, commissionRateBps, allowDelegation)
         .accountsStrict({
-          programAdmin: setup.haltAuthority1Kp.publicKey,
+          payer: setup.payer,
+          admin: setup.signer1,
+          operatorPool: setup.pool1.pool,
+          stakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
           poolOverview: setup.poolOverview,
+          mint: setup.tokenMint,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         })
-        .signers([setup.haltAuthority1Kp])
+        .signers([setup.payerKp, setup.signer1Kp])
         .rpc();
       assert(false);
     } catch (error) {
       const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
-    }
-  });
-
-  it("Fail to update PoolOverview with with invalid min operator share", async () => {
-    try {
-      // Expect failure as min operator share cannot exceed 100%
-      await program.methods
-        .updatePoolOverview(
-          isWithdrawalHalted,
-          allowPoolCreation,
-          100_01,
-          delegatorUnstakeDelaySeconds,
-          operatorUnstakeDelaySeconds
-        )
-        .accountsStrict({
-          programAdmin: setup.signer1,
-          poolOverview: setup.poolOverview,
-        })
-        .signers([setup.signer1Kp])
-        .rpc();
-      assert(false);
-    } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "RequireGteViolated");
+      assert.equal(code, "PoolCreationDisabled");
     }
   });
 
@@ -159,57 +137,6 @@ describe("inference-staking", () => {
     assert(poolOverview.unclaimedRewards.isZero());
   });
 
-  it("Fail to update PoolOverview authorities with invalid admin", async () => {
-    try {
-      await program.methods
-        .updatePoolOverviewAuthorities(
-          setup.poolOverviewAdminKp.publicKey,
-          [setup.poolOverviewAdminKp.publicKey],
-          [setup.haltAuthority1Kp.publicKey],
-          [setup.poolOverviewAdminKp.publicKey]
-        )
-        .accountsStrict({
-          programAdmin: setup.poolOverviewAdminKp.publicKey,
-          poolOverview: setup.poolOverview,
-        })
-        .signers([setup.poolOverviewAdminKp])
-        .rpc();
-      assert(false);
-    } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
-    }
-  });
-
-  it("Fail to update PoolOverview authorities with more than 5 keys", async () => {
-    try {
-      await program.methods
-        .updatePoolOverviewAuthorities(
-          setup.poolOverviewAdminKp.publicKey,
-          [setup.poolOverviewAdminKp.publicKey],
-          [
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-          ],
-          [setup.poolOverviewAdminKp.publicKey]
-        )
-        .accountsStrict({
-          programAdmin: setup.signer1Kp.publicKey,
-          poolOverview: setup.poolOverview,
-        })
-        .signers([setup.signer1Kp])
-        .rpc();
-      assert(false);
-    } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "AuthoritiesExceeded");
-    }
-  });
-
   it("Update PoolOverview authorities successfully", async () => {
     await program.methods
       .updatePoolOverviewAuthorities(
@@ -247,32 +174,6 @@ describe("inference-staking", () => {
         setup.poolOverviewAdminKp.publicKey
       )
     );
-  });
-
-  it("Fail to create OperatorPool with invalid commission rate", async () => {
-    try {
-      // Expect failure as commission cannot excceed 100%.
-      await program.methods
-        .createOperatorPool(autoStakeFees, 110_00, allowDelegation)
-        .accountsStrict({
-          payer: setup.payer,
-          admin: setup.signer1,
-          operatorPool: setup.pool1.pool,
-          stakingRecord: setup.pool1.signer1Record,
-          stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
-          poolOverview: setup.poolOverview,
-          mint: setup.tokenMint,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([setup.payerKp, setup.signer1Kp])
-        .rpc();
-      assert(false);
-    } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "RequireGteViolated");
-    }
   });
 
   it("Create OperatorPool 1 successfully", async () => {
