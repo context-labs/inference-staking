@@ -63,6 +63,10 @@ pub mod inference_staking {
         claim_unstake::handler(ctx)
     }
 
+    pub fn cancel_unstake(ctx: Context<CancelUnstake>) -> Result<()> {
+        cancel_unstake::handler(ctx)
+    }
+
     pub fn create_reward_record(
         ctx: Context<CreateRewardRecord>,
         merkle_roots: Vec<[u8; 32]>,
@@ -118,6 +122,10 @@ pub mod inference_staking {
 
     pub fn withdraw_operator_commission(ctx: Context<WithdrawOperatorCommission>) -> Result<()> {
         withdraw_operator_commission::handler(ctx)
+    }
+
+    pub fn close_operator_pool(ctx: Context<CloseOperatorPool>) -> Result<()> {
+        close_operator_pool::handler(ctx)
     }
 
     /// OperatorPool admin-only instruction to change the StakingRecord associated with

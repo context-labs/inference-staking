@@ -150,6 +150,30 @@ const _IDL = {
       ],
     },
     {
+      name: "cancelUnstake",
+      discriminator: [64, 65, 53, 227, 125, 153, 3, 167],
+      accounts: [
+        {
+          name: "owner",
+          signer: true,
+          relations: ["ownerStakingRecord"],
+        },
+        {
+          name: "poolOverview",
+        },
+        {
+          name: "operatorPool",
+          writable: true,
+          relations: ["ownerStakingRecord"],
+        },
+        {
+          name: "ownerStakingRecord",
+          writable: true,
+        },
+      ],
+      args: [],
+    },
+    {
       name: "changeOperatorAdmin",
       discriminator: [54, 235, 203, 165, 49, 205, 221, 109],
       accounts: [
@@ -356,6 +380,25 @@ const _IDL = {
         {
           name: "tokenProgram",
           address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        },
+      ],
+      args: [],
+    },
+    {
+      name: "closeOperatorPool",
+      discriminator: [5, 121, 71, 229, 187, 164, 51, 179],
+      accounts: [
+        {
+          name: "admin",
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "poolOverview",
+        },
+        {
+          name: "operatorPool",
+          writable: true,
         },
       ],
       args: [],
@@ -1512,7 +1555,10 @@ const _IDL = {
           },
           {
             name: "closedAt",
-            docs: ["Epoch that pool was permanently closed at, if set."],
+            docs: [
+              "Epoch that pool was permanently closed at, if set. Once a pool is closed, the pool will stop accruing",
+              "any rewards starting from that epoch.",
+            ],
             type: {
               option: "u64",
             },
@@ -1521,7 +1567,7 @@ const _IDL = {
             name: "isHalted",
             docs: [
               "If Pool is halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,",
-              "claim or withdraw rewards. Other users can still unstake or claim.",
+              "claim, withdraw rewards or close a pool. Other users can still unstake or claim.",
             ],
             type: "bool",
           },

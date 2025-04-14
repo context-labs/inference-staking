@@ -12,11 +12,6 @@ export const INF_STAKING = new PublicKey(
   "7NuTZJFDezrh8n73HxY22gvPrXnGeRqDAoFDnXHnMjQb"
 );
 
-export const arraysEqual = (a, b) => {
-  if (a.length !== b.length) return false;
-  return a.every((val, i) => val === b[i]);
-};
-
 export async function setupTests() {
   const payerKp = new Keypair();
   const poolOverviewAdminKp = new Keypair();
@@ -133,15 +128,14 @@ export async function setupTests() {
     )[0],
   };
   const pool2 = {
-    pool: operatorPool2
+    pool: operatorPool2,
   };
   const pool3 = {
-    pool: operatorPool3
+    pool: operatorPool3,
   };
   const pool4 = {
-    pool: operatorPool4
+    pool: operatorPool4,
   };
-
 
   const rewardRecords = {
     1: PublicKey.findProgramAddressSync(
@@ -152,20 +146,31 @@ export async function setupTests() {
       [new BN(2).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
       INF_STAKING
     )[0],
+    3: PublicKey.findProgramAddressSync(
+      [new BN(3).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
+      INF_STAKING
+    )[0],
   };
 
-  const epoch1Addresses = [
-    operatorPool1.toString(),
-    operatorPool2.toString(),
-    operatorPool3.toString(),
-    operatorPool4.toString(),
-  ];
-  const epoch1Amounts = [100, 200, 300, 400];
   const rewardEpochs = {
-    1: {
-      addresses: epoch1Addresses,
-      amounts: epoch1Amounts,
-    },
+    2: [
+      {
+        address: operatorPool1.toString(),
+        amount: 100,
+      },
+      {
+        address: operatorPool2.toString(),
+        amount: 200,
+      },
+      {
+        address: operatorPool3.toString(),
+        amount: 300,
+      },
+      {
+        address: operatorPool4.toString(),
+        amount: 400,
+      },
+    ].sort((a, b) => a.address.localeCompare(b.address)),
   };
 
   return {

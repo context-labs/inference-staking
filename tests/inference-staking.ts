@@ -7,8 +7,6 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { INF_STAKING, setupTests, sleep } from "./utils";
-import { constructMerkleTree, generateMerkleProof } from "./merkle";
-import { createProgram } from "inference-staking";
 import {
   ClaimUnstakeEvent,
   CompleteAccrueRewardEvent,
@@ -16,6 +14,7 @@ import {
   StakeEvent,
   UnstakeEvent,
 } from "inference-staking/src/eventTypes";
+import { createProgram, MerkleUtils } from "inference-staking";
 
 describe("inference-staking", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
@@ -518,6 +517,68 @@ describe("inference-staking", () => {
     );
   });
 
+  it("Cancel unstake successfully", async () => {
+    const unstakeShares = new anchor.BN(10_000);
+    const operatorPoolPre = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    const stakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+
+    await program.methods
+      .cancelUnstake()
+      .accountsStrict({
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.signer1Record,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    // Token:Share at 1:1 ratio
+    assert(
+      operatorPool.totalStakedAmount
+        .sub(operatorPoolPre.totalStakedAmount)
+        .eq(unstakeShares)
+    );
+    assert(
+      operatorPool.totalShares
+        .sub(operatorPoolPre.totalShares)
+        .eq(unstakeShares)
+    );
+    assert(
+      operatorPoolPre.totalUnstaking.eq(
+        operatorPool.totalUnstaking.add(unstakeShares)
+      )
+    );
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+    assert(stakingRecord.shares.sub(stakingRecordPre.shares).eq(unstakeShares));
+    assert(stakingRecord.tokensUnstakeAmount.isZero());
+    assert(stakingRecord.unstakeAtTimestamp.isZero());
+
+    // Resume unstaking
+    await program.methods
+      .unstake(unstakeShares)
+      .accountsStrict({
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+  });
+
   it("Create RewardRecord 1 successfully", async () => {
     // Create an empty record with no rewards.
     await program.methods
@@ -535,15 +596,11 @@ describe("inference-staking", () => {
   });
 
   it("Create RewardRecord 2 successfully", async () => {
-    const rewardAddresses = setup.rewardEpochs[1].addresses;
-    const rewardAmounts = setup.rewardEpochs[1].amounts;
-
-    const merkleTree = constructMerkleTree(rewardAddresses, rewardAmounts);
-
-    const merkleRoots = [merkleTree[merkleTree.length - 1][0]];
+    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+    const merkleRoots = [merkleTree.at(-1)[0]];
     let totalRewards = new anchor.BN(0);
-    for (const amount of rewardAmounts) {
-      totalRewards = totalRewards.addn(amount);
+    for (const addressInput of setup.rewardEpochs[2]) {
+      totalRewards = totalRewards.addn(addressInput.amount);
     }
 
     // Fund rewardTokenAccount
@@ -582,17 +639,26 @@ describe("inference-staking", () => {
   });
 
   it("PoolOverview admin modifies RewardRecord successfully", async () => {
-    const epoch1Addresses = [
-      setup.pool1.pool.toString(),
-      setup.pool2.pool.toString(),
-      setup.pool3.pool.toString(),
-      setup.pool4.pool.toString(),
-    ];
-    const epoch1Amounts = [200, 100, 300, 400];
-
-    const merkleTree = constructMerkleTree(epoch1Addresses, epoch1Amounts);
-
-    const merkleRoots = [merkleTree[merkleTree.length - 1][0]];
+    const addressInputs = [
+      {
+        address: setup.pool1.pool.toString(),
+        amount: 200,
+      },
+      {
+        address: setup.pool2.pool.toString(),
+        amount: 100,
+      },
+      {
+        address: setup.pool3.pool.toString(),
+        amount: 300,
+      },
+      {
+        address: setup.pool4.pool.toString(),
+        amount: 400,
+      },
+    ].sort((a, b) => a.address.localeCompare(b.address));
+    const merkleTree = MerkleUtils.constructMerkleTree(addressInputs);
+    const merkleRoots = [merkleTree.at(-1)[0]];
     let epoch1RewardRecord = await program.account.rewardRecord.fetch(
       setup.rewardRecords[2]
     );
@@ -639,13 +705,17 @@ describe("inference-staking", () => {
   });
 
   it("Accrue Rewards successfully", async () => {
-    const rewardAddresses = setup.rewardEpochs[1].addresses;
-    const rewardAmounts = setup.rewardEpochs[1].amounts;
-    const { proof, proofPath } = generateMerkleProof(
-      rewardAddresses,
-      rewardAmounts,
-      0
+    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+    const nodeIndex = setup.rewardEpochs[2].findIndex(
+      (x) => x.address == setup.pool1.pool.toString()
     );
+    const proofInputs = {
+      ...setup.rewardEpochs[2][nodeIndex],
+      index: nodeIndex,
+      merkleTree,
+    };
+    const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+
     const poolOverviewPre = await program.account.poolOverview.fetch(
       setup.poolOverview
     );
@@ -665,7 +735,7 @@ describe("inference-staking", () => {
       setup.pool1.feeTokenAccount
     );
 
-    const rewardAmount = new anchor.BN(100);
+    const rewardAmount = new anchor.BN(proofInputs.amount);
 
     let listenerId: number;
     const event: CompleteAccrueRewardEvent = await new Promise<any>((res) => {
@@ -676,7 +746,12 @@ describe("inference-staking", () => {
         }
       );
       program.methods
-        .accrueReward(0, proof, proofPath, rewardAmount)
+        .accrueReward(
+          0,
+          proof as unknown as number[][],
+          proofPath,
+          rewardAmount
+        )
         .accountsStrict({
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
@@ -1105,7 +1180,29 @@ describe("inference-staking", () => {
     assert.isNull(closedStakingRecord, "StakingRecord should have closed");
   });
 
+  it("Should close OperatorPool successfully", async () => {
+    await program.methods
+      .closeOperatorPool()
+      .accountsStrict({
+        admin: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(operatorPool.closedAt.eq(poolOverview.completedRewardEpoch));
+  });
+
   // TODO: Add test for accruing of past epoch rewards for same OperatorPool.
   // TODO: Add test for accruing with auto-stake enabled for same OperatorPool.
   // TODO: Add test for accruing with commission fee change for OperatorPool.
+  // TODO: Add test for unstaking below min amount for Operator when pool is closed.
+  // TODO: Add test for staking to close OperatorPool.
 });
