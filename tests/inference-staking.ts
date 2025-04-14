@@ -29,6 +29,9 @@ describe("inference-staking", () => {
   const autoStakeFees = false;
   const commissionRateBps = 1500;
   const allowDelegation = true;
+  const minOperatorShareBps = 1000;
+  const allowPoolCreation = true;
+  const isWithdrawalHalted = false;
 
   before(async () => {
     setup = await setupTests();
@@ -67,11 +70,30 @@ describe("inference-staking", () => {
     assert(poolOverview.unclaimedRewards.isZero());
   });
 
-  it("Update PoolOverview successfully", async () => {
-    const minOperatorShareBps = 1000;
-    const allowPoolCreation = true;
-    const isWithdrawalHalted = false;
+  it("Fail to update PoolOverview with invalid admin", async () => {
+    try {
+      await program.methods
+        .updatePoolOverview(
+          isWithdrawalHalted,
+          allowPoolCreation,
+          minOperatorShareBps,
+          delegatorUnstakeDelaySeconds,
+          operatorUnstakeDelaySeconds
+        )
+        .accountsStrict({
+          programAdmin: setup.haltAuthority1Kp.publicKey,
+          poolOverview: setup.poolOverview,
+        })
+        .signers([setup.haltAuthority1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidAuthority");
+    }
+  });
 
+  it("Update PoolOverview successfully", async () => {
     await program.methods
       .updatePoolOverview(
         isWithdrawalHalted,
@@ -108,6 +130,28 @@ describe("inference-staking", () => {
     assert(poolOverview.totalPools.isZero());
     assert(poolOverview.completedRewardEpoch.isZero());
     assert(poolOverview.unclaimedRewards.isZero());
+  });
+
+  it("Fail to update PoolOverview authorities with invalid admin", async () => {
+    try {
+      await program.methods
+        .updatePoolOverviewAuthorities(
+          setup.poolOverviewAdminKp.publicKey,
+          [setup.poolOverviewAdminKp.publicKey],
+          [setup.haltAuthority1Kp.publicKey],
+          [setup.poolOverviewAdminKp.publicKey]
+        )
+        .accountsStrict({
+          programAdmin: setup.poolOverviewAdminKp.publicKey,
+          poolOverview: setup.poolOverview,
+        })
+        .signers([setup.poolOverviewAdminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidAuthority");
+    }
   });
 
   it("Update PoolOverview authorities successfully", async () => {
@@ -567,6 +611,27 @@ describe("inference-staking", () => {
       .rpc();
   });
 
+  it("Fail to create RewardRecord with invalid authority", async () => {
+    try {
+      await program.methods
+        .createRewardRecord([], new anchor.BN(0))
+        .accountsStrict({
+          payer: setup.payer,
+          authority: setup.signer1Kp.publicKey,
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[1],
+          rewardTokenAccount: setup.rewardTokenAccount,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.payerKp, setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidAuthority");
+    }
+  });
+
   it("Create RewardRecord 1 successfully", async () => {
     // Create an empty record with no rewards.
     await program.methods
@@ -627,6 +692,27 @@ describe("inference-staking", () => {
     assert(rewardRecord.totalRewards.eq(totalRewards));
     for (let i = 0; i < rewardRecord.merkleRoots.length; i++) {
       assert.deepEqual(rewardRecord.merkleRoots[i], Array.from(merkleRoots[i]));
+    }
+  });
+
+  it("Fail to modify RewardRecord with invalid authority", async () => {
+    try {
+      await program.methods
+        // @ts-ignore
+        .modifyRewardRecord({
+          merkleRoots: [],
+        })
+        .accountsStrict({
+          authority: setup.signer1Kp.publicKey,
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[2],
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidAuthority");
     }
   });
 
@@ -850,6 +936,33 @@ describe("inference-staking", () => {
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
+  it("Fail to slash OperatorPool stake with invalid authority", async () => {
+    const destinationTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.signer1
+    );
+
+    try {
+      await program.methods
+        .slashStake({ sharesAmount: new anchor.BN(1) })
+        .accountsStrict({
+          authority: setup.signer1Kp.publicKey,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          destination: destinationTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidAuthority");
+    }
+  });
+
   it("Admin should be able to slash OperatorPool 1 stake", async () => {
     const destinationTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
@@ -989,7 +1102,28 @@ describe("inference-staking", () => {
     );
   });
 
-  it("PoolOverview admin should update halt status status", async () => {
+  it("Fail to set halt status with invalid authority", async () => {
+    try {
+      await program.methods
+        .setHaltStatus({
+          isHalted: true,
+        })
+        .accountsStrict({
+          authority: setup.signer1Kp.publicKey,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidAuthority");
+    }
+  });
+
+  it("PoolOverview admin should set halt status", async () => {
     await program.methods
       .setHaltStatus({
         isHalted: true,
