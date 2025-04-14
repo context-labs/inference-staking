@@ -570,7 +570,7 @@ const _IDL = {
           signer: true,
         },
         {
-          name: "admin",
+          name: "programAdmin",
           signer: true,
         },
         {
@@ -623,9 +623,8 @@ const _IDL = {
           signer: true,
         },
         {
-          name: "admin",
+          name: "authority",
           signer: true,
-          relations: ["poolOverview"],
         },
         {
           name: "poolOverview",
@@ -746,9 +745,8 @@ const _IDL = {
       discriminator: [16, 109, 128, 67, 141, 121, 47, 186],
       accounts: [
         {
-          name: "admin",
+          name: "authority",
           signer: true,
-          relations: ["poolOverview"],
         },
         {
           name: "poolOverview",
@@ -852,9 +850,8 @@ const _IDL = {
       discriminator: [190, 242, 137, 27, 41, 18, 233, 37],
       accounts: [
         {
-          name: "admin",
+          name: "authority",
           signer: true,
-          relations: ["poolOverview"],
         },
         {
           name: "poolOverview",
@@ -1150,7 +1147,7 @@ const _IDL = {
       discriminator: [107, 143, 107, 12, 150, 138, 52, 184],
       accounts: [
         {
-          name: "admin",
+          name: "programAdmin",
           signer: true,
           relations: ["poolOverview"],
         },
@@ -1197,7 +1194,7 @@ const _IDL = {
       discriminator: [74, 195, 118, 20, 145, 15, 95, 245],
       accounts: [
         {
-          name: "admin",
+          name: "programAdmin",
           signer: true,
           relations: ["poolOverview"],
         },
@@ -1218,11 +1215,23 @@ const _IDL = {
       ],
       args: [
         {
-          name: "newAdmin",
+          name: "newProgramAdmin",
           type: "pubkey",
         },
         {
+          name: "newRewardDistributionAuthorities",
+          type: {
+            vec: "pubkey",
+          },
+        },
+        {
           name: "newHaltAuthorites",
+          type: {
+            vec: "pubkey",
+          },
+        },
+        {
+          name: "newSlashingAuthorities",
           type: {
             vec: "pubkey",
           },
@@ -1396,8 +1405,8 @@ const _IDL = {
     },
     {
       code: 6011,
-      name: "invalidHaltAuthority",
-      msg: "Authority is not valid",
+      name: "invalidAuthority",
+      msg: "PoolOverview Authority is not valid",
     },
     {
       code: 6012,
@@ -1614,13 +1623,31 @@ const _IDL = {
             type: "u8",
           },
           {
-            name: "admin",
-            docs: ["Authority allowed to change settings on the acount."],
+            name: "programAdmin",
+            docs: [
+              "Authority allowed to update authorities and other pool settings.",
+            ],
             type: "pubkey",
           },
           {
+            name: "rewardDistributionAuthorities",
+            docs: [
+              "List of signers authorized to create or modify RewardRecord.",
+            ],
+            type: {
+              vec: "pubkey",
+            },
+          },
+          {
             name: "haltAuthorities",
-            docs: ["List of signers authorized to halt OperatorPools."],
+            docs: ["List of signers authorized to set OperatorPool.is_halted."],
+            type: {
+              vec: "pubkey",
+            },
+          },
+          {
+            name: "slashingAuthorities",
+            docs: ["List of signers authorized to slash Operator's stake."],
             type: {
               vec: "pubkey",
             },

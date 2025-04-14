@@ -24,8 +24,10 @@ pub enum ErrorCode {
     OperatorPoolHalted,
     #[msg("Withdrawals are halted")]
     WithdrawalsHalted,
-    #[msg("Authority is not valid")]
-    InvalidHaltAuthority,
+    #[msg("PoolOverview Authority is not valid")]
+    InvalidAuthority,
+    #[msg("Exceeded allowed authorities length")]
+    AuthoritiesExceeded,
     #[msg("Account not empty")]
     AccountNotEmpty,
 }

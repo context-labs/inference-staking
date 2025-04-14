@@ -37,7 +37,7 @@ describe("Test Reward Creation and Accrual", () => {
       .createPoolOverview()
       .accountsStrict({
         payer: setup.payer,
-        admin: setup.poolOverviewAdminKp.publicKey,
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardTokenAccount: setup.rewardTokenAccount,
         mint: setup.tokenMint,
@@ -45,6 +45,20 @@ describe("Test Reward Creation and Accrual", () => {
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
+      .rpc();
+
+    await program.methods
+      .updatePoolOverviewAuthorities(
+        setup.poolOverviewAdminKp.publicKey,
+        [setup.poolOverviewAdminKp.publicKey],
+        [setup.haltAuthority1Kp.publicKey],
+        [setup.poolOverviewAdminKp.publicKey]
+      )
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
       .rpc();
 
     await program.methods
@@ -56,7 +70,7 @@ describe("Test Reward Creation and Accrual", () => {
         operatorUnstakeDelaySeconds
       )
       .accountsStrict({
-        admin: setup.poolOverviewAdminKp.publicKey,
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
       })
       .signers([setup.poolOverviewAdminKp])
@@ -142,13 +156,13 @@ describe("Test Reward Creation and Accrual", () => {
       .rpc();
   });
 
-  it("Fail to create future RewawrdReward", async () => {
+  it("Fail to create future RewardReward", async () => {
     try {
       await program.methods
         .createRewardRecord([], new anchor.BN(0))
         .accountsStrict({
           payer: setup.payer,
-          admin: setup.poolOverviewAdminKp.publicKey,
+          authority: setup.poolOverviewAdminKp.publicKey,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           rewardTokenAccount: setup.rewardTokenAccount,
@@ -169,7 +183,7 @@ describe("Test Reward Creation and Accrual", () => {
       .createRewardRecord([], new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
-        admin: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[1],
         rewardTokenAccount: setup.rewardTokenAccount,
@@ -185,7 +199,7 @@ describe("Test Reward Creation and Accrual", () => {
         .createRewardRecord([], new anchor.BN(0))
         .accountsStrict({
           payer: setup.payer,
-          admin: setup.poolOverviewAdminKp.publicKey,
+          authority: setup.poolOverviewAdminKp.publicKey,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[1],
           rewardTokenAccount: setup.rewardTokenAccount,
@@ -206,7 +220,7 @@ describe("Test Reward Creation and Accrual", () => {
         .createRewardRecord([], new anchor.BN(100_000))
         .accountsStrict({
           payer: setup.payer,
-          admin: setup.poolOverviewAdminKp.publicKey,
+          authority: setup.poolOverviewAdminKp.publicKey,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           rewardTokenAccount: setup.rewardTokenAccount,
@@ -236,7 +250,7 @@ describe("Test Reward Creation and Accrual", () => {
         .createRewardRecord(merkleRoots, totalRewards)
         .accountsStrict({
           payer: setup.payer,
-          admin: setup.poolOverviewAdminKp.publicKey,
+          authority: setup.poolOverviewAdminKp.publicKey,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           rewardTokenAccount: setup.rewardTokenAccount,
@@ -266,7 +280,7 @@ describe("Test Reward Creation and Accrual", () => {
       .createRewardRecord(merkleRoots, totalRewards)
       .accountsStrict({
         payer: setup.payer,
-        admin: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
         rewardTokenAccount: setup.rewardTokenAccount,
@@ -316,7 +330,7 @@ describe("Test Reward Creation and Accrual", () => {
       .createRewardRecord(merkleRoots, totalRewards)
       .accountsStrict({
         payer: setup.payer,
-        admin: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[3],
         rewardTokenAccount: setup.rewardTokenAccount,

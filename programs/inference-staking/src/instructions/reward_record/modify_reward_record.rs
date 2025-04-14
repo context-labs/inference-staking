@@ -1,14 +1,16 @@
 use anchor_lang::prelude::*;
 
+use crate::error::ErrorCode;
 use crate::state::{PoolOverview, RewardRecord};
 
 #[derive(Accounts)]
 pub struct ModifyRewardRecord<'info> {
-    pub admin: Signer<'info>,
+    pub authority: Signer<'info>,
     #[account(
       seeds = [b"PoolOverview"],
       bump = pool_overview.bump,
-      has_one = admin,
+      constraint = pool_overview.reward_distribution_authorities.contains(authority.key) 
+          @ ErrorCode::InvalidAuthority,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
     #[account(

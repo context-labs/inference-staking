@@ -1,15 +1,15 @@
 use anchor_lang::prelude::*;
 
-use crate::PoolOverview;
+use crate::{error::ErrorCode, PoolOverview};
 
 #[derive(Accounts)]
 pub struct UpdatePoolOverview<'info> {
-    pub admin: Signer<'info>,
+    pub program_admin: Signer<'info>,
     #[account(
         mut,
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
-        has_one = admin
+        has_one = program_admin @ ErrorCode::InvalidAuthority
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
 }
