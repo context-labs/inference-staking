@@ -9,7 +9,7 @@ use crate::{
 pub struct ChangeOperatorStakingRecord<'info> {
     /// Admin of the OperatorPool
     pub admin: Signer<'info>,
-    /// Owner of the current StakingRecord that will become the OperatorPool StakingRecord
+    /// Owner of the StakingRecord that will become the new OperatorPool StakingRecord
     pub owner: Signer<'info>,
     #[account(
       seeds = [b"PoolOverview".as_ref()],

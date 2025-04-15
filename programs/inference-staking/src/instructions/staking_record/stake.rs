@@ -73,6 +73,7 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     require_gte!(
         operator_pool.reward_last_claimed_epoch,
         pool_overview.completed_reward_epoch,
+        ErrorCode::UnclaimedRewards
     );
 
     let owner_token_account = &ctx.accounts.owner_token_account;

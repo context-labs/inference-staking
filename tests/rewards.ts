@@ -388,6 +388,74 @@ describe("Test Reward Creation and Accrual", () => {
     }
   });
 
+  it("Fail to accrue rewards with invalid proof", async () => {
+    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+    const nodeIndex = setup.rewardEpochs[2].findIndex(
+      (x) => x.address == setup.pool1.pool.toString()
+    );
+    const wrongNodeIndex = setup.rewardEpochs[2].findIndex(
+      (x) => x.address == setup.pool2.pool.toString()
+    );
+    const proofInputs = {
+      ...setup.rewardEpochs[2][wrongNodeIndex],
+      index: wrongNodeIndex,
+      merkleTree,
+    };
+    const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+
+    try {
+      // Use proof and proof path for a different node
+      await program.methods
+        .accrueReward(
+          0,
+          proof as unknown as number[][],
+          proofPath,
+          new anchor.BN(setup.rewardEpochs[2][nodeIndex].amount)
+        )
+        .accountsStrict({
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[2],
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidProof");
+    }
+
+    try {
+      // Use proof and proof path with different lengths
+      await program.methods
+        .accrueReward(
+          0,
+          proof as unknown as number[][],
+          [true, false, false],
+          new anchor.BN(setup.rewardEpochs[2][nodeIndex].amount)
+        )
+        .accountsStrict({
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[2],
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidProof");
+    }
+  });
+
   it("Accrue Rewards for epoch 2 sucessfully", async () => {
     const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
     const nodeIndex = setup.rewardEpochs[2].findIndex(
@@ -601,5 +669,87 @@ describe("Test Reward Creation and Accrual", () => {
       )
     );
     assert.equal(Number(feeBalance.value.amount), 0); // All fees are auto-staked
+  });
+
+  it("Create another RewardRecord after pool closure", async () => {
+    // Close OperatorPool
+    await program.methods
+      .closeOperatorPool()
+      .accountsStrict({
+        admin: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    // Use same reward values as epoch 2
+    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+    const merkleRoots = [merkleTree.at(-1)[0]];
+    let totalRewards = new anchor.BN(0);
+    for (const addressInput of setup.rewardEpochs[2]) {
+      totalRewards = totalRewards.addn(addressInput.amount);
+    }
+
+    // Fund rewardTokenAccount
+    await mintTo(
+      connection,
+      setup.payerKp,
+      setup.tokenMint,
+      setup.rewardTokenAccount,
+      setup.signer1Kp,
+      totalRewards.toNumber()
+    );
+
+    await program.methods
+      // @ts-ignore
+      .createRewardRecord(merkleRoots, totalRewards)
+      .accountsStrict({
+        payer: setup.payer,
+        authority: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        rewardRecord: setup.rewardRecords[4],
+        rewardTokenAccount: setup.rewardTokenAccount,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([setup.payerKp, setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
+  it("Fail to accrue reward after pool closure", async () => {
+    try {
+      const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+      const nodeIndex = setup.rewardEpochs[2].findIndex(
+        (x) => x.address == setup.pool1.pool.toString()
+      );
+      const proofInputs = {
+        ...setup.rewardEpochs[2][nodeIndex],
+        index: nodeIndex,
+        merkleTree,
+      };
+      const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+      await program.methods
+        .accrueReward(
+          0,
+          proof as unknown as number[][],
+          proofPath,
+          new anchor.BN(proofInputs.amount)
+        )
+        .accountsStrict({
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[4],
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "ClosedPool");
+    }
   });
 });

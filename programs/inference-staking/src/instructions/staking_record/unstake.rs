@@ -69,7 +69,7 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
                 ErrorCode::UnclaimedRewards
             );
         } else {
-            return err!(ErrorCode::UnstakingNotAllowed);
+            return err!(ErrorCode::UnclaimedRewards);
         }
     }
 

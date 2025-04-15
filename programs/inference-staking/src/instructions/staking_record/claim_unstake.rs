@@ -70,7 +70,7 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
     // Check that global withdrawal has not been halted.
     require!(
         !pool_overview.is_withdrawal_halted,
-        ErrorCode::UnstakingNotAllowed
+        ErrorCode::WithdrawalsHalted
     );
 
     // Check that all rewards have been claimed, unless pool is closed and all rewards
@@ -84,7 +84,7 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
                 ErrorCode::UnclaimedRewards
             );
         } else {
-            return err!(ErrorCode::UnstakingNotAllowed);
+            return err!(ErrorCode::UnclaimedRewards);
         }
     }
 
