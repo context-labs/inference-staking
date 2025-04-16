@@ -170,6 +170,10 @@ export async function setupTests() {
       [new BN(4).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
       INF_STAKING
     )[0],
+    5: PublicKey.findProgramAddressSync(
+      [new BN(5).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
+      INF_STAKING
+    )[0],
   };
 
   const rewardEpochs = {

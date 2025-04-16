@@ -8,6 +8,7 @@ import {
 } from "@solana/spl-token";
 import { setupTests } from "./utils";
 import { createProgram, MerkleUtils } from "inference-staking";
+import { PublicKey } from "@solana/web3.js";
 
 describe("Test Reward Creation and Accrual", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
@@ -29,6 +30,9 @@ describe("Test Reward Creation and Accrual", () => {
   const isWithdrawalHalted = false;
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
+
+  let merkleTree4;
+  let rewardInputs4 = [];
 
   before(async () => {
     setup = await setupTests();
@@ -123,6 +127,7 @@ describe("Test Reward Creation and Accrual", () => {
       })
       .signers([setup.payerKp, setup.user1Kp])
       .rpc();
+
     await program.methods
       .stake(new anchor.BN(400_000))
       .accountsStrict({
@@ -671,6 +676,79 @@ describe("Test Reward Creation and Accrual", () => {
     assert.equal(Number(feeBalance.value.amount), 0); // All fees are auto-staked
   });
 
+  it("Create RewardRecord 4 with large merkle tree", async () => {
+    // Distribute reward to 500000 pools.
+    let totalRewards = new anchor.BN(0);
+    for (let i = 0; i <= 500000; i++) {
+      rewardInputs4.push({
+        address: PublicKey.unique().toString(),
+        amount: i * 100,
+      });
+      totalRewards = totalRewards.addn(i * 100);
+    }
+
+    // Add OperatorPool 1 as a recipient.
+    rewardInputs4.push({
+      address: setup.pool1.pool.toString(),
+      amount: 10000,
+    });
+    rewardInputs4.sort((a, b) => a.address.localeCompare(b.address));
+
+    merkleTree4 = MerkleUtils.constructMerkleTree(rewardInputs4);
+    const merkleRoots = [merkleTree4.at(-1)[0]];
+
+    // Fund rewardTokenAccount
+    await mintTo(
+      connection,
+      setup.payerKp,
+      setup.tokenMint,
+      setup.rewardTokenAccount,
+      setup.signer1Kp,
+      totalRewards.toNumber()
+    );
+
+    await program.methods
+      // @ts-ignore
+      .createRewardRecord(merkleRoots, totalRewards)
+      .accountsStrict({
+        payer: setup.payer,
+        authority: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        rewardRecord: setup.rewardRecords[4],
+        rewardTokenAccount: setup.rewardTokenAccount,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([setup.payerKp, setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
+  it("Accrue Rewards for epoch 4 sucessfully", async () => {
+    const nodeIndex = rewardInputs4.findIndex(
+      (x) => x.address == setup.pool1.pool.toString()
+    );
+    const proofInputs = {
+      ...rewardInputs4[nodeIndex],
+      index: nodeIndex,
+      merkleTree: merkleTree4,
+    };
+    const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+
+    const rewardAmount = new anchor.BN(proofInputs.amount);
+    await program.methods
+      .accrueReward(0, proof as unknown as number[][], proofPath, rewardAmount)
+      .accountsStrict({
+        poolOverview: setup.poolOverview,
+        rewardRecord: setup.rewardRecords[4],
+        operatorPool: setup.pool1.pool,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        rewardTokenAccount: setup.rewardTokenAccount,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        feeTokenAccount: setup.pool1.feeTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+  });
+
   it("Create another RewardRecord after pool closure", async () => {
     // Close OperatorPool
     await program.methods
@@ -708,7 +786,7 @@ describe("Test Reward Creation and Accrual", () => {
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
-        rewardRecord: setup.rewardRecords[4],
+        rewardRecord: setup.rewardRecords[5],
         rewardTokenAccount: setup.rewardTokenAccount,
         systemProgram: SystemProgram.programId,
       })
@@ -737,7 +815,7 @@ describe("Test Reward Creation and Accrual", () => {
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
-          rewardRecord: setup.rewardRecords[4],
+          rewardRecord: setup.rewardRecords[5],
           operatorPool: setup.pool1.pool,
           operatorStakingRecord: setup.pool1.signer1Record,
           rewardTokenAccount: setup.rewardTokenAccount,
