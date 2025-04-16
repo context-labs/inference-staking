@@ -137,6 +137,27 @@ describe("inference-staking", () => {
     assert(poolOverview.unclaimedRewards.isZero());
   });
 
+  it("Update partial PoolOverview authorities successfully", async () => {
+    // Update only halt authorities
+    await program.methods
+      .updatePoolOverviewAuthorities(null, null, [setup.user1], null)
+      .accountsStrict({
+        programAdmin: setup.signer1,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    assert(poolOverview.programAdmin.equals(setup.signer1));
+    assert(poolOverview.slashingAuthorities.length === 0);
+    assert(poolOverview.haltAuthorities.length === 1);
+    assert(poolOverview.haltAuthorities[0].equals(setup.user1));
+    assert(poolOverview.rewardDistributionAuthorities.length === 0);
+  });
+
   it("Update PoolOverview authorities successfully", async () => {
     await program.methods
       .updatePoolOverviewAuthorities(
