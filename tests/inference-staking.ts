@@ -73,6 +73,29 @@ describe("inference-staking", () => {
     assert(poolOverview.unclaimedRewards.isZero());
   });
 
+  it("Fail to update PoolOverview with invalid admin", async () => {
+    try {
+      await program.methods
+        .updatePoolOverview(
+          isWithdrawalHalted,
+          allowPoolCreation,
+          minOperatorShareBps,
+          delegatorUnstakeDelaySeconds,
+          operatorUnstakeDelaySeconds
+        )
+        .accountsStrict({
+          programAdmin: setup.haltAuthority1Kp.publicKey,
+          poolOverview: setup.poolOverview,
+        })
+        .signers([setup.haltAuthority1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidAuthority");
+    }
+  });
+
   it("Fail to create OperatorPool when pool creation is disabled", async () => {
     try {
       await program.methods
@@ -89,12 +112,34 @@ describe("inference-staking", () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.payerKp, setup.signer1Kp])
-        .rpc();
+        .signers([setup.payerKp, setup.signer1Kp]);
       assert(false);
     } catch (error) {
       const code = error.error.errorCode.code;
       assert.equal(code, "PoolCreationDisabled");
+    }
+  });
+
+  it("Fail to update PoolOverview with invalid admin", async () => {
+    try {
+      await program.methods
+        .updatePoolOverview(
+          isWithdrawalHalted,
+          allowPoolCreation,
+          minOperatorShareBps,
+          delegatorUnstakeDelaySeconds,
+          operatorUnstakeDelaySeconds
+        )
+        .accountsStrict({
+          programAdmin: setup.haltAuthority1Kp.publicKey,
+          poolOverview: setup.poolOverview,
+        })
+        .signers([setup.haltAuthority1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidAuthority");
     }
   });
 
@@ -135,6 +180,57 @@ describe("inference-staking", () => {
     assert(poolOverview.totalPools.isZero());
     assert(poolOverview.completedRewardEpoch.isZero());
     assert(poolOverview.unclaimedRewards.isZero());
+  });
+
+  it("Fail to update PoolOverview authorities with invalid admin", async () => {
+    try {
+      await program.methods
+        .updatePoolOverviewAuthorities(
+          setup.poolOverviewAdminKp.publicKey,
+          [setup.poolOverviewAdminKp.publicKey],
+          [setup.haltAuthority1Kp.publicKey],
+          [setup.poolOverviewAdminKp.publicKey]
+        )
+        .accountsStrict({
+          programAdmin: setup.poolOverviewAdminKp.publicKey,
+          poolOverview: setup.poolOverview,
+        })
+        .signers([setup.poolOverviewAdminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidAuthority");
+    }
+  });
+
+  it("Fail to update PoolOverview authorities with more than 5 keys", async () => {
+    try {
+      await program.methods
+        .updatePoolOverviewAuthorities(
+          setup.poolOverviewAdminKp.publicKey,
+          [setup.poolOverviewAdminKp.publicKey],
+          [
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+          ],
+          [setup.poolOverviewAdminKp.publicKey]
+        )
+        .accountsStrict({
+          programAdmin: setup.signer1Kp.publicKey,
+          poolOverview: setup.poolOverview,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "AuthoritiesExceeded");
+    }
   });
 
   it("Update PoolOverview authorities successfully", async () => {
