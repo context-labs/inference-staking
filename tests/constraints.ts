@@ -1,20 +1,9 @@
 import * as anchor from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
-import {
-  getAssociatedTokenAddressSync,
-  mintTo,
-  TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
-import { INF_STAKING, setupTests, sleep } from "./utils";
-import {
-  ClaimUnstakeEvent,
-  CompleteAccrueRewardEvent,
-  SlashStakeEvent,
-  StakeEvent,
-  UnstakeEvent,
-} from "inference-staking/src/eventTypes";
-import { createProgram, MerkleUtils } from "inference-staking";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { setupTests } from "./utils";
+import { createProgram } from "inference-staking";
 
 describe("Additional tests for instruction constraints", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
@@ -24,13 +13,10 @@ describe("Additional tests for instruction constraints", () => {
 
   const program = createProgram(anchor.AnchorProvider.env());
 
-  const connection = program.provider.connection;
-
   // Configs
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
   const autoStakeFees = false;
-  const commissionRateBps = 1500;
   const allowDelegation = true;
   const minOperatorShareBps = 1000;
   const allowPoolCreation = true;

@@ -33,7 +33,7 @@ describe("inference-staking", () => {
   const commissionRateBps = 1500;
   const allowDelegation = true;
   const minOperatorShareBps = 1000;
-  const allowPoolCreation = false;
+  const allowPoolCreation = true;
   const isWithdrawalHalted = false;
 
   before(async () => {
@@ -89,7 +89,8 @@ describe("inference-staking", () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.payerKp, setup.signer1Kp]);
+        .signers([setup.payerKp, setup.signer1Kp])
+        .rpc();
       assert(false);
     } catch (error) {
       const code = error.error.errorCode.code;
