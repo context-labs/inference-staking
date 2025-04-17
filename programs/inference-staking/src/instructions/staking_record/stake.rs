@@ -66,15 +66,14 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     );
 
     // Check that pool is not closed or halted.
-    require!(
-        operator_pool.closed_at.is_none() && !operator_pool.is_halted,
-        ErrorCode::StakingNotAllowed
-    );
+    require!(operator_pool.closed_at.is_none(), ErrorCode::ClosedPool);
+    require!(!operator_pool.is_halted, ErrorCode::OperatorPoolHalted);
 
     // Check that all issued rewards have been claimed.
     require_gte!(
         operator_pool.reward_last_claimed_epoch,
         pool_overview.completed_reward_epoch,
+        ErrorCode::UnclaimedRewards
     );
 
     let owner_token_account = &ctx.accounts.owner_token_account;

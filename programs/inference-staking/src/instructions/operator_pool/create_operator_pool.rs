@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::{
+    error::ErrorCode,
     state::{OperatorPool, StakingRecord},
     PoolOverview,
 };
@@ -39,7 +40,7 @@ pub struct CreateOperatorPool<'info> {
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
         has_one = mint,
-        constraint = pool_overview.allow_pool_creation,
+        constraint = pool_overview.allow_pool_creation @ ErrorCode::PoolCreationDisabled,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
     #[account(

@@ -30,4 +30,6 @@ pub enum ErrorCode {
     AuthoritiesExceeded,
     #[msg("Account not empty")]
     AccountNotEmpty,
+    #[msg("Pool creation is disabled")]
+    PoolCreationDisabled,
 }

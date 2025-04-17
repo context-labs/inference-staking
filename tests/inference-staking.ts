@@ -28,7 +28,7 @@ describe("inference-staking", () => {
 
   // Configs
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
-  const operatorUnstakeDelaySeconds = new anchor.BN(20);
+  const operatorUnstakeDelaySeconds = new anchor.BN(5);
   const autoStakeFees = false;
   const commissionRateBps = 1500;
   const allowDelegation = true;
@@ -73,26 +73,28 @@ describe("inference-staking", () => {
     assert(poolOverview.unclaimedRewards.isZero());
   });
 
-  it("Fail to update PoolOverview with invalid admin", async () => {
+  it("Fail to create OperatorPool when pool creation is disabled", async () => {
     try {
       await program.methods
-        .updatePoolOverview(
-          isWithdrawalHalted,
-          allowPoolCreation,
-          minOperatorShareBps,
-          delegatorUnstakeDelaySeconds,
-          operatorUnstakeDelaySeconds
-        )
+        .createOperatorPool(autoStakeFees, commissionRateBps, allowDelegation)
         .accountsStrict({
-          programAdmin: setup.haltAuthority1Kp.publicKey,
+          payer: setup.payer,
+          admin: setup.signer1,
+          operatorPool: setup.pool1.pool,
+          stakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
           poolOverview: setup.poolOverview,
+          mint: setup.tokenMint,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         })
-        .signers([setup.haltAuthority1Kp])
+        .signers([setup.payerKp, setup.signer1Kp])
         .rpc();
       assert(false);
     } catch (error) {
       const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
+      assert.equal(code, "PoolCreationDisabled");
     }
   });
 
@@ -135,55 +137,25 @@ describe("inference-staking", () => {
     assert(poolOverview.unclaimedRewards.isZero());
   });
 
-  it("Fail to update PoolOverview authorities with invalid admin", async () => {
-    try {
-      await program.methods
-        .updatePoolOverviewAuthorities(
-          setup.poolOverviewAdminKp.publicKey,
-          [setup.poolOverviewAdminKp.publicKey],
-          [setup.haltAuthority1Kp.publicKey],
-          [setup.poolOverviewAdminKp.publicKey]
-        )
-        .accountsStrict({
-          programAdmin: setup.poolOverviewAdminKp.publicKey,
-          poolOverview: setup.poolOverview,
-        })
-        .signers([setup.poolOverviewAdminKp])
-        .rpc();
-      assert(false);
-    } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
-    }
-  });
+  it("Update partial PoolOverview authorities successfully", async () => {
+    // Update only halt authorities
+    await program.methods
+      .updatePoolOverviewAuthorities(null, null, [setup.user1], null)
+      .accountsStrict({
+        programAdmin: setup.signer1,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
 
-  it("Fail to update PoolOverview authorities with more than 5 keys", async () => {
-    try {
-      await program.methods
-        .updatePoolOverviewAuthorities(
-          setup.poolOverviewAdminKp.publicKey,
-          [setup.poolOverviewAdminKp.publicKey],
-          [
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-          ],
-          [setup.poolOverviewAdminKp.publicKey]
-        )
-        .accountsStrict({
-          programAdmin: setup.signer1Kp.publicKey,
-          poolOverview: setup.poolOverview,
-        })
-        .signers([setup.signer1Kp])
-        .rpc();
-      assert(false);
-    } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "AuthoritiesExceeded");
-    }
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    assert(poolOverview.programAdmin.equals(setup.signer1));
+    assert(poolOverview.slashingAuthorities.length === 0);
+    assert(poolOverview.haltAuthorities.length === 1);
+    assert(poolOverview.haltAuthorities[0].equals(setup.user1));
+    assert(poolOverview.rewardDistributionAuthorities.length === 0);
   });
 
   it("Update PoolOverview authorities successfully", async () => {
@@ -304,6 +276,28 @@ describe("inference-staking", () => {
     assert(operatorPool.admin.equals(setup.signer1), "Admin should be signer1");
   });
 
+  it("Fail to update operator pool with invalid commission rate", async () => {
+    try {
+      // Expect failure as commission cannot excceed 100%.
+      await program.methods
+        .updateOperatorPool({
+          newCommissionRateBps: 150_00,
+          autoStakeFees: true,
+          allowDelegation: false,
+        })
+        .accountsStrict({
+          admin: setup.signer1,
+          operatorPool: setup.pool1.pool,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "RequireGteViolated");
+    }
+  });
+
   it("Should update OperatorPool successfully", async () => {
     const newCommissionRateBps = 1500;
     await program.methods
@@ -383,6 +377,33 @@ describe("inference-staking", () => {
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
+  it("Fail to stake for user when min. operator shares is not met", async () => {
+    try {
+      const ownerTokenAccount = getAssociatedTokenAddressSync(
+        setup.tokenMint,
+        setup.user1
+      );
+      await program.methods
+        .stake(new anchor.BN(400_000))
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "MinOperatorSharesNotMet");
+    }
+  });
+
   it("Stake for operator successfully", async () => {
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
@@ -437,6 +458,105 @@ describe("inference-staking", () => {
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
+  it("Fail to change operator staking record with insufficient share", async () => {
+    try {
+      // Expect to fail since user 1 hasn't staked yet.
+      await program.methods
+        .changeOperatorStakingRecord()
+        .accountsStrict({
+          admin: setup.signer1,
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          newStakingRecord: setup.pool1.user1Record,
+        })
+        .signers([setup.signer1Kp, setup.user1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "MinOperatorSharesNotMet");
+    }
+  });
+
+  it("Fail to stake when delegation is disabled", async () => {
+    await program.methods
+      .updateOperatorPool({
+        newCommissionRateBps: null,
+        autoStakeFees,
+        allowDelegation: false,
+      })
+      .accountsStrict({
+        admin: setup.signer1,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(!operatorPool.allowDelegation);
+
+    try {
+      await program.methods
+        .stake(new anchor.BN(400_000))
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount: getAssociatedTokenAddressSync(
+            setup.tokenMint,
+            setup.user1
+          ),
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "StakingNotAllowed");
+    }
+  });
+
+  it("Stake for operator successfully even when delegation is disabled", async () => {
+    await program.methods
+      .stake(new anchor.BN(100))
+      .accountsStrict({
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        ownerTokenAccount: getAssociatedTokenAddressSync(
+          setup.tokenMint,
+          setup.signer1
+        ),
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    // Allow delegation
+    await program.methods
+      .updateOperatorPool({
+        newCommissionRateBps: null,
+        autoStakeFees,
+        allowDelegation: true,
+      })
+      .accountsStrict({
+        admin: setup.signer1,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+  });
+
   // TODO should verify the token amount was transferred correctly?
   it("Stake for user successfully", async () => {
     const ownerTokenAccount = getAssociatedTokenAddressSync(
@@ -488,6 +608,137 @@ describe("inference-staking", () => {
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
+  it("Fail to close StakingRecord with staked tokens", async () => {
+    try {
+      await program.methods
+        .closeStakingRecord()
+        .accountsStrict({
+          receiver: setup.payer,
+          owner: setup.user1,
+          stakingRecord: setup.pool1.user1Record,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "AccountNotEmpty");
+    }
+  });
+
+  it("Fail to unstake more shares than in StakingRecord", async () => {
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.user1Record
+    );
+
+    try {
+      await program.methods
+        .unstake(stakingRecord.shares.addn(1))
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "RequireGteViolated");
+    }
+  });
+
+  it("Fail to unstake if global withdrawal is halted", async () => {
+    // Halt withdrawal
+    await program.methods
+      .updatePoolOverview(
+        true,
+        allowPoolCreation,
+        minOperatorShareBps,
+        delegatorUnstakeDelaySeconds,
+        operatorUnstakeDelaySeconds
+      )
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    try {
+      await program.methods
+        .unstake(new anchor.BN(1))
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "WithdrawalsHalted");
+    }
+
+    // Revert halt withdrawal
+    await program.methods
+      .updatePoolOverview(
+        false,
+        allowPoolCreation,
+        minOperatorShareBps,
+        delegatorUnstakeDelaySeconds,
+        operatorUnstakeDelaySeconds
+      )
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
+  it("Fail to unstake for operator if operator falls below min share", async () => {
+    // Change min share to 99%
+    await program.methods
+      .updatePoolOverview(
+        false,
+        allowPoolCreation,
+        9900,
+        delegatorUnstakeDelaySeconds,
+        operatorUnstakeDelaySeconds
+      )
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    try {
+      await program.methods
+        .unstake(new anchor.BN(1))
+        .accountsStrict({
+          owner: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "MinOperatorSharesNotMet");
+    }
+  });
+
   it("Unstake for user successfully", async () => {
     const unstakeAmount = new anchor.BN(10_000);
     const operatorPoolPre = await program.account.operatorPool.fetch(
@@ -497,6 +748,7 @@ describe("inference-staking", () => {
       setup.pool1.user1Record
     );
 
+    // Expect unstaking to be successful even when operator falls below min. share.
     let listenerId: number;
     const event: UnstakeEvent = await new Promise<any>((res) => {
       listenerId = program.addEventListener("unstakeEvent", (event) => {
@@ -550,6 +802,22 @@ describe("inference-staking", () => {
       currentTimestamp + delegatorUnstakeDelaySeconds.toNumber(),
       3
     );
+
+    // Revert min share to default.
+    await program.methods
+      .updatePoolOverview(
+        false,
+        allowPoolCreation,
+        minOperatorShareBps,
+        delegatorUnstakeDelaySeconds,
+        operatorUnstakeDelaySeconds
+      )
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
   });
 
   it("Unstake for operator successfully", async () => {
@@ -608,7 +876,7 @@ describe("inference-staking", () => {
   });
 
   it("Cancel unstake successfully", async () => {
-    const unstakeShares = new anchor.BN(10_000);
+    const unstakeAmount = new anchor.BN(10_000);
     const operatorPoolPre = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
@@ -632,32 +900,38 @@ describe("inference-staking", () => {
     );
 
     // Token:Share at 1:1 ratio
-    assert(
-      operatorPool.totalStakedAmount
-        .sub(operatorPoolPre.totalStakedAmount)
-        .eq(unstakeShares)
-    );
+    const expectedShares = unstakeAmount
+      .mul(operatorPoolPre.totalShares)
+      .div(operatorPoolPre.totalStakedAmount);
     assert(
       operatorPool.totalShares
         .sub(operatorPoolPre.totalShares)
-        .eq(unstakeShares)
+        .eq(expectedShares)
+    );
+
+    assert(
+      operatorPool.totalStakedAmount
+        .sub(operatorPoolPre.totalStakedAmount)
+        .eq(unstakeAmount)
     );
     assert(
       operatorPoolPre.totalUnstaking.eq(
-        operatorPool.totalUnstaking.add(unstakeShares)
+        operatorPool.totalUnstaking.add(unstakeAmount)
       )
     );
 
     const stakingRecord = await program.account.stakingRecord.fetch(
       setup.pool1.signer1Record
     );
-    assert(stakingRecord.shares.sub(stakingRecordPre.shares).eq(unstakeShares));
+    assert(
+      stakingRecord.shares.sub(stakingRecordPre.shares).eq(expectedShares)
+    );
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
 
     // Resume unstaking
     await program.methods
-      .unstake(unstakeShares)
+      .unstake(expectedShares)
       .accountsStrict({
         owner: setup.signer1,
         poolOverview: setup.poolOverview,
@@ -667,6 +941,33 @@ describe("inference-staking", () => {
       })
       .signers([setup.signer1Kp])
       .rpc();
+  });
+
+  it("Fail to claim unstake before delay is complete", async () => {
+    try {
+      const ownerTokenAccount = getAssociatedTokenAddressSync(
+        setup.tokenMint,
+        setup.user1
+      );
+      await program.methods
+        .claimUnstake()
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          ownerTokenAccount,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "PendingDelay");
+    }
   });
 
   it("Fail to create RewardRecord with invalid authority", async () => {
@@ -747,6 +1048,55 @@ describe("inference-staking", () => {
     for (let i = 0; i < rewardRecord.merkleRoots.length; i++) {
       assert.deepEqual(rewardRecord.merkleRoots[i], Array.from(merkleRoots[i]));
     }
+  });
+
+  it("Create OperatorPool 2 successfully", async () => {
+    await program.methods
+      .createOperatorPool(autoStakeFees, commissionRateBps, allowDelegation)
+      .accountsStrict({
+        payer: setup.payer,
+        admin: setup.signer1,
+        operatorPool: setup.pool2.pool,
+        stakingRecord: setup.pool2.signer1Record,
+        stakedTokenAccount: setup.pool2.stakedTokenAccount,
+        feeTokenAccount: setup.pool2.feeTokenAccount,
+        poolOverview: setup.poolOverview,
+        mint: setup.tokenMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([setup.payerKp, setup.signer1Kp])
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool2.pool
+    );
+    assert(operatorPool.poolId.eqn(2));
+    assert(operatorPool.admin.equals(setup.signer1));
+    assert(
+      operatorPool.operatorStakingRecord.equals(setup.pool2.signer1Record)
+    );
+    assert.equal(operatorPool.autoStakeFees, autoStakeFees);
+    assert.equal(operatorPool.commissionRateBps, commissionRateBps);
+    assert.isNull(operatorPool.newCommissionRateBps);
+    assert.equal(operatorPool.allowDelegation, allowDelegation);
+    assert(operatorPool.totalStakedAmount.isZero());
+    assert(operatorPool.totalShares.isZero());
+    assert(operatorPool.totalUnstaking.isZero());
+    assert.isNull(operatorPool.closedAt);
+    assert(!operatorPool.isHalted);
+    assert(operatorPool.rewardLastClaimedEpoch.eqn(3));
+    assert(operatorPool.accruedRewards.isZero());
+    assert(operatorPool.accruedCommission.isZero());
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool2.signer1Record
+    );
+    assert(stakingRecord.owner.equals(setup.signer1));
+    assert(stakingRecord.operatorPool.equals(setup.pool2.pool));
+    assert(stakingRecord.shares.isZero());
+    assert(stakingRecord.tokensUnstakeAmount.isZero());
+    assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
   it("Fail to modify RewardRecord with invalid authority", async () => {
@@ -834,6 +1184,101 @@ describe("inference-staking", () => {
       setup.rewardRecords[2]
     );
     assert.deepEqual(epoch1RewardRecord.merkleRoots, prevMerkleRoots);
+  });
+
+  it("Fail to stake before rewards are claimed", async () => {
+    try {
+      const ownerTokenAccount = getAssociatedTokenAddressSync(
+        setup.tokenMint,
+        setup.user1
+      );
+      await program.methods
+        .stake(new anchor.BN(400_000))
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "UnclaimedRewards");
+    }
+  });
+
+  it("Fail to unstake before rewards are claimed", async () => {
+    try {
+      await program.methods
+        .unstake(new anchor.BN(1))
+        .accountsStrict({
+          owner: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "UnclaimedRewards");
+    }
+  });
+
+  it("Fail to cancel unstake before rewards are claimed", async () => {
+    try {
+      await program.methods
+        .cancelUnstake()
+        .accountsStrict({
+          owner: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.signer1Record,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "UnclaimedRewards");
+    }
+  });
+
+  it("Fail to claim unstake before rewards are claimed", async () => {
+    try {
+      // Sleep till delay duration has elapsed.
+      await sleep(delegatorUnstakeDelaySeconds.toNumber() * 1000);
+      const ownerTokenAccount = getAssociatedTokenAddressSync(
+        setup.tokenMint,
+        setup.user1
+      );
+      await program.methods
+        .claimUnstake()
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          ownerTokenAccount,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "UnclaimedRewards");
+    }
   });
 
   it("Accrue Rewards successfully", async () => {
@@ -967,9 +1412,121 @@ describe("inference-staking", () => {
     );
   });
 
-  it.skip("Claim unstake for user successfully", async () => {
-    await sleep(delegatorUnstakeDelaySeconds.toNumber() * 1000);
+  it("Fail to claim unstake if global withdrawal is halted", async () => {
+    // Halt withdrawal
+    await program.methods
+      .updatePoolOverview(
+        true,
+        allowPoolCreation,
+        minOperatorShareBps,
+        delegatorUnstakeDelaySeconds,
+        operatorUnstakeDelaySeconds
+      )
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
 
+    try {
+      await program.methods
+        .claimUnstake()
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          ownerTokenAccount: getAssociatedTokenAddressSync(
+            setup.tokenMint,
+            setup.user1
+          ),
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "WithdrawalsHalted");
+    }
+
+    // Revert halt withdrawal
+    await program.methods
+      .updatePoolOverview(
+        false,
+        allowPoolCreation,
+        minOperatorShareBps,
+        delegatorUnstakeDelaySeconds,
+        operatorUnstakeDelaySeconds
+      )
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
+  it("Fail to claim unstake for operator if operator falls below min share", async () => {
+    // Change min share to 99%
+    await program.methods
+      .updatePoolOverview(
+        false,
+        allowPoolCreation,
+        9900,
+        delegatorUnstakeDelaySeconds,
+        operatorUnstakeDelaySeconds
+      )
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    try {
+      await program.methods
+        .claimUnstake()
+        .accountsStrict({
+          owner: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          ownerTokenAccount: getAssociatedTokenAddressSync(
+            setup.tokenMint,
+            setup.signer1
+          ),
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "MinOperatorSharesNotMet");
+    }
+
+    // Revert min share to default.
+    await program.methods
+      .updatePoolOverview(
+        false,
+        allowPoolCreation,
+        minOperatorShareBps,
+        delegatorUnstakeDelaySeconds,
+        operatorUnstakeDelaySeconds
+      )
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
+  it("Claim unstake for user successfully", async () => {
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
       setup.user1
@@ -1009,7 +1566,7 @@ describe("inference-staking", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(event.stakingRecord.equals(setup.pool1.signer1Record));
+    assert(event.stakingRecord.equals(setup.pool1.user1Record));
     assert(event.operatorPool.equals(setup.pool1.pool));
     assert(event.unstakeAmount.eq(stakingRecordPre.tokensUnstakeAmount));
     assert(event.totalStakedAmount.eq(operatorPool.totalStakedAmount));
@@ -1023,6 +1580,112 @@ describe("inference-staking", () => {
 
     const stakingRecord = await program.account.stakingRecord.fetch(
       setup.pool1.user1Record
+    );
+    const tokenBalancePost = await connection.getTokenAccountBalance(
+      ownerTokenAccount
+    );
+    const amountClaimed =
+      Number(tokenBalancePost.value.amount) -
+      Number(tokenBalancePre.value.amount);
+
+    assert(stakingRecordPre.tokensUnstakeAmount.eqn(amountClaimed));
+    assert(stakingRecord.tokensUnstakeAmount.isZero());
+    assert(stakingRecord.unstakeAtTimestamp.isZero());
+  });
+
+  it("Fail to claim unstake for operator if pool is halted", async () => {
+    // Halt pool
+    await program.methods
+      .setHaltStatus({
+        isHalted: true,
+      })
+      .accountsStrict({
+        authority: setup.haltAuthority1Kp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.haltAuthority1Kp])
+      .rpc();
+
+    try {
+      await program.methods
+        .claimUnstake()
+        .accountsStrict({
+          owner: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          ownerTokenAccount: getAssociatedTokenAddressSync(
+            setup.tokenMint,
+            setup.signer1
+          ),
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "UnstakingNotAllowed");
+    }
+
+    // Revert halt pool
+    await program.methods
+      .setHaltStatus({
+        isHalted: false,
+      })
+      .accountsStrict({
+        authority: setup.haltAuthority1Kp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.haltAuthority1Kp])
+      .rpc();
+  });
+
+  it("Claim unstake for operator successfully", async () => {
+    const ownerTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.signer1
+    );
+    const tokenBalancePre = await connection.getTokenAccountBalance(
+      ownerTokenAccount
+    );
+    const operatorPoolPre = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    const stakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+
+    await program.methods
+      .claimUnstake()
+      .accountsStrict({
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        ownerTokenAccount,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    assert(
+      operatorPoolPre.totalUnstaking
+        .sub(operatorPool.totalUnstaking)
+        .eq(stakingRecordPre.tokensUnstakeAmount)
+    );
+
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
     );
     const tokenBalancePost = await connection.getTokenAccountBalance(
       ownerTokenAccount
@@ -1168,6 +1831,211 @@ describe("inference-staking", () => {
     );
   });
 
+  it("Fail to set halt status with invalid authority", async () => {
+    try {
+      await program.methods
+        .setHaltStatus({
+          isHalted: true,
+        })
+        .accountsStrict({
+          authority: setup.signer1Kp.publicKey,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "InvalidAuthority");
+    }
+  });
+
+  it("PoolOverview admin should set halt status", async () => {
+    await program.methods
+      .setHaltStatus({
+        isHalted: true,
+      })
+      .accountsStrict({
+        authority: setup.haltAuthority1Kp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.haltAuthority1Kp])
+      .rpc();
+
+    let operatorPoolPost = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(operatorPoolPost.isHalted, "OperatorPool must be halted");
+  });
+
+  it("Fail to unstake for Operator when pool is halted", async () => {
+    try {
+      await program.methods
+        .unstake(new anchor.BN(1))
+        .accountsStrict({
+          owner: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "UnstakingNotAllowed");
+    }
+  });
+
+  it("Fail to stake to OperatorPool when it's halted", async () => {
+    try {
+      const ownerTokenAccount = getAssociatedTokenAddressSync(
+        setup.tokenMint,
+        setup.user1
+      );
+      await program.methods
+        .stake(new anchor.BN(400_000))
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "OperatorPoolHalted");
+    }
+  });
+
+  it("Fail to close OperatorPool when it's halted", async () => {
+    try {
+      await program.methods
+        .closeOperatorPool()
+        .accountsStrict({
+          admin: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "OperatorPoolHalted");
+    }
+  });
+
+  it("Fail to withdraw Operator commission if pool is halted", async () => {
+    try {
+      await program.methods
+        .withdrawOperatorCommission()
+        .accountsStrict({
+          admin: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          destination: getAssociatedTokenAddressSync(
+            setup.tokenMint,
+            setup.signer1
+          ),
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "OperatorPoolHalted");
+    }
+
+    // Set back to unhalted
+    await program.methods
+      .setHaltStatus({
+        isHalted: false,
+      })
+      .accountsStrict({
+        authority: setup.haltAuthority1Kp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.haltAuthority1Kp])
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert(!operatorPool.isHalted, "OperatorPool must be unhalted");
+  });
+
+  it("Fail to withdraw Operator commission if global withdrawal is halted", async () => {
+    // Halt withdrawal
+    await program.methods
+      .updatePoolOverview(
+        true,
+        allowPoolCreation,
+        minOperatorShareBps,
+        delegatorUnstakeDelaySeconds,
+        operatorUnstakeDelaySeconds
+      )
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    try {
+      await program.methods
+        .withdrawOperatorCommission()
+        .accountsStrict({
+          admin: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          destination: getAssociatedTokenAddressSync(
+            setup.tokenMint,
+            setup.signer1
+          ),
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "WithdrawalsHalted");
+    }
+
+    // Revert halt withdrawal
+    await program.methods
+      .updatePoolOverview(
+        false,
+        allowPoolCreation,
+        minOperatorShareBps,
+        delegatorUnstakeDelaySeconds,
+        operatorUnstakeDelaySeconds
+      )
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
   it("OperatorPool 1 Admin should be able to withdraw reward commission", async () => {
     const destinationTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
@@ -1215,65 +2083,6 @@ describe("inference-staking", () => {
     );
   });
 
-  it("Fail to set halt status with invalid authority", async () => {
-    try {
-      await program.methods
-        .setHaltStatus({
-          isHalted: true,
-        })
-        .accountsStrict({
-          authority: setup.signer1Kp.publicKey,
-          poolOverview: setup.poolOverview,
-          operatorPool: setup.pool1.pool,
-        })
-        .signers([setup.signer1Kp])
-        .rpc();
-
-      assert(false);
-    } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
-    }
-  });
-
-  it("PoolOverview admin should set halt status", async () => {
-    await program.methods
-      .setHaltStatus({
-        isHalted: true,
-      })
-      .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-      })
-      .signers([setup.haltAuthority1Kp])
-      .rpc();
-
-    let operatorPoolPost = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    assert(operatorPoolPost.isHalted, "OperatorPool must be halted");
-
-    // Set back to unhalted
-    await program.methods
-      .setHaltStatus({
-        isHalted: false,
-      })
-      .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-      })
-      .signers([setup.haltAuthority1Kp])
-      .rpc();
-
-    operatorPoolPost = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-
-    assert(!operatorPoolPost.isHalted, "OperatorPool must be unhalted");
-  });
-
   it("OperatorPool admin should update StakingRecord successfully", async () => {
     // Set StakingRecord to user1's, then changes it back.
     await program.methods
@@ -1318,6 +2127,48 @@ describe("inference-staking", () => {
       operatorPoolPost.operatorStakingRecord.equals(setup.pool1.signer1Record),
       "OperatorPool1 should use signer1 StakingRecord"
     );
+  });
+
+  it("Fail to close StakingRecord with unstaking tokens", async () => {
+    // Unstake all remaining tokens for user 1
+    const stakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.user1Record
+    );
+    await program.methods
+      .unstake(stakingRecordPre.shares)
+      .accountsStrict({
+        owner: setup.user1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.user1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+      })
+      .signers([setup.user1Kp])
+      .rpc();
+
+    const stakingRecordPost = await program.account.stakingRecord.fetch(
+      setup.pool1.user1Record
+    );
+    assert(stakingRecordPost.shares.isZero());
+    assert(!stakingRecordPost.tokensUnstakeAmount.isZero());
+
+    // Expect closing of StakingRecord to fail when there are tokens unstaking
+    try {
+      await program.methods
+        .closeStakingRecord()
+        .accountsStrict({
+          receiver: setup.payer,
+          owner: setup.user1,
+          stakingRecord: setup.pool1.user1Record,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "AccountNotEmpty");
+    }
   });
 
   it("Should close StakingRecord successfully", async () => {
@@ -1380,9 +2231,116 @@ describe("inference-staking", () => {
     assert(operatorPool.closedAt.eq(poolOverview.completedRewardEpoch));
   });
 
-  // TODO: Add test for accruing of past epoch rewards for same OperatorPool.
-  // TODO: Add test for accruing with auto-stake enabled for same OperatorPool.
-  // TODO: Add test for accruing with commission fee change for OperatorPool.
-  // TODO: Add test for unstaking below min amount for Operator when pool is closed.
-  // TODO: Add test for staking to close OperatorPool.
+  it("Fail to close OperatorPool when it's already closed", async () => {
+    try {
+      await program.methods
+        .closeOperatorPool()
+        .accountsStrict({
+          admin: setup.signer1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+        })
+        .signers([setup.signer1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "ClosedPool");
+    }
+  });
+
+  it("Fail to stake to OperatorPool when it's closed", async () => {
+    try {
+      const ownerTokenAccount = getAssociatedTokenAddressSync(
+        setup.tokenMint,
+        setup.user1
+      );
+      await program.methods
+        .stake(new anchor.BN(400_000))
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user1Record,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      const code = error.error.errorCode.code;
+      assert.equal(code, "ClosedPool");
+    }
+  });
+
+  it("Unstake for operator below min. share is successful when pool is closed.", async () => {
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    const stakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+    assert(!stakingRecordPre.shares.isZero());
+
+    // Expect unstaking of all shares to be successful.
+    await program.methods
+      .unstake(stakingRecordPre.shares)
+      .accountsStrict({
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const stakingRecordPost = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+    const expectedTokens = stakingRecordPre.shares
+      .mul(operatorPool.totalStakedAmount)
+      .div(operatorPool.totalShares);
+    assert(stakingRecordPost.shares.isZero());
+    assert(
+      stakingRecordPost.tokensUnstakeAmount
+        .sub(stakingRecordPre.tokensUnstakeAmount)
+        .eq(expectedTokens)
+    );
+  });
+
+  it("Claim unstake for operator below min. share is successful when pool is closed.", async () => {
+    // Sleep till delay duration has elapsed.
+    await sleep((operatorUnstakeDelaySeconds.toNumber() + 2) * 1000);
+
+    const ownerTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.signer1
+    );
+
+    await program.methods
+      .claimUnstake()
+      .accountsStrict({
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        ownerTokenAccount,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
+    const stakingRecordPost = await program.account.stakingRecord.fetch(
+      setup.pool1.signer1Record
+    );
+    assert(stakingRecordPost.shares.isZero());
+    assert(stakingRecordPost.unstakeAtTimestamp.isZero());
+    assert(stakingRecordPost.tokensUnstakeAmount.isZero());
+  });
 });

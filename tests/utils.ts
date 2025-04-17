@@ -129,6 +129,22 @@ export async function setupTests() {
   };
   const pool2 = {
     pool: operatorPool2,
+    stakedTokenAccount: PublicKey.findProgramAddressSync(
+      [operatorPool2.toBuffer(), Buffer.from("StakedToken")],
+      INF_STAKING
+    )[0],
+    feeTokenAccount: PublicKey.findProgramAddressSync(
+      [operatorPool2.toBuffer(), Buffer.from("FeeToken")],
+      INF_STAKING
+    )[0],
+    signer1Record: PublicKey.findProgramAddressSync(
+      [
+        operatorPool2.toBuffer(),
+        signer1Kp.publicKey.toBuffer(),
+        Buffer.from("StakingRecord"),
+      ],
+      INF_STAKING
+    )[0],
   };
   const pool3 = {
     pool: operatorPool3,
@@ -148,6 +164,14 @@ export async function setupTests() {
     )[0],
     3: PublicKey.findProgramAddressSync(
       [new BN(3).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
+      INF_STAKING
+    )[0],
+    4: PublicKey.findProgramAddressSync(
+      [new BN(4).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
+      INF_STAKING
+    )[0],
+    5: PublicKey.findProgramAddressSync(
+      [new BN(5).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
       INF_STAKING
     )[0],
   };

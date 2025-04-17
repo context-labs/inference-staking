@@ -225,7 +225,7 @@ const _IDL = {
         {
           name: "owner",
           docs: [
-            "Owner of the current StakingRecord that will become the OperatorPool StakingRecord",
+            "Owner of the StakingRecord that will become the new OperatorPool StakingRecord",
           ],
           signer: true,
           relations: ["newStakingRecord"],
@@ -1216,24 +1216,32 @@ const _IDL = {
       args: [
         {
           name: "newProgramAdmin",
-          type: "pubkey",
+          type: {
+            option: "pubkey",
+          },
         },
         {
           name: "newRewardDistributionAuthorities",
           type: {
-            vec: "pubkey",
+            option: {
+              vec: "pubkey",
+            },
           },
         },
         {
-          name: "newHaltAuthorites",
+          name: "newHaltAuthorities",
           type: {
-            vec: "pubkey",
+            option: {
+              vec: "pubkey",
+            },
           },
         },
         {
           name: "newSlashingAuthorities",
           type: {
-            vec: "pubkey",
+            option: {
+              vec: "pubkey",
+            },
           },
         },
       ],
@@ -1410,8 +1418,18 @@ const _IDL = {
     },
     {
       code: 6012,
+      name: "authoritiesExceeded",
+      msg: "Exceeded allowed authorities length",
+    },
+    {
+      code: 6013,
       name: "accountNotEmpty",
       msg: "Account not empty",
+    },
+    {
+      code: 6014,
+      name: "poolCreationDisabled",
+      msg: "Pool creation is disabled",
     },
   ],
   types: [
