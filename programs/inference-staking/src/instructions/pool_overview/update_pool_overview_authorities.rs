@@ -17,28 +17,31 @@ pub struct UpdatePoolOverviewAuthorities<'info> {
 /// Instruction to update authorities on PoolOverview.
 pub fn handler(
     ctx: Context<UpdatePoolOverviewAuthorities>,
-    new_program_admin: Pubkey,
-    new_reward_distribution_authorities: Vec<Pubkey>,
-    new_halt_authorites: Vec<Pubkey>,
-    new_slashing_authorities: Vec<Pubkey>,
+    new_program_admin: Option<Pubkey>,
+    new_reward_distribution_authorities: Option<Vec<Pubkey>>,
+    new_halt_authorities: Option<Vec<Pubkey>>,
+    new_slashing_authorities: Option<Vec<Pubkey>>,
 ) -> Result<()> {
-    require_gte!(
-        5,
-        new_reward_distribution_authorities.len(),
-        ErrorCode::AuthoritiesExceeded
-    );
-    require_gte!(
-        5,
-        new_slashing_authorities.len(),
-        ErrorCode::AuthoritiesExceeded
-    );
-    require_gte!(5, new_halt_authorites.len(), ErrorCode::AuthoritiesExceeded);
-
     let pool_overview = &mut ctx.accounts.pool_overview;
-    pool_overview.program_admin = new_program_admin;
-    pool_overview.reward_distribution_authorities = new_reward_distribution_authorities;
-    pool_overview.halt_authorities = new_halt_authorites;
-    pool_overview.slashing_authorities = new_slashing_authorities;
+
+    if let Some(new_admin) = new_program_admin {
+        pool_overview.program_admin = new_admin;
+    }
+
+    if let Some(authorities) = new_reward_distribution_authorities {
+        require_gte!(5, authorities.len(), ErrorCode::AuthoritiesExceeded);
+        pool_overview.reward_distribution_authorities = authorities;
+    }
+
+    if let Some(authorities) = new_slashing_authorities {
+        require_gte!(5, authorities.len(), ErrorCode::AuthoritiesExceeded);
+        pool_overview.slashing_authorities = authorities;
+    }
+
+    if let Some(authorities) = new_halt_authorities {
+        require_gte!(5, authorities.len(), ErrorCode::AuthoritiesExceeded);
+        pool_overview.halt_authorities = authorities;
+    }
 
     Ok(())
 }
