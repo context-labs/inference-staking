@@ -4,11 +4,12 @@ import {
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import type { Connection } from "@solana/web3.js";
 import { SystemProgram } from "@solana/web3.js";
 import { PublicKey } from "@solana/web3.js";
 import { assert } from "chai";
 
-import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
+import type { InferenceStaking } from "@sdk/src/idl";
 
 import { MerkleUtils } from "@tests/lib/merkle";
 import type {
@@ -24,14 +25,8 @@ import {
 
 describe("Test Reward Creation and Accrual", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
-
-  anchor.setProvider(anchor.AnchorProvider.env());
-  const sdk = new InferenceStakingProgramSDK({
-    provider: anchor.AnchorProvider.env(),
-    environment: "localnet",
-  });
-  const program = sdk.program;
-  const connection = program.provider.connection;
+  let connection: Connection;
+  let program: anchor.Program<InferenceStaking>;
 
   const autoStakeFees = true;
   const commissionRateBps = 1500;
@@ -48,6 +43,8 @@ describe("Test Reward Creation and Accrual", () => {
 
   before(async () => {
     setup = await setupTests();
+    program = setup.sdk.program;
+    connection = program.provider.connection;
 
     await program.methods
       .createPoolOverview()

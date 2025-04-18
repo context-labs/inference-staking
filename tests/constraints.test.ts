@@ -3,7 +3,7 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
-import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
+import type { InferenceStaking } from "@sdk/src/idl";
 
 import {
   setupTests,
@@ -13,13 +13,7 @@ import {
 
 describe("Additional tests for instruction constraints", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
-
-  anchor.setProvider(anchor.AnchorProvider.env());
-  const sdk = new InferenceStakingProgramSDK({
-    provider: anchor.AnchorProvider.env(),
-    environment: "localnet",
-  });
-  const program = sdk.program;
+  let program: anchor.Program<InferenceStaking>;
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
@@ -31,6 +25,8 @@ describe("Additional tests for instruction constraints", () => {
 
   before(async () => {
     setup = await setupTests();
+    program = setup.sdk.program;
+
     await program.methods
       .createPoolOverview()
       .accountsStrict({

@@ -28,6 +28,11 @@ export async function setupTests() {
   const haltAuthority1Kp = new Keypair();
   const provider = getProvider();
 
+  const sdk = new InferenceStakingProgramSDK({
+    provider: anchor.AnchorProvider.env(),
+    environment: "localnet",
+  });
+
   const txns = await Promise.all([
     provider.connection.requestAirdrop(payerKp.publicKey, LAMPORTS_PER_SOL),
     provider.connection.requestAirdrop(signer1Kp.publicKey, LAMPORTS_PER_SOL),
@@ -200,6 +205,7 @@ export async function setupTests() {
   };
 
   return {
+    sdk,
     payerKp,
     payer: payerKp.publicKey,
     poolOverviewAdminKp,

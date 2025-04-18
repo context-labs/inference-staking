@@ -1,9 +1,11 @@
 import * as anchor from "@coral-xyz/anchor";
+import type { Program } from "@coral-xyz/anchor";
 import {
   getAssociatedTokenAddressSync,
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import type { Connection } from "@solana/web3.js";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
@@ -14,7 +16,7 @@ import type {
   ClaimUnstakeEvent,
   SlashStakeEvent,
 } from "@sdk/src/eventTypes";
-import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
+import type { InferenceStaking } from "@sdk/src/idl";
 
 import type { GenerateMerkleProofInput } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
@@ -29,14 +31,8 @@ import {
 
 describe("inference-staking", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
-
-  anchor.setProvider(anchor.AnchorProvider.env());
-  const sdk = new InferenceStakingProgramSDK({
-    provider: anchor.AnchorProvider.env(),
-    environment: "localnet",
-  });
-  const program = sdk.program;
-  const connection = program.provider.connection;
+  let connection: Connection;
+  let program: Program<InferenceStaking>;
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
@@ -49,6 +45,8 @@ describe("inference-staking", () => {
 
   before(async () => {
     setup = await setupTests();
+    program = setup.sdk.program;
+    connection = program.provider.connection;
   });
 
   it("Create PoolOverview successfully", async () => {
