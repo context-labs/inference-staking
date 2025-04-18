@@ -26,14 +26,14 @@ export async function setupTests() {
   const user2Kp = new Keypair();
   const user3Kp = new Keypair();
   const haltAuthority1Kp = new Keypair();
-  const provider = getProvider();
 
+  const provider = getProvider();
   const sdk = new InferenceStakingProgramSDK({
     provider: anchor.AnchorProvider.env(),
     environment: "localnet",
   });
 
-  const txns = await Promise.all([
+  const txs = await Promise.all([
     provider.connection.requestAirdrop(payerKp.publicKey, LAMPORTS_PER_SOL),
     provider.connection.requestAirdrop(signer1Kp.publicKey, LAMPORTS_PER_SOL),
     provider.connection.requestAirdrop(signer2Kp.publicKey, LAMPORTS_PER_SOL),
@@ -44,7 +44,7 @@ export async function setupTests() {
   ]);
 
   await Promise.all(
-    txns.map((txn) => provider.connection.confirmTransaction(txn, "finalized"))
+    txs.map((signature) => confirmTransaction(provider.connection, signature))
   );
 
   const tokenMint = await createMint(
@@ -83,75 +83,24 @@ export async function setupTests() {
     txns2.map((txn) => confirmTransaction(provider.connection, txn))
   );
 
-  const [poolOverview] = PublicKey.findProgramAddressSync(
-    [Buffer.from("PoolOverview")],
-    INF_STAKING
-  );
-  const [rewardTokenAccount] = PublicKey.findProgramAddressSync(
-    [Buffer.from("RewardToken")],
-    INF_STAKING
-  );
-  const [operatorPool1] = PublicKey.findProgramAddressSync(
-    [new BN(1).toArrayLike(Buffer, "le", 8), Buffer.from("OperatorPool")],
-    INF_STAKING
-  );
-  const [operatorPool2] = PublicKey.findProgramAddressSync(
-    [new BN(2).toArrayLike(Buffer, "le", 8), Buffer.from("OperatorPool")],
-    INF_STAKING
-  );
-  const [operatorPool3] = PublicKey.findProgramAddressSync(
-    [new BN(3).toArrayLike(Buffer, "le", 8), Buffer.from("OperatorPool")],
-    INF_STAKING
-  );
-  const [operatorPool4] = PublicKey.findProgramAddressSync(
-    [new BN(4).toArrayLike(Buffer, "le", 8), Buffer.from("OperatorPool")],
-    INF_STAKING
-  );
+  const poolOverview = sdk.poolOverviewPda();
+  const rewardTokenAccount = sdk.rewardTokenPda();
+  const operatorPool1 = sdk.operatorPoolPda(new BN(1));
+  const operatorPool2 = sdk.operatorPoolPda(new BN(2));
+  const operatorPool3 = sdk.operatorPoolPda(new BN(3));
+  const operatorPool4 = sdk.operatorPoolPda(new BN(4));
   const pool1 = {
     pool: operatorPool1,
-    stakedTokenAccount: PublicKey.findProgramAddressSync(
-      [operatorPool1.toBuffer(), Buffer.from("StakedToken")],
-      INF_STAKING
-    )[0],
-    feeTokenAccount: PublicKey.findProgramAddressSync(
-      [operatorPool1.toBuffer(), Buffer.from("FeeToken")],
-      INF_STAKING
-    )[0],
-    signer1Record: PublicKey.findProgramAddressSync(
-      [
-        operatorPool1.toBuffer(),
-        signer1Kp.publicKey.toBuffer(),
-        Buffer.from("StakingRecord"),
-      ],
-      INF_STAKING
-    )[0],
-    user1Record: PublicKey.findProgramAddressSync(
-      [
-        operatorPool1.toBuffer(),
-        user1Kp.publicKey.toBuffer(),
-        Buffer.from("StakingRecord"),
-      ],
-      INF_STAKING
-    )[0],
+    stakedTokenAccount: sdk.stakedTokenPda(operatorPool1),
+    feeTokenAccount: sdk.feeTokenPda(operatorPool1),
+    signer1Record: sdk.stakingRecordPda(operatorPool1, signer1Kp.publicKey),
+    user1Record: sdk.stakingRecordPda(operatorPool1, user1Kp.publicKey),
   };
   const pool2 = {
     pool: operatorPool2,
-    stakedTokenAccount: PublicKey.findProgramAddressSync(
-      [operatorPool2.toBuffer(), Buffer.from("StakedToken")],
-      INF_STAKING
-    )[0],
-    feeTokenAccount: PublicKey.findProgramAddressSync(
-      [operatorPool2.toBuffer(), Buffer.from("FeeToken")],
-      INF_STAKING
-    )[0],
-    signer1Record: PublicKey.findProgramAddressSync(
-      [
-        operatorPool2.toBuffer(),
-        signer1Kp.publicKey.toBuffer(),
-        Buffer.from("StakingRecord"),
-      ],
-      INF_STAKING
-    )[0],
+    stakedTokenAccount: sdk.stakedTokenPda(operatorPool2),
+    feeTokenAccount: sdk.feeTokenPda(operatorPool2),
+    signer1Record: sdk.stakingRecordPda(operatorPool2, signer1Kp.publicKey),
   };
   const pool3 = {
     pool: operatorPool3,
@@ -161,26 +110,11 @@ export async function setupTests() {
   };
 
   const rewardRecords = {
-    1: PublicKey.findProgramAddressSync(
-      [new BN(1).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
-      INF_STAKING
-    )[0],
-    2: PublicKey.findProgramAddressSync(
-      [new BN(2).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
-      INF_STAKING
-    )[0],
-    3: PublicKey.findProgramAddressSync(
-      [new BN(3).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
-      INF_STAKING
-    )[0],
-    4: PublicKey.findProgramAddressSync(
-      [new BN(4).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
-      INF_STAKING
-    )[0],
-    5: PublicKey.findProgramAddressSync(
-      [new BN(5).toArrayLike(Buffer, "le", 8), Buffer.from("RewardRecord")],
-      INF_STAKING
-    )[0],
+    1: sdk.rewardRecordPda(new BN(1)),
+    2: sdk.rewardRecordPda(new BN(2)),
+    3: sdk.rewardRecordPda(new BN(3)),
+    4: sdk.rewardRecordPda(new BN(4)),
+    5: sdk.rewardRecordPda(new BN(5)),
   };
 
   const rewardEpochs = {
