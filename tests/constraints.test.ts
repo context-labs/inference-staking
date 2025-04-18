@@ -5,12 +5,8 @@ import { assert } from "chai";
 
 import type { InferenceStaking } from "@sdk/src/idl";
 
-import {
-  setupTests,
-  assertStakingProgramError,
-  assertError,
-} from "./lib/utils";
-
+import { setupTests } from "@tests/lib/setup";
+import { assertStakingProgramError, assertError } from "@tests/lib/utils";
 describe("Additional tests for instruction constraints", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
   let program: anchor.Program<InferenceStaking>;

@@ -20,14 +20,12 @@ import type { InferenceStaking } from "@sdk/src/idl";
 
 import type { GenerateMerkleProofInput } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
-
+import { setupTests, INF_STAKING } from "@tests/lib/setup";
 import {
   assertError,
   assertStakingProgramError,
-  INF_STAKING,
-  setupTests,
   sleep,
-} from "./lib/utils";
+} from "@tests/lib/utils";
 
 describe("inference-staking", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
