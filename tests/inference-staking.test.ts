@@ -20,7 +20,7 @@ import type { InferenceStaking } from "@sdk/src/idl";
 
 import type { GenerateMerkleProofInput } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
-import { setupTests, INF_STAKING } from "@tests/lib/setup";
+import { setupTests, INFERENCE_STAKING_PROGRAM_ID } from "@tests/lib/setup";
 import {
   assertError,
   assertStakingProgramError,
@@ -2160,7 +2160,7 @@ describe("inference-staking", () => {
         setup.user2.toBuffer(),
         Buffer.from("StakingRecord"),
       ],
-      INF_STAKING
+      INFERENCE_STAKING_PROGRAM_ID
     )[0];
     await program.methods
       .createStakingRecord()

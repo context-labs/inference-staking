@@ -13,9 +13,9 @@ export function getProgramIdFromEnvironment(
     case "mainnet-beta":
       throw new Error("todo: not available yet");
     case "devnet":
-      return new PublicKey("7NuTZJFDezrh8n73HxY22gvPrXnGeRqDAoFDnXHnMjQb");
+      return new PublicKey("infrC4g9ZJMcDyvhjN4zLL6r634RCyzYv5riwk8jp28");
     case "localnet":
-      return new PublicKey("7NuTZJFDezrh8n73HxY22gvPrXnGeRqDAoFDnXHnMjQb");
+      return new PublicKey("5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj");
     default:
       throw new Error(`Unsupported environment: ${environment}`);
   }

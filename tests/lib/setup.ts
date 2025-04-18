@@ -12,8 +12,8 @@ import { confirmTransaction } from "@tests/lib/utils";
 
 const { BN, getProvider } = anchor;
 
-export const INF_STAKING = new PublicKey(
-  "7NuTZJFDezrh8n73HxY22gvPrXnGeRqDAoFDnXHnMjQb"
+export const INFERENCE_STAKING_PROGRAM_ID = new PublicKey(
+  "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
 );
 
 export async function setupTests() {
