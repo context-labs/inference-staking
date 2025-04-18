@@ -16,7 +16,11 @@ import type {
   MerkleTreeAddressInput,
 } from "@tests/lib/merkle";
 
-import { assertError, setupTests } from "./lib/utils";
+import {
+  assertError,
+  assertStakingProgramError,
+  setupTests,
+} from "./lib/utils";
 
 describe("Test Reward Creation and Accrual", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
@@ -241,7 +245,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "InsufficientRewards");
+      assertStakingProgramError(error, "insufficientRewards");
     }
   });
 
@@ -270,7 +274,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "InsufficientRewards");
+      assertStakingProgramError(error, "insufficientRewards");
     }
 
     // Fund rewardTokenAccount
@@ -436,7 +440,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "InvalidProof");
+      assertStakingProgramError(error, "invalidProof");
     }
 
     try {
@@ -461,7 +465,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "InvalidProof");
+      assertStakingProgramError(error, "invalidProof");
     }
   });
 
@@ -829,7 +833,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "ClosedPool");
+      assertStakingProgramError(error, "closedPool");
     }
   });
 });

@@ -5,7 +5,11 @@ import { assert } from "chai";
 
 import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
 
-import { setupTests, assertError } from "./lib/utils";
+import {
+  setupTests,
+  assertStakingProgramError,
+  assertError,
+} from "./lib/utils";
 
 describe("Additional tests for instruction constraints", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
@@ -75,7 +79,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "InvalidAuthority");
+      assertStakingProgramError(error, "invalidAuthority");
     }
   });
 
@@ -119,7 +123,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "InvalidAuthority");
+      assertStakingProgramError(error, "invalidAuthority");
     }
   });
 
@@ -147,7 +151,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "AuthoritiesExceeded");
+      assertStakingProgramError(error, "authoritiesExceeded");
     }
   });
 

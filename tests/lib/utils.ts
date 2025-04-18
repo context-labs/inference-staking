@@ -7,6 +7,9 @@ import {
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { assert } from "chai";
 
+import type { InferenceStakingErrors } from "@sdk/src";
+import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
+
 const { BN, getProvider } = anchor;
 
 export const INF_STAKING = new PublicKey(
@@ -230,6 +233,16 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export function assertStakingProgramError(
+  error: unknown,
+  code: InferenceStakingErrors
+) {
+  const errorName =
+    InferenceStakingProgramSDK.getErrorNameFromTransactionError(error);
+  assert.equal(errorName, code);
+}
+
 export function assertError(error: unknown, code: string) {
-  assert.equal((error as anchor.AnchorError).error.errorCode.code, code);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  assert.equal((error as any).error.errorCode.code, code);
 }

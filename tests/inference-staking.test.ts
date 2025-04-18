@@ -19,7 +19,13 @@ import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
 import type { GenerateMerkleProofInput } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
 
-import { assertError, INF_STAKING, setupTests, sleep } from "./lib/utils";
+import {
+  assertError,
+  assertStakingProgramError,
+  INF_STAKING,
+  setupTests,
+  sleep,
+} from "./lib/utils";
 
 describe("inference-staking", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
@@ -98,7 +104,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "PoolCreationDisabled");
+      assertStakingProgramError(error, "poolCreationDisabled");
     }
   });
 
@@ -402,7 +408,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "MinOperatorSharesNotMet");
+      assertStakingProgramError(error, "minOperatorSharesNotMet");
     }
   });
 
@@ -478,7 +484,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "MinOperatorSharesNotMet");
+      assertStakingProgramError(error, "minOperatorSharesNotMet");
     }
   });
 
@@ -520,7 +526,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "StakingNotAllowed");
+      assertStakingProgramError(error, "stakingNotAllowed");
     }
   });
 
@@ -681,7 +687,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "WithdrawalsHalted");
+      assertStakingProgramError(error, "withdrawalsHalted");
     }
 
     // Revert halt withdrawal
@@ -732,7 +738,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "MinOperatorSharesNotMet");
+      assertStakingProgramError(error, "minOperatorSharesNotMet");
     }
   });
 
@@ -963,7 +969,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      assertError(error, "PendingDelay");
+      assertStakingProgramError(error, "pendingDelay");
     }
   });
 
@@ -983,7 +989,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "InvalidAuthority");
+      assertStakingProgramError(error, "invalidAuthority");
     }
   });
 
@@ -1113,7 +1119,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "InvalidAuthority");
+      assertStakingProgramError(error, "invalidAuthority");
     }
   });
 
@@ -1204,7 +1210,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "UnclaimedRewards");
+      assertStakingProgramError(error, "unclaimedRewards");
     }
   });
 
@@ -1223,7 +1229,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "UnclaimedRewards");
+      assertStakingProgramError(error, "unclaimedRewards");
     }
   });
 
@@ -1241,7 +1247,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "UnclaimedRewards");
+      assertStakingProgramError(error, "unclaimedRewards");
     }
   });
 
@@ -1269,7 +1275,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      assertError(error, "UnclaimedRewards");
+      assertStakingProgramError(error, "unclaimedRewards");
     }
   });
 
@@ -1441,7 +1447,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "WithdrawalsHalted");
+      assertStakingProgramError(error, "withdrawalsHalted");
     }
 
     // Revert halt withdrawal
@@ -1497,7 +1503,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "MinOperatorSharesNotMet");
+      assertStakingProgramError(error, "minOperatorSharesNotMet");
     }
 
     // Revert min share to default.
@@ -1618,7 +1624,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "UnstakingNotAllowed");
+      assertStakingProgramError(error, "unstakingNotAllowed");
     }
 
     // Revert halt pool
@@ -1712,7 +1718,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "InvalidAuthority");
+      assertStakingProgramError(error, "invalidAuthority");
     }
   });
 
@@ -1838,7 +1844,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      assertError(error, "InvalidAuthority");
+      assertStakingProgramError(error, "invalidAuthority");
     }
   });
 
@@ -1877,7 +1883,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      assertError(error, "UnstakingNotAllowed");
+      assertStakingProgramError(error, "unstakingNotAllowed");
     }
   });
 
@@ -1904,7 +1910,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      assertError(error, "OperatorPoolHalted");
+      assertStakingProgramError(error, "operatorPoolHalted");
     }
   });
 
@@ -1921,7 +1927,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "OperatorPoolHalted");
+      assertStakingProgramError(error, "operatorPoolHalted");
     }
   });
 
@@ -1944,7 +1950,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "OperatorPoolHalted");
+      assertStakingProgramError(error, "operatorPoolHalted");
     }
 
     // Set back to unhalted
@@ -2001,7 +2007,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "WithdrawalsHalted");
+      assertStakingProgramError(error, "withdrawalsHalted");
     }
 
     // Revert halt withdrawal
@@ -2147,7 +2153,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "AccountNotEmpty");
+      assertStakingProgramError(error, "accountNotEmpty");
     }
   });
 
@@ -2224,7 +2230,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "ClosedPool");
+      assertStakingProgramError(error, "closedPool");
     }
   });
 
@@ -2251,7 +2257,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      assertError(error, "ClosedPool");
+      assertStakingProgramError(error, "closedPool");
     }
   });
 
