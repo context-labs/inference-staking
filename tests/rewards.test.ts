@@ -465,7 +465,7 @@ describe("Test Reward Creation and Accrual", () => {
     }
   });
 
-  it("Accrue Rewards for epoch 2 sucessfully", async () => {
+  it("Accrue Rewards for epoch 2 successfully", async () => {
     const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
     const nodeIndex = setup.rewardEpochs[2].findIndex(
       (x) => x.address == setup.pool1.pool.toString()
@@ -562,7 +562,7 @@ describe("Test Reward Creation and Accrual", () => {
     }
   });
 
-  it("Accrue Rewards for epoch 3 sucessfully", async () => {
+  it("Accrue Rewards for epoch 3 successfully", async () => {
     const treeIndex = setup.rewardEpochs[2].findIndex(
       (x) => x.address == setup.pool1.pool.toString()
     );
@@ -725,7 +725,7 @@ describe("Test Reward Creation and Accrual", () => {
       .rpc();
   });
 
-  it("Accrue Rewards for epoch 4 sucessfully", async () => {
+  it("Accrue Rewards for epoch 4 successfully", async () => {
     const nodeIndex = rewardInputs4.findIndex(
       (x) => x.address == setup.pool1.pool.toString()
     );

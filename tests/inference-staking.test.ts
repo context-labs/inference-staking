@@ -282,7 +282,7 @@ describe("inference-staking", () => {
 
   it("Fail to update operator pool with invalid commission rate", async () => {
     try {
-      // Expect failure as commission cannot excceed 100%.
+      // Expect failure as commission cannot exceed 100%.
       await program.methods
         .updateOperatorPool({
           newCommissionRateBps: 150_00,

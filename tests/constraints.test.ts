@@ -153,7 +153,7 @@ describe("Additional tests for instruction constraints", () => {
 
   it("Fail to create OperatorPool with invalid commission rate", async () => {
     try {
-      // Expect failure as commission cannot excceed 100%.
+      // Expect failure as commission cannot exceed 100%.
       await program.methods
         .createOperatorPool(autoStakeFees, 110_00, allowDelegation)
         .accountsStrict({
