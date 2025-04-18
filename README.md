@@ -81,6 +81,7 @@ Start here: [https://www.anchor-lang.com/docs/installation](https://www.anchor-l
 - Rust toolchain: 1.85.0
 - Solana CLI: Solana 2.1.16 (Other versions may be supported)
 - Anchor framework (AVM 0.31.0)
+- [Bun](https://bun.sh/) (v1.2.5 or higher)
 
 ## Installation
 
