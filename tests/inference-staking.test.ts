@@ -6,7 +6,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import type { Connection } from "@solana/web3.js";
-import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
 import type {
@@ -20,7 +20,8 @@ import type { InferenceStaking } from "@sdk/src/idl";
 
 import type { GenerateMerkleProofInput } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
-import { setupTests, INFERENCE_STAKING_PROGRAM_ID } from "@tests/lib/setup";
+import type { SetupTestResult } from "@tests/lib/setup";
+import { setupTests } from "@tests/lib/setup";
 import {
   assertError,
   assertStakingProgramError,
@@ -28,7 +29,7 @@ import {
 } from "@tests/lib/utils";
 
 describe("inference-staking", () => {
-  let setup: Awaited<ReturnType<typeof setupTests>>;
+  let setup: SetupTestResult;
   let connection: Connection;
   let program: Program<InferenceStaking>;
 
@@ -2154,14 +2155,10 @@ describe("inference-staking", () => {
   });
 
   it("Should close StakingRecord successfully", async () => {
-    const user2Record = PublicKey.findProgramAddressSync(
-      [
-        setup.pool1.pool.toBuffer(),
-        setup.user2.toBuffer(),
-        Buffer.from("StakingRecord"),
-      ],
-      INFERENCE_STAKING_PROGRAM_ID
-    )[0];
+    const user2Record = setup.sdk.stakingRecordPda(
+      setup.pool1.pool,
+      setup.user2
+    );
     await program.methods
       .createStakingRecord()
       .accountsStrict({

@@ -16,11 +16,12 @@ import type {
   GenerateMerkleProofInput,
   MerkleTreeAddressInput,
 } from "@tests/lib/merkle";
+import type { SetupTestResult } from "@tests/lib/setup";
 import { setupTests } from "@tests/lib/setup";
 import { assertError, assertStakingProgramError } from "@tests/lib/utils";
 
 describe("Test Reward Creation and Accrual", () => {
-  let setup: Awaited<ReturnType<typeof setupTests>>;
+  let setup: SetupTestResult;
   let connection: Connection;
   let program: anchor.Program<InferenceStaking>;
 
