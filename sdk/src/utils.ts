@@ -11,7 +11,7 @@ export function getProgramIdFromEnvironment(
 ): PublicKey {
   switch (environment) {
     case "mainnet-beta":
-      throw new Error("todo: not available yet");
+      return new PublicKey("11111111111111111111111111111111");
     case "devnet":
       return new PublicKey("infrC4g9ZJMcDyvhjN4zLL6r634RCyzYv5riwk8jp28");
     case "localnet":
