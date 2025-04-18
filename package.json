@@ -1,23 +1,40 @@
 {
-  "license": "ISC",
+  "name": "inference-staking-repo",
+  "description": "Inference Staking Program Repo",
+  "git": "https://github.com/context-labs/inference-staking",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
   "scripts": {
-    "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "format": "prettier */*.js \"**/*{.js,.ts,bun.lock}\" --check",
+    "format:fix": "prettier */*.js \"**/*{.js,.ts,bun.lock}\" -w",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "tsc": "tsc --noEmit",
+    "test": "anchor test",
+    "build": "anchor build && bun run scripts/generateIDL.ts && bun run format:fix",
+    "check": "bun run format && bun run lint && bun run tsc && bun run build"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.31.0",
-    "@solana/spl-token": "^0.4.13",
-    "bs58": "^6.0.0",
-    "inference-staking": "link:./package"
+    "@coral-xyz/anchor": "0.31.0",
+    "@solana/spl-token": "0.4.13",
+    "bs58": "^6.0.0"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",
     "@types/chai": "^4.3.0",
     "@types/mocha": "^9.0.0",
     "chai": "^4.3.4",
+    "eslint": "^9.24.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-sort-destructure-keys": "^2.0.0",
+    "eslint-plugin-sort-keys-fix": "^1.1.2",
+    "eslint-plugin-typescript-sort-keys": "^3.3.0",
     "mocha": "^9.0.3",
     "prettier": "^2.6.2",
     "ts-mocha": "^10.0.0",
-    "typescript": "^5.7.3"
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.29.1"
   }
 }

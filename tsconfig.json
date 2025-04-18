@@ -1,10 +1,17 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "outDir": "dist",
     "types": ["mocha", "chai"],
     "typeRoots": ["./node_modules/@types"],
     "lib": ["es2015"],
     "module": "commonjs",
-    "target": "es6",
-    "esModuleInterop": true
-  }
+    "baseUrl": ".",
+    "paths": {
+      "@sdk/*": ["sdk/*"],
+      "@tests/*": ["tests/*"]
+    }
+  },
+  "include": ["sdk/**/*", "tests/**/*", "scripts/**/*"],
+  "exclude": ["sdk/dist"]
 }

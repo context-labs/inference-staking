@@ -1,9 +1,11 @@
 import * as anchor from "@coral-xyz/anchor";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { setupTests } from "./utils";
-import { createProgram } from "inference-staking";
+
+import { createProgram } from "@sdk/src";
+
+import { setupTests, assertError } from "./lib/utils";
 
 describe("Additional tests for instruction constraints", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
@@ -72,8 +74,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
+      assertError(error, "InvalidAuthority");
     }
   });
 
@@ -96,8 +97,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "RequireGteViolated");
+      assertError(error, "RequireGteViolated");
     }
   });
 
@@ -118,8 +118,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
+      assertError(error, "InvalidAuthority");
     }
   });
 
@@ -147,8 +146,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "AuthoritiesExceeded");
+      assertError(error, "AuthoritiesExceeded");
     }
   });
 
@@ -173,8 +171,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "RequireGteViolated");
+      assertError(error, "RequireGteViolated");
     }
   });
 });

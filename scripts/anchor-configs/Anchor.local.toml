@@ -1,0 +1,19 @@
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+inference_airdrop = "AYACUUmR3hazFhQpmnvWeumVTo1m7NYCyGqpUhZww2kp"
+
+[programs.devnet]
+inference_airdrop = "dair7CEfW3E8LMR8fSRaYL4XXCnP9N9GBg29su8TBvP"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/*.test.ts"

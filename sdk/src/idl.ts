@@ -1,13 +1,12 @@
+import type { PublicKey } from "@solana/web3.js";
+
 type Mutable<T> = {
   -readonly [K in keyof T]: Mutable<T[K]>;
 };
 
-/**
- * Program IDL in camelCase format in order to be used in JS/TS.
- *
- * Note that this is only a type helper and is not the actual IDL. The original
- * IDL can be found at `target/idl/inference_staking.json`.
- */
+// This is the Anchor generated program IDL, which is generated in our build process.
+// Don't edit the finally manually - you can regenerate it by running 'bun run build'
+// at the root level of the project.
 const _IDL = {
   address: "7NuTZJFDezrh8n73HxY22gvPrXnGeRqDAoFDnXHnMjQb",
   metadata: {
@@ -1938,4 +1937,14 @@ const _IDL = {
   ],
 } as const;
 
-export const IDL = _IDL as Mutable<typeof _IDL>;
+export type InferenceStaking = Mutable<typeof _IDL>;
+
+export const getIdlWithProgramId = (programId: PublicKey): InferenceStaking => {
+  const result = {
+    ..._IDL,
+    address: programId.toBase58(),
+  };
+  return result as InferenceStaking;
+};
+
+export const IDL = _IDL as InferenceStaking;

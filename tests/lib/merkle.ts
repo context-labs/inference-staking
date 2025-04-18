@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+
 import { PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
 
@@ -9,6 +10,9 @@ import bs58 from "bs58";
  ******************************************************************************* */
 
 function isValidPublicKey(address: string | undefined | null): boolean {
+  if (address == null) {
+    return false;
+  }
   try {
     new PublicKey(address);
     return true;
@@ -163,7 +167,7 @@ function getTreeRoot(tree: Uint8Array[][]): Uint8Array {
   return root;
 }
 
-type GenerateMerkleProofInput = {
+export type GenerateMerkleProofInput = {
   address: string;
   amount: number;
   index: number;

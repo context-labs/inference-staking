@@ -1,26 +1,32 @@
 import * as anchor from "@coral-xyz/anchor";
-import { SystemProgram } from "@solana/web3.js";
-import { assert } from "chai";
 import {
   getAssociatedTokenAddressSync,
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { setupTests } from "./utils";
-import { createProgram, MerkleUtils } from "inference-staking";
+import { SystemProgram } from "@solana/web3.js";
 import { PublicKey } from "@solana/web3.js";
+import { assert } from "chai";
+
+import { createProgram } from "@sdk/src";
+
+import { MerkleUtils } from "@tests/lib/merkle";
+import type {
+  GenerateMerkleProofInput,
+  MerkleTreeAddressInput,
+} from "@tests/lib/merkle";
+
+import { assertError, setupTests } from "./lib/utils";
 
 describe("Test Reward Creation and Accrual", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
 
-  // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = createProgram(anchor.AnchorProvider.env());
 
   const connection = program.provider.connection;
 
-  // Configs
   const autoStakeFees = true;
   const commissionRateBps = 1500;
   const newCommissionRateBps = 0;
@@ -31,8 +37,8 @@ describe("Test Reward Creation and Accrual", () => {
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
 
-  let merkleTree4;
-  let rewardInputs4 = [];
+  let merkleTree4: Uint8Array[][];
+  const rewardInputs4: MerkleTreeAddressInput[] = [];
 
   before(async () => {
     setup = await setupTests();
@@ -177,8 +183,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "ConstraintSeeds");
+      assertError(error, "ConstraintSeeds");
     }
   });
 
@@ -214,8 +219,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "ConstraintSeeds");
+      assertError(error, "ConstraintSeeds");
     }
   });
 
@@ -235,23 +239,22 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InsufficientRewards");
+      assertError(error, "InsufficientRewards");
     }
   });
 
   it("Create RewardRecord with insufficient rewards", async () => {
     const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
-    const merkleRoots = [merkleTree.at(-1)[0]];
+    const merkleRoots = [merkleTree.at(-1)?.[0]];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
       totalRewards = totalRewards.addn(addressInput.amount);
     }
 
-    // Should fail with insufficent rewards.
+    // Should fail with insufficient rewards.
     try {
       await program.methods
-        // @ts-ignore
+        // @ts-expect-error - ignore.
         .createRewardRecord(merkleRoots, totalRewards)
         .accountsStrict({
           payer: setup.payer,
@@ -265,8 +268,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InsufficientRewards");
+      assertError(error, "InsufficientRewards");
     }
 
     // Fund rewardTokenAccount
@@ -281,7 +283,7 @@ describe("Test Reward Creation and Accrual", () => {
 
     // Should succeed with sufficent rewards.
     await program.methods
-      // @ts-ignore
+      // @ts-expect-error - ignore.
       .createRewardRecord(merkleRoots, totalRewards)
       .accountsStrict({
         payer: setup.payer,
@@ -310,10 +312,10 @@ describe("Test Reward Creation and Accrual", () => {
     );
 
     const merkleRoots = [
-      merkleTree1.at(-1)[0],
-      merkleTree2.at(-1)[0],
-      merkleTree3.at(-1)[0],
-      merkleTree4.at(-1)[0],
+      merkleTree1.at(-1)?.[0],
+      merkleTree2.at(-1)?.[0],
+      merkleTree3.at(-1)?.[0],
+      merkleTree4.at(-1)?.[0],
     ];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
@@ -331,7 +333,7 @@ describe("Test Reward Creation and Accrual", () => {
     );
 
     await program.methods
-      // @ts-ignore
+      // @ts-expect-error - ignore.
       .createRewardRecord(merkleRoots, totalRewards)
       .accountsStrict({
         payer: setup.payer,
@@ -350,7 +352,10 @@ describe("Test Reward Creation and Accrual", () => {
     assert(rewardRecord.epoch.eqn(3));
     assert(rewardRecord.totalRewards.eq(totalRewards));
     for (let i = 0; i < rewardRecord.merkleRoots.length; i++) {
-      assert.deepEqual(rewardRecord.merkleRoots[i], Array.from(merkleRoots[i]));
+      assert.deepEqual(
+        rewardRecord.merkleRoots[i],
+        Array.from(merkleRoots[i] ?? [])
+      );
     }
   });
 
@@ -365,7 +370,7 @@ describe("Test Reward Creation and Accrual", () => {
       ...setup.rewardEpochs[2][treeIndex],
       index: 0,
       merkleTree,
-    };
+    } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
     try {
@@ -388,8 +393,7 @@ describe("Test Reward Creation and Accrual", () => {
         })
         .rpc();
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "ConstraintRaw");
+      assertError(error, "ConstraintRaw");
     }
   });
 
@@ -405,7 +409,7 @@ describe("Test Reward Creation and Accrual", () => {
       ...setup.rewardEpochs[2][wrongNodeIndex],
       index: wrongNodeIndex,
       merkleTree,
-    };
+    } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
     try {
@@ -415,7 +419,7 @@ describe("Test Reward Creation and Accrual", () => {
           0,
           proof as unknown as number[][],
           proofPath,
-          new anchor.BN(setup.rewardEpochs[2][nodeIndex].amount)
+          new anchor.BN(setup.rewardEpochs[2][nodeIndex]?.amount ?? 0)
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -430,8 +434,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidProof");
+      assertError(error, "InvalidProof");
     }
 
     try {
@@ -441,7 +444,7 @@ describe("Test Reward Creation and Accrual", () => {
           0,
           proof as unknown as number[][],
           [true, false, false],
-          new anchor.BN(setup.rewardEpochs[2][nodeIndex].amount)
+          new anchor.BN(setup.rewardEpochs[2][nodeIndex]?.amount ?? 0)
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -456,8 +459,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidProof");
+      assertError(error, "InvalidProof");
     }
   });
 
@@ -470,7 +472,7 @@ describe("Test Reward Creation and Accrual", () => {
       ...setup.rewardEpochs[2][nodeIndex],
       index: nodeIndex,
       merkleTree,
-    };
+    } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
     const operatorPoolPre = await program.account.operatorPool.fetch(
       setup.pool1.pool
@@ -532,7 +534,7 @@ describe("Test Reward Creation and Accrual", () => {
         ...setup.rewardEpochs[2][nodeIndex],
         index: nodeIndex,
         merkleTree,
-      };
+      } as GenerateMerkleProofInput;
       const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
       await program.methods
         .accrueReward(
@@ -554,8 +556,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "ConstraintRaw");
+      assertError(error, "ConstraintRaw");
     }
   });
 
@@ -570,7 +571,7 @@ describe("Test Reward Creation and Accrual", () => {
       ...setup.rewardEpochs[2][treeIndex],
       index: 0,
       merkleTree,
-    };
+    } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
     const operatorPre = await program.account.operatorPool.fetch(
       setup.pool1.pool
@@ -695,7 +696,7 @@ describe("Test Reward Creation and Accrual", () => {
     rewardInputs4.sort((a, b) => a.address.localeCompare(b.address));
 
     merkleTree4 = MerkleUtils.constructMerkleTree(rewardInputs4);
-    const merkleRoots = [merkleTree4.at(-1)[0]];
+    const merkleRoots = [merkleTree4.at(-1)?.[0]];
 
     // Fund rewardTokenAccount
     await mintTo(
@@ -708,7 +709,7 @@ describe("Test Reward Creation and Accrual", () => {
     );
 
     await program.methods
-      // @ts-ignore
+      // @ts-expect-error - ignore.
       .createRewardRecord(merkleRoots, totalRewards)
       .accountsStrict({
         payer: setup.payer,
@@ -730,7 +731,7 @@ describe("Test Reward Creation and Accrual", () => {
       ...rewardInputs4[nodeIndex],
       index: nodeIndex,
       merkleTree: merkleTree4,
-    };
+    } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
     const rewardAmount = new anchor.BN(proofInputs.amount);
@@ -763,7 +764,7 @@ describe("Test Reward Creation and Accrual", () => {
 
     // Use same reward values as epoch 2
     const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
-    const merkleRoots = [merkleTree.at(-1)[0]];
+    const merkleRoots = [merkleTree.at(-1)?.[0]];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
       totalRewards = totalRewards.addn(addressInput.amount);
@@ -780,7 +781,7 @@ describe("Test Reward Creation and Accrual", () => {
     );
 
     await program.methods
-      // @ts-ignore
+      // @ts-expect-error - ignore.
       .createRewardRecord(merkleRoots, totalRewards)
       .accountsStrict({
         payer: setup.payer,
@@ -804,7 +805,7 @@ describe("Test Reward Creation and Accrual", () => {
         ...setup.rewardEpochs[2][nodeIndex],
         index: nodeIndex,
         merkleTree,
-      };
+      } as GenerateMerkleProofInput;
       const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
       await program.methods
         .accrueReward(
@@ -826,8 +827,7 @@ describe("Test Reward Creation and Accrual", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "ClosedPool");
+      assertError(error, "ClosedPool");
     }
   });
 });

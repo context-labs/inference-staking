@@ -1,0 +1,31 @@
+{
+  "name": "inference-staking",
+  "description": "Inference Staking Program SDK",
+  "git": "https://github.com/context-labs/inference-staking",
+  "license": "UNLICENSED",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "module": "dist/index.es.js",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "tsc": "tsc --noEmit",
+    "build": "tsc && tsc-alias",
+    "build:sdk": "bun run clean && rollup -c && tsc-alias",
+    "prepublishOnly": "bun run build:sdk",
+    "clean": "rm -rf ./dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^12.1.2",
+    "rollup": "^4.40.0",
+    "tsc-alias": "^1.8.15",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "0.31.0",
+    "@solana/web3.js": "1.98.0"
+  }
+}

@@ -1,10 +1,11 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import {
   createMint,
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from "@solana/spl-token";
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { assert } from "chai";
 
 const { BN, getProvider } = anchor;
 
@@ -24,7 +25,6 @@ export async function setupTests() {
   const haltAuthority1Kp = new Keypair();
   const provider = getProvider();
 
-  // Airdrop SOL to all users
   const txns = await Promise.all([
     provider.connection.requestAirdrop(payerKp.publicKey, LAMPORTS_PER_SOL),
     provider.connection.requestAirdrop(signer1Kp.publicKey, LAMPORTS_PER_SOL),
@@ -47,7 +47,6 @@ export async function setupTests() {
     9
   );
 
-  // Mint tokens to all users
   const createAndMintToAta = async (user: Keypair) => {
     const ata = await getOrCreateAssociatedTokenAccount(
       provider.connection,
@@ -229,4 +228,8 @@ export async function setupTests() {
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function assertError(error: unknown, code: string) {
+  assert.equal((error as anchor.AnchorError).error.errorCode.code, code);
 }

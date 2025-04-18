@@ -1,32 +1,35 @@
 import * as anchor from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram } from "@solana/web3.js";
-import { assert } from "chai";
 import {
   getAssociatedTokenAddressSync,
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { INF_STAKING, setupTests, sleep } from "./utils";
-import {
-  ClaimUnstakeEvent,
-  CompleteAccrueRewardEvent,
-  SlashStakeEvent,
+import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { assert } from "chai";
+
+import { createProgram } from "@sdk/src";
+import type {
   StakeEvent,
   UnstakeEvent,
-} from "inference-staking/src/eventTypes";
-import { createProgram, MerkleUtils } from "inference-staking";
+  CompleteAccrueRewardEvent,
+  ClaimUnstakeEvent,
+  SlashStakeEvent,
+} from "@sdk/src/eventTypes";
+
+import type { GenerateMerkleProofInput } from "@tests/lib/merkle";
+import { MerkleUtils } from "@tests/lib/merkle";
+
+import { assertError, INF_STAKING, setupTests, sleep } from "./lib/utils";
 
 describe("inference-staking", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
 
-  // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = createProgram(anchor.AnchorProvider.env());
 
   const connection = program.provider.connection;
 
-  // Configs
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
   const autoStakeFees = false;
@@ -93,8 +96,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "PoolCreationDisabled");
+      assertError(error, "PoolCreationDisabled");
     }
   });
 
@@ -154,7 +156,7 @@ describe("inference-staking", () => {
     assert(poolOverview.programAdmin.equals(setup.signer1));
     assert(poolOverview.slashingAuthorities.length === 0);
     assert(poolOverview.haltAuthorities.length === 1);
-    assert(poolOverview.haltAuthorities[0].equals(setup.user1));
+    assert(poolOverview.haltAuthorities[0]?.equals(setup.user1));
     assert(poolOverview.rewardDistributionAuthorities.length === 0);
   });
 
@@ -181,17 +183,17 @@ describe("inference-staking", () => {
     );
     assert(poolOverview.slashingAuthorities.length === 1);
     assert(
-      poolOverview.slashingAuthorities[0].equals(
+      poolOverview.slashingAuthorities[0]?.equals(
         setup.poolOverviewAdminKp.publicKey
       )
     );
     assert(poolOverview.haltAuthorities.length === 1);
     assert(
-      poolOverview.haltAuthorities[0].equals(setup.haltAuthority1Kp.publicKey)
+      poolOverview.haltAuthorities[0]?.equals(setup.haltAuthority1Kp.publicKey)
     );
     assert(poolOverview.rewardDistributionAuthorities.length === 1);
     assert(
-      poolOverview.rewardDistributionAuthorities[0].equals(
+      poolOverview.rewardDistributionAuthorities[0]?.equals(
         setup.poolOverviewAdminKp.publicKey
       )
     );
@@ -293,8 +295,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "RequireGteViolated");
+      assertError(error, "RequireGteViolated");
     }
   });
 
@@ -399,8 +400,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "MinOperatorSharesNotMet");
+      assertError(error, "MinOperatorSharesNotMet");
     }
   });
 
@@ -411,12 +411,12 @@ describe("inference-staking", () => {
     );
     const stakeAmount = new anchor.BN(150_000);
 
-    let listenerId: number;
-    const event: StakeEvent = await new Promise<any>((res) => {
+    let listenerId: number | null = null;
+    const event: StakeEvent = await new Promise<StakeEvent>((res) => {
       listenerId = program.addEventListener("stakeEvent", (event) => {
         res(event);
       });
-      program.methods
+      void program.methods
         .stake(stakeAmount)
         .accountsStrict({
           owner: setup.signer1,
@@ -431,6 +431,7 @@ describe("inference-staking", () => {
         .signers([setup.signer1Kp])
         .rpc();
     });
+    // @ts-expect-error - ignore
     await program.removeEventListener(listenerId);
 
     const operatorPool = await program.account.operatorPool.fetch(
@@ -475,8 +476,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "MinOperatorSharesNotMet");
+      assertError(error, "MinOperatorSharesNotMet");
     }
   });
 
@@ -518,8 +518,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "StakingNotAllowed");
+      assertError(error, "StakingNotAllowed");
     }
   });
 
@@ -622,8 +621,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "AccountNotEmpty");
+      assertError(error, "AccountNotEmpty");
     }
   });
 
@@ -646,8 +644,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "RequireGteViolated");
+      assertError(error, "RequireGteViolated");
     }
   });
 
@@ -682,8 +679,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "WithdrawalsHalted");
+      assertError(error, "WithdrawalsHalted");
     }
 
     // Revert halt withdrawal
@@ -734,8 +730,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "MinOperatorSharesNotMet");
+      assertError(error, "MinOperatorSharesNotMet");
     }
   });
 
@@ -750,11 +745,11 @@ describe("inference-staking", () => {
 
     // Expect unstaking to be successful even when operator falls below min. share.
     let listenerId: number;
-    const event: UnstakeEvent = await new Promise<any>((res) => {
+    const event: UnstakeEvent = await new Promise((res) => {
       listenerId = program.addEventListener("unstakeEvent", (event) => {
         res(event);
       });
-      program.methods
+      void program.methods
         .unstake(unstakeAmount)
         .accountsStrict({
           owner: setup.user1,
@@ -766,6 +761,7 @@ describe("inference-staking", () => {
         .signers([setup.user1Kp])
         .rpc();
     });
+    // @ts-expect-error - ignore
     await program.removeEventListener(listenerId);
 
     const operatorPool = await program.account.operatorPool.fetch(
@@ -965,8 +961,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "PendingDelay");
+      assertError(error, "PendingDelay");
     }
   });
 
@@ -986,8 +981,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
+      assertError(error, "InvalidAuthority");
     }
   });
 
@@ -1009,7 +1003,7 @@ describe("inference-staking", () => {
 
   it("Create RewardRecord 2 successfully", async () => {
     const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
-    const merkleRoots = [merkleTree.at(-1)[0]];
+    const merkleRoots = [merkleTree.at(-1)?.[0]];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
       totalRewards = totalRewards.addn(addressInput.amount);
@@ -1027,7 +1021,7 @@ describe("inference-staking", () => {
 
     // Create a record for epoch 2 with rewards for Operator 1 to 4.
     await program.methods
-      // @ts-ignore
+      // @ts-expect-error - ignore
       .createRewardRecord(merkleRoots, totalRewards)
       .accountsStrict({
         payer: setup.payer,
@@ -1046,7 +1040,10 @@ describe("inference-staking", () => {
     assert(rewardRecord.epoch.eqn(2));
     assert(rewardRecord.totalRewards.eq(totalRewards));
     for (let i = 0; i < rewardRecord.merkleRoots.length; i++) {
-      assert.deepEqual(rewardRecord.merkleRoots[i], Array.from(merkleRoots[i]));
+      assert.deepEqual(
+        rewardRecord.merkleRoots[i],
+        Array.from(merkleRoots[i] ?? [])
+      );
     }
   });
 
@@ -1102,7 +1099,6 @@ describe("inference-staking", () => {
   it("Fail to modify RewardRecord with invalid authority", async () => {
     try {
       await program.methods
-        // @ts-ignore
         .modifyRewardRecord({
           merkleRoots: [],
         })
@@ -1115,8 +1111,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
+      assertError(error, "InvalidAuthority");
     }
   });
 
@@ -1140,14 +1135,14 @@ describe("inference-staking", () => {
       },
     ].sort((a, b) => a.address.localeCompare(b.address));
     const merkleTree = MerkleUtils.constructMerkleTree(addressInputs);
-    const merkleRoots = [merkleTree.at(-1)[0]];
+    const merkleRoots = [merkleTree.at(-1)?.[0]];
     let epoch1RewardRecord = await program.account.rewardRecord.fetch(
       setup.rewardRecords[2]
     );
     const prevMerkleRoots = epoch1RewardRecord.merkleRoots;
 
     await program.methods
-      // @ts-ignore
+      // @ts-expect-error - ignore
       .modifyRewardRecord({
         merkleRoots: merkleRoots,
       })
@@ -1164,12 +1159,11 @@ describe("inference-staking", () => {
     );
     assert.deepEqual(
       epoch1RewardRecord.merkleRoots,
-      merkleRoots.map((root) => Array.from(root))
+      merkleRoots.map((root) => Array.from(root ?? []))
     );
 
     // Set root back to previous
     await program.methods
-      // @ts-ignore
       .modifyRewardRecord({
         merkleRoots: prevMerkleRoots,
       })
@@ -1208,8 +1202,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "UnclaimedRewards");
+      assertError(error, "UnclaimedRewards");
     }
   });
 
@@ -1228,8 +1221,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "UnclaimedRewards");
+      assertError(error, "UnclaimedRewards");
     }
   });
 
@@ -1247,8 +1239,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "UnclaimedRewards");
+      assertError(error, "UnclaimedRewards");
     }
   });
 
@@ -1276,8 +1267,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "UnclaimedRewards");
+      assertError(error, "UnclaimedRewards");
     }
   });
 
@@ -1290,7 +1280,7 @@ describe("inference-staking", () => {
       ...setup.rewardEpochs[2][nodeIndex],
       index: nodeIndex,
       merkleTree,
-    };
+    } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
     const poolOverviewPre = await program.account.poolOverview.fetch(
@@ -1315,14 +1305,14 @@ describe("inference-staking", () => {
     const rewardAmount = new anchor.BN(proofInputs.amount);
 
     let listenerId: number;
-    const event: CompleteAccrueRewardEvent = await new Promise<any>((res) => {
+    const event: CompleteAccrueRewardEvent = await new Promise((res) => {
       listenerId = program.addEventListener(
         "completeAccrueRewardEvent",
         (event) => {
           res(event);
         }
       );
-      program.methods
+      void program.methods
         .accrueReward(
           0,
           proof as unknown as number[][],
@@ -1341,6 +1331,7 @@ describe("inference-staking", () => {
         })
         .rpc();
     });
+    // @ts-expect-error - ignore
     await program.removeEventListener(listenerId);
 
     const operatorPool = await program.account.operatorPool.fetch(
@@ -1448,8 +1439,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "WithdrawalsHalted");
+      assertError(error, "WithdrawalsHalted");
     }
 
     // Revert halt withdrawal
@@ -1505,8 +1495,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "MinOperatorSharesNotMet");
+      assertError(error, "MinOperatorSharesNotMet");
     }
 
     // Revert min share to default.
@@ -1543,11 +1532,11 @@ describe("inference-staking", () => {
     );
 
     let listenerId: number;
-    const event: ClaimUnstakeEvent = await new Promise<any>((res) => {
+    const event: ClaimUnstakeEvent = await new Promise((res) => {
       listenerId = program.addEventListener("claimUnstakeEvent", (event) => {
         res(event);
       });
-      program.methods
+      void program.methods
         .claimUnstake()
         .accountsStrict({
           owner: setup.user1,
@@ -1561,6 +1550,7 @@ describe("inference-staking", () => {
         })
         .rpc();
     });
+    // @ts-expect-error - ignore
     await program.removeEventListener(listenerId);
 
     const operatorPool = await program.account.operatorPool.fetch(
@@ -1626,8 +1616,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "UnstakingNotAllowed");
+      assertError(error, "UnstakingNotAllowed");
     }
 
     // Revert halt pool
@@ -1721,8 +1710,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
+      assertError(error, "InvalidAuthority");
     }
   });
 
@@ -1751,11 +1739,11 @@ describe("inference-staking", () => {
       .div(operatorPoolPre.totalShares);
 
     let listenerId: number;
-    const event: SlashStakeEvent = await new Promise<any>((res) => {
+    const event: SlashStakeEvent = await new Promise((res) => {
       listenerId = program.addEventListener("slashStakeEvent", (event) => {
         res(event);
       });
-      program.methods
+      void program.methods
         .slashStake({ sharesAmount: sharesToSlash })
         .accountsStrict({
           authority: setup.poolOverviewAdminKp.publicKey,
@@ -1769,6 +1757,7 @@ describe("inference-staking", () => {
         .signers([setup.poolOverviewAdminKp])
         .rpc();
     });
+    // @ts-expect-error - ignore
     await program.removeEventListener(listenerId);
 
     const [
@@ -1820,7 +1809,7 @@ describe("inference-staking", () => {
       "OperatorPool token account must send the slashed amount"
     );
 
-    // Assert destination recevied tokens
+    // Assert destination received tokens
     assert(
       new anchor.BN(destinationBalancePost.value.amount).eq(
         new anchor.BN(destinationBalancePre.value.amount).add(
@@ -1847,8 +1836,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "InvalidAuthority");
+      assertError(error, "InvalidAuthority");
     }
   });
 
@@ -1865,7 +1853,7 @@ describe("inference-staking", () => {
       .signers([setup.haltAuthority1Kp])
       .rpc();
 
-    let operatorPoolPost = await program.account.operatorPool.fetch(
+    const operatorPoolPost = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
     assert(operatorPoolPost.isHalted, "OperatorPool must be halted");
@@ -1887,8 +1875,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "UnstakingNotAllowed");
+      assertError(error, "UnstakingNotAllowed");
     }
   });
 
@@ -1915,8 +1902,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "OperatorPoolHalted");
+      assertError(error, "OperatorPoolHalted");
     }
   });
 
@@ -1933,8 +1919,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "OperatorPoolHalted");
+      assertError(error, "OperatorPoolHalted");
     }
   });
 
@@ -1957,8 +1942,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "OperatorPoolHalted");
+      assertError(error, "OperatorPoolHalted");
     }
 
     // Set back to unhalted
@@ -2015,8 +1999,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "WithdrawalsHalted");
+      assertError(error, "WithdrawalsHalted");
     }
 
     // Revert halt withdrawal
@@ -2041,12 +2024,10 @@ describe("inference-staking", () => {
       setup.tokenMint,
       setup.signer1
     );
-    const [operatorPoolPre, feeTokenAccountPre, destinationPre] =
-      await Promise.all([
-        program.account.operatorPool.fetch(setup.pool1.pool),
-        connection.getTokenAccountBalance(setup.pool1.feeTokenAccount),
-        connection.getTokenAccountBalance(destinationTokenAccount),
-      ]);
+    const [feeTokenAccountPre, destinationPre] = await Promise.all([
+      connection.getTokenAccountBalance(setup.pool1.feeTokenAccount),
+      connection.getTokenAccountBalance(destinationTokenAccount),
+    ]);
 
     await program.methods
       .withdrawOperatorCommission()
@@ -2061,12 +2042,10 @@ describe("inference-staking", () => {
       .signers([setup.signer1Kp])
       .rpc();
 
-    const [operatorPoolPost, feeTokenAccountPost, destinationPost] =
-      await Promise.all([
-        program.account.operatorPool.fetch(setup.pool1.pool),
-        connection.getTokenAccountBalance(setup.pool1.feeTokenAccount),
-        connection.getTokenAccountBalance(destinationTokenAccount),
-      ]);
+    const [feeTokenAccountPost, destinationPost] = await Promise.all([
+      connection.getTokenAccountBalance(setup.pool1.feeTokenAccount),
+      connection.getTokenAccountBalance(destinationTokenAccount),
+    ]);
 
     // Assert Fee TokenAccount has 0 balance
     assert(
@@ -2166,8 +2145,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "AccountNotEmpty");
+      assertError(error, "AccountNotEmpty");
     }
   });
 
@@ -2228,7 +2206,7 @@ describe("inference-staking", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(operatorPool.closedAt.eq(poolOverview.completedRewardEpoch));
+    assert(operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch));
   });
 
   it("Fail to close OperatorPool when it's already closed", async () => {
@@ -2244,8 +2222,7 @@ describe("inference-staking", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "ClosedPool");
+      assertError(error, "ClosedPool");
     }
   });
 
@@ -2272,8 +2249,7 @@ describe("inference-staking", () => {
 
       assert(false);
     } catch (error) {
-      const code = error.error.errorCode.code;
-      assert.equal(code, "ClosedPool");
+      assertError(error, "ClosedPool");
     }
   });
 

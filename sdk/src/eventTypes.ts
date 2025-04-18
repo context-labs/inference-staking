@@ -1,40 +1,40 @@
-import { BN } from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
+import type { BN } from "@coral-xyz/anchor";
+import type { PublicKey } from "@solana/web3.js";
 
-export interface StakeEvent {
+export type StakeEvent = {
   stakingRecord: PublicKey;
   operatorPool: PublicKey;
   stakeAmount: BN;
   totalStakedAmount: BN;
   totalUnstaking: BN;
-}
+};
 
-export interface UnstakeEvent {
+export type UnstakeEvent = {
   stakingRecord: PublicKey;
   operatorPool: PublicKey;
   unstakeAmount: BN;
   totalStakedAmount: BN;
   totalUnstaking: BN;
-}
+};
 
-export interface ClaimUnstakeEvent {
+export type ClaimUnstakeEvent = {
   stakingRecord: PublicKey;
   operatorPool: PublicKey;
   unstakeAmount: BN;
   totalStakedAmount: BN;
   totalUnstaking: BN;
-}
+};
 
-export interface SlashStakeEvent {
+export type SlashStakeEvent = {
   stakingRecord: PublicKey;
   operatorPool: PublicKey;
   slashedAmount: BN;
   totalStakedAmount: BN;
   totalUnstaking: BN;
-}
+};
 
-export interface CompleteAccrueRewardEvent {
+export type CompleteAccrueRewardEvent = {
   operatorPool: PublicKey;
   totalStakedAmount: BN;
   totalUnstaking: BN;
-}
+};
