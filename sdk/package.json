@@ -1,5 +1,5 @@
 {
-  "name": "inference-staking",
+  "name": "@inference-net/staking-program-sdk",
   "description": "Inference Staking Program SDK",
   "git": "https://github.com/context-labs/inference-staking",
   "license": "UNLICENSED",
