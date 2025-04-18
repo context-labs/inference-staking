@@ -1,5 +1,5 @@
 /* eslint-disable global-require */
-import typescript from "rollup-plugin-typescript2";
+import typescript from "@rollup/plugin-typescript";
 import pkg from "./package.json" with { type: "json" };
 
 export default {

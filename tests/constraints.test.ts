@@ -3,19 +3,20 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
-import { createProgram } from "@sdk/src";
+import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
 
 import { setupTests, assertError } from "./lib/utils";
 
 describe("Additional tests for instruction constraints", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
 
-  // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
+  const sdk = new InferenceStakingProgramSDK({
+    provider: anchor.AnchorProvider.env(),
+    environment: "localnet",
+  });
+  const program = sdk.program;
 
-  const program = createProgram(anchor.AnchorProvider.env());
-
-  // Configs
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
   const autoStakeFees = false;

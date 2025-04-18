@@ -1,10 +1,3 @@
-import type { AnchorProvider } from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-
-import { IDL } from "./idl";
-
-export const createProgram = (
-  provider: AnchorProvider
-): Program<typeof IDL> => {
-  return new Program(IDL, provider);
-};
+export * from "./eventTypes";
+export * from "./types";
+export { InferenceStakingProgramSDK as InferenceStakingProgram } from "./sdk";

@@ -7,7 +7,6 @@ import {
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
-import { createProgram } from "@sdk/src";
 import type {
   StakeEvent,
   UnstakeEvent,
@@ -15,6 +14,7 @@ import type {
   ClaimUnstakeEvent,
   SlashStakeEvent,
 } from "@sdk/src/eventTypes";
+import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
 
 import type { GenerateMerkleProofInput } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
@@ -25,9 +25,11 @@ describe("inference-staking", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
 
   anchor.setProvider(anchor.AnchorProvider.env());
-
-  const program = createProgram(anchor.AnchorProvider.env());
-
+  const sdk = new InferenceStakingProgramSDK({
+    provider: anchor.AnchorProvider.env(),
+    environment: "localnet",
+  });
+  const program = sdk.program;
   const connection = program.provider.connection;
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);

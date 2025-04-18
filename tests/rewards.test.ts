@@ -8,7 +8,7 @@ import { SystemProgram } from "@solana/web3.js";
 import { PublicKey } from "@solana/web3.js";
 import { assert } from "chai";
 
-import { createProgram } from "@sdk/src";
+import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
 
 import { MerkleUtils } from "@tests/lib/merkle";
 import type {
@@ -22,9 +22,11 @@ describe("Test Reward Creation and Accrual", () => {
   let setup: Awaited<ReturnType<typeof setupTests>>;
 
   anchor.setProvider(anchor.AnchorProvider.env());
-
-  const program = createProgram(anchor.AnchorProvider.env());
-
+  const sdk = new InferenceStakingProgramSDK({
+    provider: anchor.AnchorProvider.env(),
+    environment: "localnet",
+  });
+  const program = sdk.program;
   const connection = program.provider.connection;
 
   const autoStakeFees = true;
