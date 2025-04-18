@@ -10,10 +10,10 @@ import bs58 from "bs58";
  ******************************************************************************* */
 
 function isValidPublicKey(address: string | undefined | null): boolean {
-  if (address == null) {
-    return false;
-  }
   try {
+    if (address == null) {
+      return false;
+    }
     new PublicKey(address);
     return true;
   } catch {
@@ -172,6 +172,7 @@ export type GenerateMerkleProofInput = {
   amount: number;
   index: number;
   merkleTree: Uint8Array[][];
+  skipChecksForTests?: boolean;
 };
 
 type GenerateMerkleProofOutput = {
@@ -187,6 +188,8 @@ function generateMerkleProof({
   amount,
   index,
   merkleTree,
+  // This allows us to construct deliberately invalid proofs for testing purposes.
+  skipChecksForTests = false,
 }: GenerateMerkleProofInput): GenerateMerkleProofOutput {
   const encoder = new TextEncoder();
   const data = encoder.encode(`${address},${amount}`);
@@ -197,7 +200,7 @@ function generateMerkleProof({
   if (!leaf) {
     throw new Error("Leaf level is undefined");
   }
-  if (!arraysShallowEqual(leaf, hash)) {
+  if (!skipChecksForTests && !arraysShallowEqual(leaf, hash)) {
     throw new Error("Leaf hash does not match expected value in tree");
   }
 
@@ -237,7 +240,7 @@ function generateMerkleProof({
 
   const root = getTreeRoot(merkleTree);
   const isProofValid = verifyProof(hash, proof, proofPath, root);
-  if (!isProofValid) {
+  if (!skipChecksForTests && !isProofValid) {
     throw new Error("Generated proof is invalid");
   }
 

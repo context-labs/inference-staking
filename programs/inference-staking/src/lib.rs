@@ -1,4 +1,5 @@
 #![allow(ambiguous_glob_reexports)]
+#![allow(unexpected_cfgs)] // See: https://solana.stackexchange.com/a/19845
 
 pub mod error;
 pub mod events;
