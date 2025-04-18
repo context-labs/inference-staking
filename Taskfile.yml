@@ -1,0 +1,43 @@
+version: "3"
+output: group
+
+tasks:
+  test:
+    desc: Run tests
+    cmds:
+      - echo "Running tests..."
+      - anchor test
+      - echo "[TASK] Tests completed! ✅"
+
+  deploy-devnet:
+    desc: Deploy to Solana devnet
+    cmds:
+      - |
+        echo "Deploying to devnet..."
+        ./scripts/deploy-devnet.sh
+        echo "[TASK] Deployment to devnet completed! ✅"
+
+  deploy-localnet:
+    desc: Deploy to Solana localnet
+    cmds:
+      - |
+        echo "Deploying to localnet..."
+        ./scripts/deploy-localnet.sh
+        echo "[TASK] Deployment to localnet completed! ✅"
+
+  deploy-localnet-full:
+    desc: Reset and redeploy to localnet
+    interactive: true
+    cmds:
+      - echo "Resetting localnet and deploying program..."
+      - |
+        # Using a process group to make sure we can kill the validator later
+        solana-test-validator --reset &
+        VALIDATOR_PID=$!
+
+        # Give the validator time to start up
+        echo "Starting validator..."
+        sleep 3
+        
+        # Run the deploy script
+        ./scripts/deploy-localnet.sh

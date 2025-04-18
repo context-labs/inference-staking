@@ -3,8 +3,8 @@ set -e
 set -o pipefail
 
 # Constants
-DEVNET_PROGRAM_ID="dair7CEfW3E8LMR8fSRaYL4XXCnP9N9GBg29su8TBvP"
-MAINNET_PROGRAM_ID="7NuTZJFDezrh8n73HxY22gvPrXnGeRqDAoFDnXHnMjQb"
+DEVNET_PROGRAM_ID="infrC4g9ZJMcDyvhjN4zLL6r634RCyzYv5riwk8jp28"
+MAINNET_PROGRAM_ID="5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
 
 # Run tests before deployment
 printf "\nRunning tests prior to deployment...\n"
@@ -20,7 +20,7 @@ fi
 cp scripts/anchor-configs/Anchor.dev.toml Anchor.toml
 
 # Replace program ID in source file
-sed -i '' "s/$MAINNET_PROGRAM_ID/$DEVNET_PROGRAM_ID/" programs/inference-airdrop/src/lib.rs
+sed -i '' "s/$MAINNET_PROGRAM_ID/$DEVNET_PROGRAM_ID/" programs/inference-staking/src/lib.rs
 
 echo -e "\n🚀 Deploying program ID $DEVNET_PROGRAM_ID to Solana devnet.\n"
 echo -e "🏗️ All checks passed! Building program...\n"
@@ -34,16 +34,16 @@ read -p "Press ENTER to confirm and proceed with the devnet program deployment t
 echo
 
 if [[ -z $REPLY ]]; then
-  printf "Running solana program deploy target/deploy/inference_airdrop.so -u devnet -k ./keys/devnet/deployer-keypair.json --program-id ./keys/devnet/program-keypair.json\n"
+  printf "Running solana program deploy target/deploy/inference_staking.so -u devnet -k ./keys/devnet/deployer-keypair.json --program-id ./keys/devnet/program-keypair.json\n"
   printf "This will take a moment...\n"
-  solana program deploy ./target/deploy/inference_airdrop.so -u devnet -k ./keys/devnet/deployer-keypair.json --program-id ./keys/devnet/program-keypair.json
+  solana program deploy ./target/deploy/inference_staking.so -u devnet -k ./keys/devnet/deployer-keypair.json --program-id ./keys/devnet/program-keypair.json
   echo -e "Program deploy to devnet finished successfully!\n"
 else
   printf "Deployment cancelled.\n"
 fi
 
 # Restore original program ID in source file
-sed -i '' "s/$DEVNET_PROGRAM_ID/$MAINNET_PROGRAM_ID/" programs/inference-airdrop/src/lib.rs
+sed -i '' "s/$DEVNET_PROGRAM_ID/$MAINNET_PROGRAM_ID/" programs/inference-staking/src/lib.rs
 
 # Restore local configuration
 cp scripts/anchor-configs/Anchor.local.toml Anchor.toml

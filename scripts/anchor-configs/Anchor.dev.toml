@@ -3,10 +3,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-inference_airdrop = "AYACUUmR3hazFhQpmnvWeumVTo1m7NYCyGqpUhZww2kp"
+inference_staking = "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
 
 [programs.devnet]
-inference_airdrop = "dair7CEfW3E8LMR8fSRaYL4XXCnP9N9GBg29su8TBvP"
+inference_staking = "infrC4g9ZJMcDyvhjN4zLL6r634RCyzYv5riwk8jp28"
 
 [registry]
 url = "https://api.apr.dev"
@@ -16,4 +16,6 @@ cluster = "devnet"
 wallet = "keys/devnet/deployer-keypair.json"
 
 [scripts]
-test = "bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/*.test.ts"
+test = "bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/inference-staking.test.ts"
+# test = "bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/rewards.test.ts"
+# test = "bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/constraints.test.ts"
