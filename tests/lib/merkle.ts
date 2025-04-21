@@ -73,8 +73,8 @@ function validateInputs(addresses: MerkleTreeAddressInput[]) {
     if (!isValidPublicKey(address)) {
       throw new Error(`${address} is not a valid wallet pubkey`);
     }
-    if (!Number.isInteger(amount)) {
-      throw new Error(`${amount} is not an integer`);
+    if (typeof amount !== "bigint") {
+      throw new Error(`${String(amount)} is not a BigInt`);
     }
   }
 
@@ -102,14 +102,14 @@ function fillAddresses(addresses: MerkleTreeAddressInput[]): void {
   for (let i = curLength; i < lenWithPadding; i++) {
     addresses.push({
       address: PublicKey.default.toString(),
-      amount: 0,
+      amount: BigInt(0),
     });
   }
 }
 
 export type MerkleTreeAddressInput = {
   address: string;
-  amount: number;
+  amount: bigint;
 };
 
 function constructMerkleTree(
@@ -169,7 +169,7 @@ function getTreeRoot(tree: Uint8Array[][]): Uint8Array {
 
 export type GenerateMerkleProofInput = {
   address: string;
-  amount: number;
+  amount: bigint;
   index: number;
   merkleTree: Uint8Array[][];
   skipChecksForTests?: boolean;

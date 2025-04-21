@@ -248,7 +248,7 @@ describe("Test Reward Creation and Accrual", () => {
     const merkleRoots = [merkleTree.at(-1)?.[0]];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(addressInput.amount);
+      totalRewards = totalRewards.addn(Number(addressInput.amount));
     }
 
     // Should fail with insufficient rewards.
@@ -319,7 +319,7 @@ describe("Test Reward Creation and Accrual", () => {
     ];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(addressInput.amount);
+      totalRewards = totalRewards.addn(Number(addressInput.amount));
     }
 
     // Fund rewardTokenAccount
@@ -379,7 +379,7 @@ describe("Test Reward Creation and Accrual", () => {
           treeIndex,
           proof as unknown as number[][],
           proofPath,
-          new anchor.BN(proofInputs.amount)
+          new anchor.BN(proofInputs.amount.toString())
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -419,7 +419,9 @@ describe("Test Reward Creation and Accrual", () => {
           0,
           proof as unknown as number[][],
           proofPath,
-          new anchor.BN(setup.rewardEpochs[2][nodeIndex]?.amount ?? 0)
+          new anchor.BN(
+            setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
+          )
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -444,7 +446,9 @@ describe("Test Reward Creation and Accrual", () => {
           0,
           proof as unknown as number[][],
           [true, false, false],
-          new anchor.BN(setup.rewardEpochs[2][nodeIndex]?.amount ?? 0)
+          new anchor.BN(
+            setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
+          )
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -481,7 +485,7 @@ describe("Test Reward Creation and Accrual", () => {
       setup.poolOverview
     );
 
-    const rewardAmount = new anchor.BN(proofInputs.amount);
+    const rewardAmount = new anchor.BN(proofInputs.amount.toString());
     await program.methods
       .accrueReward(0, proof as unknown as number[][], proofPath, rewardAmount)
       .accountsStrict({
@@ -541,7 +545,7 @@ describe("Test Reward Creation and Accrual", () => {
           0,
           proof as unknown as number[][],
           proofPath,
-          new anchor.BN(proofInputs.amount)
+          new anchor.BN(proofInputs.amount.toString())
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -586,7 +590,7 @@ describe("Test Reward Creation and Accrual", () => {
       setup.pool1.stakedTokenAccount
     );
 
-    const rewardAmount = new anchor.BN(proofInputs.amount);
+    const rewardAmount = new anchor.BN(proofInputs.amount.toString());
     await program.methods
       .accrueReward(
         treeIndex,
@@ -683,7 +687,7 @@ describe("Test Reward Creation and Accrual", () => {
     for (let i = 0; i <= 500000; i++) {
       rewardInputs4.push({
         address: PublicKey.unique().toString(),
-        amount: i * 100,
+        amount: BigInt(i * 100),
       });
       totalRewards = totalRewards.addn(i * 100);
     }
@@ -691,7 +695,7 @@ describe("Test Reward Creation and Accrual", () => {
     // Add OperatorPool 1 as a recipient.
     rewardInputs4.push({
       address: setup.pool1.pool.toString(),
-      amount: 10000,
+      amount: BigInt(10000),
     });
     rewardInputs4.sort((a, b) => a.address.localeCompare(b.address));
 
@@ -734,7 +738,7 @@ describe("Test Reward Creation and Accrual", () => {
     } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
-    const rewardAmount = new anchor.BN(proofInputs.amount);
+    const rewardAmount = new anchor.BN(proofInputs.amount.toString());
     await program.methods
       .accrueReward(0, proof as unknown as number[][], proofPath, rewardAmount)
       .accountsStrict({
@@ -767,7 +771,7 @@ describe("Test Reward Creation and Accrual", () => {
     const merkleRoots = [merkleTree.at(-1)?.[0]];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(addressInput.amount);
+      totalRewards = totalRewards.addn(Number(addressInput.amount));
     }
 
     // Fund rewardTokenAccount
@@ -812,7 +816,7 @@ describe("Test Reward Creation and Accrual", () => {
           0,
           proof as unknown as number[][],
           proofPath,
-          new anchor.BN(proofInputs.amount)
+          new anchor.BN(proofInputs.amount.toString())
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,

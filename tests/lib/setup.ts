@@ -119,19 +119,19 @@ export async function setupTests() {
     2: [
       {
         address: operatorPool1.toString(),
-        amount: 100,
+        amount: 100n,
       },
       {
         address: operatorPool2.toString(),
-        amount: 200,
+        amount: 200n,
       },
       {
         address: operatorPool3.toString(),
-        amount: 300,
+        amount: 300n,
       },
       {
         address: operatorPool4.toString(),
-        amount: 400,
+        amount: 400n,
       },
     ].sort((a, b) => a.address.localeCompare(b.address)),
   };

@@ -1011,7 +1011,7 @@ describe("inference-staking", () => {
     const merkleRoots = [merkleTree.at(-1)?.[0]];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(addressInput.amount);
+      totalRewards = totalRewards.addn(Number(addressInput.amount));
     }
 
     // Fund rewardTokenAccount
@@ -1124,19 +1124,19 @@ describe("inference-staking", () => {
     const addressInputs = [
       {
         address: setup.pool1.pool.toString(),
-        amount: 200,
+        amount: 200n,
       },
       {
         address: setup.pool2.pool.toString(),
-        amount: 100,
+        amount: 100n,
       },
       {
         address: setup.pool3.pool.toString(),
-        amount: 300,
+        amount: 300n,
       },
       {
         address: setup.pool4.pool.toString(),
-        amount: 400,
+        amount: 400n,
       },
     ].sort((a, b) => a.address.localeCompare(b.address));
     const merkleTree = MerkleUtils.constructMerkleTree(addressInputs);
@@ -1307,7 +1307,7 @@ describe("inference-staking", () => {
       setup.pool1.feeTokenAccount
     );
 
-    const rewardAmount = new anchor.BN(proofInputs.amount);
+    const rewardAmount = new anchor.BN(Number(proofInputs.amount));
 
     let listenerId: number;
     const event: CompleteAccrueRewardEvent = await new Promise((res) => {
