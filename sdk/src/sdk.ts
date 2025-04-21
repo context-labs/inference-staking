@@ -1,10 +1,7 @@
 import type { AnchorProvider } from "@coral-xyz/anchor";
 import { BN } from "@coral-xyz/anchor";
 import { Program, AnchorError, BorshCoder } from "@coral-xyz/anchor";
-import type {
-  AccountMeta,
-  VersionedTransactionResponse,
-} from "@solana/web3.js";
+import type { AccountMeta, VersionedTransaction } from "@solana/web3.js";
 import { PublicKey } from "@solana/web3.js";
 
 import type { InferenceStaking } from "./idl";
@@ -286,12 +283,12 @@ export class InferenceStakingProgramSDK {
   }
 
   decodeTransaction(
-    tx: VersionedTransactionResponse
+    tx: VersionedTransaction
   ): DecodedAirdropProgramInstruction[] {
     const final: DecodedAirdropProgramInstruction[] = [];
     const borshCoder = new BorshCoder(this.program.idl);
-    if (tx.transaction.message.version === "legacy") {
-      for (const instruction of tx.transaction.message.instructions) {
+    if (tx.message.version === "legacy") {
+      for (const instruction of tx.message.instructions) {
         try {
           const decodedIx = borshCoder.instruction.decode(
             instruction.data,
@@ -312,9 +309,9 @@ export class InferenceStakingProgramSDK {
           const accountsMeta: AccountMeta[] = instruction.accounts.map(
             (idx) => ({
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              pubkey: tx.transaction.message.getAccountKeys().get(idx)!,
-              isSigner: tx.transaction.message.isAccountSigner(idx),
-              isWritable: tx.transaction.message.isAccountWritable(idx),
+              pubkey: tx.message.getAccountKeys().get(idx)!,
+              isSigner: tx.message.isAccountSigner(idx),
+              isWritable: tx.message.isAccountWritable(idx),
             })
           );
 
