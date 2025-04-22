@@ -17,18 +17,13 @@ import type {
   RewardRecordAccountStruct,
   StakingRecordAccountStruct,
 } from "./types";
-import type { SolanaEnvironment } from "./utils";
-import { getProgramIdFromEnvironment, capitalize, toCamelCase } from "./utils";
+import { capitalize, toCamelCase } from "./utils";
 
 export class InferenceStakingProgramSDK {
   program: Program<InferenceStaking>;
 
-  constructor(args: {
-    provider: AnchorProvider;
-    environment: SolanaEnvironment;
-  }) {
-    const { provider, environment } = args;
-    const programId = getProgramIdFromEnvironment(environment);
+  constructor(args: { provider: AnchorProvider; programId: PublicKey }) {
+    const { provider, programId } = args;
     const idl = getIdlWithProgramId(programId);
     this.program = new Program<InferenceStaking>(idl, provider);
   }

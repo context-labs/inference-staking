@@ -1,26 +1,3 @@
-import { PublicKey } from "@solana/web3.js";
-
-export type SolanaEnvironment =
-  | "mainnet-beta"
-  | "testnet"
-  | "devnet"
-  | "localnet";
-
-export function getProgramIdFromEnvironment(
-  environment: SolanaEnvironment
-): PublicKey {
-  switch (environment) {
-    case "mainnet-beta":
-      return new PublicKey("11111111111111111111111111111111");
-    case "devnet":
-      return new PublicKey("infrC4g9ZJMcDyvhjN4zLL6r634RCyzYv5riwk8jp28");
-    case "localnet":
-      return new PublicKey("5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj");
-    default:
-      throw new Error(`Unsupported environment: ${environment}`);
-  }
-}
-
 export function toCamelCase(text: string): string {
   return text
     .split(/\s+/)
