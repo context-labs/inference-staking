@@ -4,7 +4,7 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from "@solana/spl-token";
-import { Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 
 import { InferenceStakingProgramSDK } from "@sdk/src";
 
@@ -13,6 +13,10 @@ import { confirmTransaction } from "@tests/lib/utils";
 const { BN, getProvider } = anchor;
 
 export type SetupTestResult = Awaited<ReturnType<typeof setupTests>>;
+
+const TEST_PROGRAM_ID = new PublicKey(
+  "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
+);
 
 export async function setupTests() {
   const payerKp = new Keypair();
@@ -28,7 +32,7 @@ export async function setupTests() {
   const provider = getProvider();
   const sdk = new InferenceStakingProgramSDK({
     provider: anchor.AnchorProvider.env(),
-    environment: "localnet",
+    programId: TEST_PROGRAM_ID,
   });
 
   const txs = await Promise.all([
