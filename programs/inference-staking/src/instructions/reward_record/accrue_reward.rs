@@ -38,21 +38,18 @@ pub struct AccrueReward<'info> {
     #[account(
         mut,
         token::mint = constants::USDC_MINT_PUBKEY,
-        token::authority = operator_pool.admin,
         constraint = usdc_payout_destination.key() == operator_pool.usdc_payout_destination.key() @ ErrorCode::InvalidUsdcPayoutDestination
     )]
     pub usdc_payout_destination: Account<'info, TokenAccount>,
     #[account(
         mut,
         seeds = [b"RewardToken".as_ref()],
-        token::authority = pool_overview.key(),
         bump,
     )]
     pub reward_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         seeds = [b"USDC".as_ref()],
-        token::authority = pool_overview.key(),
         bump,
     )]
     pub usdc_token_account: Box<Account<'info, TokenAccount>>,
