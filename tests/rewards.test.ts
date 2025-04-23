@@ -171,7 +171,7 @@ describe("Test Reward Creation and Accrual", () => {
       .rpc();
   });
 
-  it("Fail to create future RewardReward", async () => {
+  it("Fail to create future RewardRecord", async () => {
     try {
       await program.methods
         .createRewardRecord([], new anchor.BN(0), new anchor.BN(0))
@@ -253,16 +253,20 @@ describe("Test Reward Creation and Accrual", () => {
 
   it("Create RewardRecord with insufficient rewards", async () => {
     const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
-    const merkleRoots = [merkleTree.at(-1)?.[0]];
+    const root = MerkleUtils.getTreeRoot(merkleTree);
+    const merkleRoots = [Array.from(root)];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
       totalRewards = totalRewards.addn(Number(addressInput.amount));
+    }
+    let totalUSDC = new anchor.BN(0);
+    for (const addressInput of setup.rewardEpochs[2]) {
+      totalUSDC = totalUSDC.addn(Number(addressInput.usdcAmount));
     }
 
     // Should fail with insufficient rewards.
     try {
       await program.methods
-        // @ts-expect-error - ignore.
         .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
         .accountsStrict({
           payer: setup.payer,
@@ -290,10 +294,38 @@ describe("Test Reward Creation and Accrual", () => {
       totalRewards.toNumber()
     );
 
-    // Should succeed with sufficent rewards.
+    try {
+      await program.methods
+        .createRewardRecord(merkleRoots, totalRewards, totalUSDC)
+        .accountsStrict({
+          payer: setup.payer,
+          authority: setup.poolOverviewAdminKp.publicKey,
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[2],
+          rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.payerKp, setup.poolOverviewAdminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "insufficientUsdc");
+    }
+
+    // Fund usdcTokenAccount
+    await mintTo(
+      connection,
+      setup.payerKp,
+      setup.usdcTokenMint,
+      setup.usdcTokenAccount,
+      setup.signer1Kp,
+      totalUSDC.toNumber()
+    );
+
+    // Should succeed with sufficient rewards.
     await program.methods
-      // @ts-expect-error - ignore.
-      .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
+      .createRewardRecord(merkleRoots, totalRewards, totalUSDC)
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
@@ -322,10 +354,10 @@ describe("Test Reward Creation and Accrual", () => {
     );
 
     const merkleRoots = [
-      merkleTree1.at(-1)?.[0],
-      merkleTree2.at(-1)?.[0],
-      merkleTree3.at(-1)?.[0],
-      merkleTree4.at(-1)?.[0],
+      Array.from(MerkleUtils.getTreeRoot(merkleTree1)),
+      Array.from(MerkleUtils.getTreeRoot(merkleTree2)),
+      Array.from(MerkleUtils.getTreeRoot(merkleTree3)),
+      Array.from(MerkleUtils.getTreeRoot(merkleTree4)),
     ];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
@@ -343,7 +375,6 @@ describe("Test Reward Creation and Accrual", () => {
     );
 
     await program.methods
-      // @ts-expect-error - ignore.
       .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
@@ -388,10 +419,10 @@ describe("Test Reward Creation and Accrual", () => {
       await program.methods
         .accrueReward(
           treeIndex,
-          proof as unknown as number[][],
+          proof.map((arr) => Array.from(arr)),
           proofPath,
           new anchor.BN(proofInputs.amount.toString()),
-          new anchor.BN(0)
+          new anchor.BN(proofInputs.usdcAmount.toString())
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -419,24 +450,35 @@ describe("Test Reward Creation and Accrual", () => {
     const wrongNodeIndex = setup.rewardEpochs[2].findIndex(
       (x) => x.address == setup.pool2.pool.toString()
     );
-    const proofInputs = {
+
+    const invalidProofInputs = {
       ...setup.rewardEpochs[2][wrongNodeIndex],
       index: wrongNodeIndex,
       merkleTree,
     } as GenerateMerkleProofInput;
-    const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+    const validProofInputs = {
+      ...setup.rewardEpochs[2][nodeIndex],
+      index: nodeIndex,
+      merkleTree,
+    } as GenerateMerkleProofInput;
+    const { proof: invalidProof, proofPath: invalidProofPath } =
+      MerkleUtils.generateMerkleProof(invalidProofInputs);
+    const { proof: validProof, proofPath: validProofPath } =
+      MerkleUtils.generateMerkleProof(validProofInputs);
 
     try {
       // Use proof and proof path for a different node
       await program.methods
         .accrueReward(
           0,
-          proof as unknown as number[][],
-          proofPath,
+          invalidProof.map((arr) => Array.from(arr)),
+          invalidProofPath,
           new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
           ),
-          new anchor.BN(0)
+          new anchor.BN(
+            setup.rewardEpochs[2][nodeIndex]?.usdcAmount.toString() ?? "0"
+          )
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -461,12 +503,82 @@ describe("Test Reward Creation and Accrual", () => {
       await program.methods
         .accrueReward(
           0,
-          proof as unknown as number[][],
-          [true, false, false],
+          validProof.map((arr) => Array.from(arr)),
+          validProofPath.concat(true),
           new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
           ),
-          new anchor.BN(0)
+          new anchor.BN(
+            setup.rewardEpochs[2][nodeIndex]?.usdcAmount.toString() ?? "0"
+          )
+        )
+        .accountsStrict({
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[2],
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "invalidProof");
+    }
+
+    try {
+      // Use a valid proof with an valid token amount
+      await program.methods
+        .accrueReward(
+          0,
+          validProof.map((arr) => Array.from(arr)),
+          validProofPath,
+          new anchor.BN(
+            (
+              Number(setup.rewardEpochs[2][nodeIndex]?.amount ?? 0) + 1
+            ).toString()
+          ),
+          new anchor.BN(
+            setup.rewardEpochs[2][nodeIndex]?.usdcAmount.toString() ?? "0"
+          )
+        )
+        .accountsStrict({
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[2],
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.signer1Record,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "invalidProof");
+    }
+
+    try {
+      // Use a valid proof with an invalid USDC amount
+      await program.methods
+        .accrueReward(
+          0,
+          validProof.map((arr) => Array.from(arr)),
+          validProofPath,
+          new anchor.BN(
+            setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
+          ),
+          new anchor.BN(
+            (
+              Number(setup.rewardEpochs[2][nodeIndex]?.usdcAmount ?? 0) + 1
+            ).toString()
+          )
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -504,15 +616,19 @@ describe("Test Reward Creation and Accrual", () => {
     const poolOverviewPre = await program.account.poolOverview.fetch(
       setup.poolOverview
     );
+    const usdcBalancePre = await connection.getTokenAccountBalance(
+      setup.pool1.usdcTokenAccount
+    );
 
     const rewardAmount = new anchor.BN(proofInputs.amount.toString());
+    const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
     await program.methods
       .accrueReward(
         0,
-        proof as unknown as number[][],
+        proof.map((arr) => Array.from(arr)),
         proofPath,
         rewardAmount,
-        new anchor.BN(0)
+        usdcAmount
       )
       .accountsStrict({
         poolOverview: setup.poolOverview,
@@ -554,6 +670,16 @@ describe("Test Reward Creation and Accrual", () => {
       setup.poolOverview
     );
     assert(poolOverview.unclaimedRewards.eq(poolOverviewPre.unclaimedRewards));
+
+    const usdcBalancePost = await connection.getTokenAccountBalance(
+      setup.pool1.usdcTokenAccount
+    );
+
+    assert(
+      new anchor.BN(usdcBalancePost.value.amount).eq(
+        new anchor.BN(usdcBalancePre.value.amount)
+      )
+    );
   });
 
   it("Fail to accrue epoch 2 again", async () => {
@@ -571,10 +697,10 @@ describe("Test Reward Creation and Accrual", () => {
       await program.methods
         .accrueReward(
           0,
-          proof as unknown as number[][],
+          proof.map((arr) => Array.from(arr)),
           proofPath,
           new anchor.BN(proofInputs.amount.toString()),
-          new anchor.BN(0)
+          new anchor.BN(proofInputs.usdcAmount.toString())
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -620,15 +746,22 @@ describe("Test Reward Creation and Accrual", () => {
     const stakedBalancePre = await connection.getTokenAccountBalance(
       setup.pool1.stakedTokenAccount
     );
+    const usdcTokenAccountPre = await connection.getTokenAccountBalance(
+      setup.pool1.usdcTokenAccount
+    );
+    const usdcBalancePre = await connection.getTokenAccountBalance(
+      setup.pool1.usdcTokenAccount
+    );
 
     const rewardAmount = new anchor.BN(proofInputs.amount.toString());
+    const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
     await program.methods
       .accrueReward(
         treeIndex,
-        proof as unknown as number[][],
+        proof.map((arr) => Array.from(arr)),
         proofPath,
         rewardAmount,
-        new anchor.BN(0)
+        usdcAmount
       )
       .accountsStrict({
         poolOverview: setup.poolOverview,
@@ -713,30 +846,51 @@ describe("Test Reward Creation and Accrual", () => {
       )
     );
     assert.equal(Number(feeBalance.value.amount), 0); // All fees are auto-staked
+
+    const usdcTokenAccountPost = await connection.getTokenAccountBalance(
+      setup.pool1.usdcTokenAccount
+    );
+    const usdcBalancePost = await connection.getTokenAccountBalance(
+      setup.pool1.usdcTokenAccount
+    );
+
+    assert(
+      new anchor.BN(usdcTokenAccountPost.value.amount)
+        .sub(usdcAmount)
+        .eq(new anchor.BN(usdcTokenAccountPre.value.amount))
+    );
+
+    assert(
+      new anchor.BN(usdcBalancePost.value.amount).eq(
+        usdcAmount.addn(Number(usdcBalancePre.value.amount))
+      )
+    );
   });
 
   it("Create RewardRecord 4 with large merkle tree", async () => {
     // Distribute reward to 500000 pools.
     let totalRewards = new anchor.BN(0);
+    let totalUSDC = new anchor.BN(0);
     for (let i = 0; i <= 500000; i++) {
       rewardInputs4.push({
         address: PublicKey.unique().toString(),
         amount: BigInt(i * 100),
-        usdcAmount: BigInt(0),
+        usdcAmount: BigInt(i * 100),
       });
       totalRewards = totalRewards.addn(i * 100);
+      totalUSDC = totalUSDC.addn(i * 100);
     }
 
     // Add OperatorPool 1 as a recipient.
     rewardInputs4.push({
       address: setup.pool1.pool.toString(),
       amount: BigInt(10000),
-      usdcAmount: BigInt(0),
+      usdcAmount: BigInt(50),
     });
     rewardInputs4.sort((a, b) => a.address.localeCompare(b.address));
 
     merkleTree4 = MerkleUtils.constructMerkleTree(rewardInputs4);
-    const merkleRoots = [merkleTree4.at(-1)?.[0]];
+    const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree4))];
 
     // Fund rewardTokenAccount
     await mintTo(
@@ -748,9 +902,17 @@ describe("Test Reward Creation and Accrual", () => {
       totalRewards.toNumber()
     );
 
+    await mintTo(
+      connection,
+      setup.payerKp,
+      setup.usdcTokenMint,
+      setup.usdcTokenAccount,
+      setup.signer1Kp,
+      totalUSDC.toNumber()
+    );
+
     await program.methods
-      // @ts-expect-error - ignore.
-      .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
+      .createRewardRecord(merkleRoots, totalRewards, totalUSDC)
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
@@ -776,13 +938,14 @@ describe("Test Reward Creation and Accrual", () => {
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
     const rewardAmount = new anchor.BN(proofInputs.amount.toString());
+    const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
     await program.methods
       .accrueReward(
         0,
-        proof as unknown as number[][],
+        proof.map((arr) => Array.from(arr)),
         proofPath,
         rewardAmount,
-        new anchor.BN(0)
+        usdcAmount
       )
       .accountsStrict({
         poolOverview: setup.poolOverview,
@@ -813,7 +976,7 @@ describe("Test Reward Creation and Accrual", () => {
 
     // Use same reward values as epoch 2
     const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
-    const merkleRoots = [merkleTree.at(-1)?.[0]];
+    const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
       totalRewards = totalRewards.addn(Number(addressInput.amount));
@@ -830,7 +993,6 @@ describe("Test Reward Creation and Accrual", () => {
     );
 
     await program.methods
-      // @ts-expect-error - ignore.
       .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
@@ -860,10 +1022,10 @@ describe("Test Reward Creation and Accrual", () => {
       await program.methods
         .accrueReward(
           0,
-          proof as unknown as number[][],
+          proof.map((arr) => Array.from(arr)),
           proofPath,
           new anchor.BN(proofInputs.amount.toString()),
-          new anchor.BN(0)
+          new anchor.BN(proofInputs.usdcAmount.toString())
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
