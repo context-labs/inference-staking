@@ -1,10 +1,10 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
+use crate::constants;
 use crate::error::ErrorCode;
 use crate::events::CompleteAccrueRewardEvent;
 use crate::state::{OperatorPool, PoolOverview, RewardRecord, StakingRecord};
-use crate::utils;
 
 #[derive(Accounts)]
 pub struct AccrueReward<'info> {
@@ -37,7 +37,7 @@ pub struct AccrueReward<'info> {
     pub operator_staking_record: Box<Account<'info, StakingRecord>>,
     #[account(
         mut,
-        token::mint = utils::get_usdc_mint()?,
+        token::mint = constants::USDC_MINT_PUBKEY,
         token::authority = operator_pool.admin,
     )]
     pub usdc_payout_destination: Account<'info, TokenAccount>,

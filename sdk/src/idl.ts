@@ -553,7 +553,6 @@ const _IDL = {
         },
         {
           name: "usdcPayoutDestination",
-          writable: true,
         },
         {
           name: "mint",
@@ -1497,6 +1496,11 @@ const _IDL = {
       code: 6016,
       name: "invalidUsdcMint",
       msg: "Could not initialize USDC mint",
+    },
+    {
+      code: 6017,
+      name: "invalidUsdcPayoutDestination",
+      msg: "Invalid USDC payout destination",
     },
   ],
   types: [

@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::TokenAccount;
 
+use crate::constants;
 use crate::state::OperatorPool;
-use crate::utils;
 
 #[derive(Accounts)]
 pub struct UpdateOperatorPool<'info> {
@@ -18,7 +18,7 @@ pub struct UpdateOperatorPool<'info> {
     )]
     pub operator_pool: Account<'info, OperatorPool>,
     #[account(
-      token::mint = utils::get_usdc_mint()?,
+      token::mint = constants::USDC_MINT_PUBKEY,
       token::authority = admin.key()
   )]
     pub usdc_payout_destination: Option<Account<'info, TokenAccount>>,

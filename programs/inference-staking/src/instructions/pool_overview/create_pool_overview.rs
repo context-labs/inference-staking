@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-use crate::{error::ErrorCode, utils, PoolOverview};
+use crate::{constants, error::ErrorCode, PoolOverview};
 
 #[derive(Accounts)]
 pub struct CreatePoolOverview<'info> {
@@ -36,7 +36,7 @@ pub struct CreatePoolOverview<'info> {
     pub usdc_token_account: Box<Account<'info, TokenAccount>>,
     pub mint: Box<Account<'info, Mint>>,
     #[account(
-        constraint = usdc_mint.key() == utils::get_usdc_mint()? @ ErrorCode::InvalidUsdcMint
+        constraint = usdc_mint.key() == constants::USDC_MINT_PUBKEY @ ErrorCode::InvalidUsdcMint
     )]
     pub usdc_mint: Box<Account<'info, Mint>>,
     pub token_program: Program<'info, Token>,

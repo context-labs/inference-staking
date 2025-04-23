@@ -26,7 +26,7 @@ echo -e "\n🚀 Deploying program ID $DEVNET_PROGRAM_ID to Solana devnet.\n"
 echo -e "🏗️ All checks passed! Building program...\n"
 
 # Build the program
-anchor build
+anchor build -- --features devnet
 echo -e "\nBuild finished!\n"
 
 # Confirm deployment

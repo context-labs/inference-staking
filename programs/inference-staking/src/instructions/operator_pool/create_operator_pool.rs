@@ -2,9 +2,10 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::{
+    constants,
     error::ErrorCode,
     state::{OperatorPool, StakingRecord},
-    utils, PoolOverview,
+    PoolOverview,
 };
 
 #[derive(Accounts)]
@@ -62,7 +63,7 @@ pub struct CreateOperatorPool<'info> {
     )]
     pub fee_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
-        token::mint = utils::get_usdc_mint()?,
+        token::mint = constants::USDC_MINT_PUBKEY,
         token::authority = admin.key()
     )]
     pub usdc_payout_destination: Account<'info, TokenAccount>,
