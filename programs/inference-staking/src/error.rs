@@ -36,4 +36,6 @@ pub enum ErrorCode {
     PoolCreationDisabled,
     #[msg("Could not initialize USDC mint")]
     InvalidUsdcMint,
+    #[msg("Invalid USDC payout destination")]
+    InvalidUsdcPayoutDestination,
 }
