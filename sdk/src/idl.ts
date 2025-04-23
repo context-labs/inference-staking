@@ -75,6 +75,10 @@ const _IDL = {
           relations: ["operatorPool"],
         },
         {
+          name: "usdcPayoutDestination",
+          writable: true,
+        },
+        {
           name: "rewardTokenAccount",
           writable: true,
           pda: {
@@ -82,6 +86,18 @@ const _IDL = {
               {
                 kind: "const",
                 value: [82, 101, 119, 97, 114, 100, 84, 111, 107, 101, 110],
+              },
+            ],
+          },
+        },
+        {
+          name: "usdcTokenAccount",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [85, 83, 68, 67],
               },
             ],
           },
@@ -144,6 +160,10 @@ const _IDL = {
         },
         {
           name: "rewardAmount",
+          type: "u64",
+        },
+        {
+          name: "usdcAmount",
           type: "u64",
         },
       ],
@@ -532,6 +552,10 @@ const _IDL = {
           },
         },
         {
+          name: "usdcPayoutDestination",
+          writable: true,
+        },
+        {
           name: "mint",
           relations: ["poolOverview"],
         },
@@ -599,7 +623,22 @@ const _IDL = {
           },
         },
         {
+          name: "usdcTokenAccount",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [85, 83, 68, 67],
+              },
+            ],
+          },
+        },
+        {
           name: "mint",
+        },
+        {
+          name: "usdcMint",
         },
         {
           name: "tokenProgram",
@@ -655,6 +694,17 @@ const _IDL = {
           },
         },
         {
+          name: "usdcTokenAccount",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [85, 83, 68, 67],
+              },
+            ],
+          },
+        },
+        {
           name: "systemProgram",
           address: "11111111111111111111111111111111",
         },
@@ -670,6 +720,10 @@ const _IDL = {
         },
         {
           name: "totalRewards",
+          type: "u64",
+        },
+        {
+          name: "totalUsdcPayout",
           type: "u64",
         },
       ],
@@ -1129,6 +1183,10 @@ const _IDL = {
             ],
           },
         },
+        {
+          name: "usdcPayoutDestination",
+          optional: true,
+        },
       ],
       args: [
         {
@@ -1392,43 +1450,53 @@ const _IDL = {
     },
     {
       code: 6007,
+      name: "insufficientUsdc",
+      msg: "Insufficient USDC tokens to issue",
+    },
+    {
+      code: 6008,
       name: "closedPool",
       msg: "Pool is closed",
     },
     {
-      code: 6008,
+      code: 6009,
       name: "invalidProof",
       msg: "Invalid Proof",
     },
     {
-      code: 6009,
+      code: 6010,
       name: "operatorPoolHalted",
       msg: "OperatorPool is halted",
     },
     {
-      code: 6010,
+      code: 6011,
       name: "withdrawalsHalted",
       msg: "Withdrawals are halted",
     },
     {
-      code: 6011,
+      code: 6012,
       name: "invalidAuthority",
       msg: "PoolOverview Authority is not valid",
     },
     {
-      code: 6012,
+      code: 6013,
       name: "authoritiesExceeded",
       msg: "Exceeded allowed authorities length",
     },
     {
-      code: 6013,
+      code: 6014,
       name: "accountNotEmpty",
       msg: "Account not empty",
     },
     {
-      code: 6014,
+      code: 6015,
       name: "poolCreationDisabled",
       msg: "Pool creation is disabled",
+    },
+    {
+      code: 6016,
+      name: "invalidUsdcMint",
+      msg: "Could not initialize USDC mint",
     },
   ],
   types: [
@@ -1621,6 +1689,11 @@ const _IDL = {
             ],
             type: "u64",
           },
+          {
+            name: "usdcPayoutDestination",
+            docs: ["Destination for USDC payouts for this operator pool."],
+            type: "pubkey",
+          },
         ],
       },
     },
@@ -1716,6 +1789,13 @@ const _IDL = {
             ],
             type: "u64",
           },
+          {
+            name: "unclaimedUsdcPayout",
+            docs: [
+              "Total amount of USDC tokens across all epochs that are issued, but yet to be paid out.",
+            ],
+            type: "u64",
+          },
         ],
       },
     },
@@ -1744,6 +1824,11 @@ const _IDL = {
           {
             name: "totalRewards",
             docs: ["Amount of reward tokens issued for this epoch."],
+            type: "u64",
+          },
+          {
+            name: "totalUsdcPayout",
+            docs: ["Amount of USDC tokens issued for this epoch."],
             type: "u64",
           },
         ],

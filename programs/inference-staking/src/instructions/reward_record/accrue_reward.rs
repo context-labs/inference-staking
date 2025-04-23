@@ -4,6 +4,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use crate::error::ErrorCode;
 use crate::events::CompleteAccrueRewardEvent;
 use crate::state::{OperatorPool, PoolOverview, RewardRecord, StakingRecord};
+use crate::utils;
 
 #[derive(Accounts)]
 pub struct AccrueReward<'info> {
@@ -36,10 +37,22 @@ pub struct AccrueReward<'info> {
     pub operator_staking_record: Box<Account<'info, StakingRecord>>,
     #[account(
         mut,
+        token::mint = utils::get_usdc_mint()?,
+        token::authority = operator_pool.admin,
+    )]
+    pub usdc_payout_destination: Account<'info, TokenAccount>,
+    #[account(
+        mut,
         seeds = [b"RewardToken".as_ref()],
         bump,
     )]
     pub reward_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        mut,
+        seeds = [b"USDC".as_ref()],
+        bump,
+    )]
+    pub usdc_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         seeds = [operator_pool.key().as_ref(), b"StakedToken".as_ref()],
@@ -62,15 +75,18 @@ pub fn handler(
     proof: Vec<[u8; 32]>,
     proof_path: Vec<bool>,
     reward_amount: u64,
+    usdc_amount: u64,
 ) -> Result<()> {
     let reward_record = &ctx.accounts.reward_record;
     let operator_pool = &mut ctx.accounts.operator_pool;
+    let usdc_payout_destination = &ctx.accounts.usdc_payout_destination;
     reward_record.verify_proof(
         merkle_index,
         operator_pool.key(),
         proof,
         proof_path,
         reward_amount,
+        usdc_amount,
     )?;
 
     let pool_overview = &ctx.accounts.pool_overview;
@@ -156,6 +172,30 @@ pub fn handler(
             amount_to_staked_account,
         )?;
 
+        msg!("Transferring USDC {} to payout destination", usdc_amount);
+        msg!(
+            "usdc_token_account: {}",
+            ctx.accounts.usdc_token_account.key().to_string()
+        );
+        msg!(
+            "usdc_payout_destination: {}",
+            usdc_payout_destination.key().to_string()
+        );
+
+        // Transfer USDC to payout destination.
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.usdc_token_account.to_account_info(),
+                    to: usdc_payout_destination.to_account_info(),
+                    authority: ctx.accounts.pool_overview.to_account_info(),
+                },
+                &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],
+            ),
+            usdc_amount,
+        )?;
+
         // Subtract claimed rewards and commission from unclaimed amount.
         let pool_overview = &mut ctx.accounts.pool_overview;
         pool_overview.unclaimed_rewards = pool_overview
@@ -163,6 +203,10 @@ pub fn handler(
             .checked_sub(operator_pool.accrued_rewards)
             .unwrap()
             .checked_sub(operator_pool.accrued_commission)
+            .unwrap();
+        pool_overview.unclaimed_usdc_payout = pool_overview
+            .unclaimed_usdc_payout
+            .checked_sub(usdc_amount)
             .unwrap();
 
         // Update commission rate if new rate is set.

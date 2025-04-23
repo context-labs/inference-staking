@@ -32,6 +32,8 @@ describe("Additional tests for instruction constraints", () => {
         programAdmin: setup.signer1,
         poolOverview: setup.poolOverview,
         rewardTokenAccount: setup.rewardTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
+        usdcMint: setup.usdcTokenMint,
         mint: setup.tokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
@@ -165,6 +167,7 @@ describe("Additional tests for instruction constraints", () => {
           mint: setup.tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
+          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
         })
         .signers([setup.payerKp, setup.signer1Kp])
         .rpc();

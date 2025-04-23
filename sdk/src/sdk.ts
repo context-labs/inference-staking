@@ -94,6 +94,14 @@ export class InferenceStakingProgramSDK {
     return pda;
   }
 
+  usdcTokenPda(): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("USDC", "utf-8")],
+      this.program.programId
+    );
+    return pda;
+  }
+
   async fetchPoolOverview(): Promise<PoolOverviewAccountStruct> {
     const poolOverviewPda = this.poolOverviewPda();
     return this.program.account.poolOverview.fetch(poolOverviewPda);

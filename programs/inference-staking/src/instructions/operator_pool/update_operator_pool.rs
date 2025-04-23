@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::TokenAccount;
 
 use crate::state::OperatorPool;
+use crate::utils;
 
 #[derive(Accounts)]
 pub struct UpdateOperatorPool<'info> {
@@ -15,6 +17,11 @@ pub struct UpdateOperatorPool<'info> {
       has_one = admin,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
+    #[account(
+      token::mint = utils::get_usdc_mint()?,
+      token::authority = admin.key()
+  )]
+    pub usdc_payout_destination: Option<Account<'info, TokenAccount>>,
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
@@ -36,6 +43,11 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
     operator_pool.new_commission_rate_bps = args.new_commission_rate_bps;
     operator_pool.allow_delegation = args.allow_delegation;
     operator_pool.auto_stake_fees = args.auto_stake_fees;
+
+    let usdc_payout_destination = &ctx.accounts.usdc_payout_destination;
+    if let Some(usdc_payout_destination) = usdc_payout_destination {
+        operator_pool.usdc_payout_destination = usdc_payout_destination.key();
+    }
 
     Ok(())
 }
