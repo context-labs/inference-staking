@@ -7,6 +7,7 @@ This directory includes keypairs we use for development and testings.
 - Deployer address: `KB6Nr5jbzNxBhWsrwLhUNfFrmBQtRBWvHJ8t3z92kSw`
 - Program address: `5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj`
 - Token mint address: `intW4zCHBLLci7zznq1x3H2gczXxaEyGyyHCwKibW8E`
+- USDC mint address: `usdEkK5GbzC22bd2gKMFpt6sY2YETm2eaCiu7bBheZV`
 
 ## Devnet
 
