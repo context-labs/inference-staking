@@ -172,6 +172,12 @@ pub fn handler(
             amount_to_staked_account,
         )?;
 
+        msg!(
+            "Transferred {} rewards to staked token account: {}",
+            amount_to_staked_account,
+            ctx.accounts.staked_token_account.key()
+        );
+
         // Transfer USDC to payout destination for this operator pool.
         token::transfer(
             CpiContext::new_with_signer(
@@ -185,6 +191,12 @@ pub fn handler(
             ),
             usdc_amount,
         )?;
+
+        msg!(
+            "Transferred {} USDC to payout destination: {}",
+            usdc_amount,
+            usdc_payout_destination.key()
+        );
 
         // Subtract claimed rewards and commission from unclaimed amount.
         let pool_overview = &mut ctx.accounts.pool_overview;
@@ -211,6 +223,13 @@ pub fn handler(
             total_staked_amount: operator_pool.total_staked_amount,
             total_unstaking: operator_pool.total_unstaking
         });
+    } else {
+        msg!("Not most recent reward record, skipping accrue reward");
+        msg!(
+            "pool_overview.completed_reward_epoch = {}",
+            pool_overview.completed_reward_epoch
+        );
+        msg!("reward_record.epoch = {}", reward_record.epoch);
     }
 
     Ok(())
