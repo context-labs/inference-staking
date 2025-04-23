@@ -19,7 +19,6 @@ pub struct UpdateOperatorPool<'info> {
     pub operator_pool: Account<'info, OperatorPool>,
     #[account(
       token::mint = constants::USDC_MINT_PUBKEY,
-      token::authority = admin.key()
   )]
     pub usdc_payout_destination: Option<Account<'info, TokenAccount>>,
 }

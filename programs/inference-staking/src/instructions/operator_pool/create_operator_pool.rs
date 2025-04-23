@@ -64,7 +64,6 @@ pub struct CreateOperatorPool<'info> {
     pub fee_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
         token::mint = constants::USDC_MINT_PUBKEY,
-        token::authority = admin.key()
     )]
     pub usdc_payout_destination: Account<'info, TokenAccount>,
     pub mint: Box<Account<'info, Mint>>,
