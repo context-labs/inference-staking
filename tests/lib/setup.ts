@@ -100,7 +100,7 @@ export async function setupTests() {
     payerKp,
     signer1Kp.publicKey,
     signer1Kp.publicKey,
-    9,
+    6,
     USDC_MINT_KEYPAIR
   );
 

@@ -44,12 +44,14 @@ pub struct AccrueReward<'info> {
     #[account(
         mut,
         seeds = [b"RewardToken".as_ref()],
+        token::authority = pool_overview.key(),
         bump,
     )]
     pub reward_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         seeds = [b"USDC".as_ref()],
+        token::authority = pool_overview.key(),
         bump,
     )]
     pub usdc_token_account: Box<Account<'info, TokenAccount>>,
@@ -171,16 +173,6 @@ pub fn handler(
             ),
             amount_to_staked_account,
         )?;
-
-        msg!("Transferring USDC {} to payout destination", usdc_amount);
-        msg!(
-            "usdc_token_account: {}",
-            ctx.accounts.usdc_token_account.key().to_string()
-        );
-        msg!(
-            "usdc_payout_destination: {}",
-            usdc_payout_destination.key().to_string()
-        );
 
         // Transfer USDC to payout destination.
         token::transfer(

@@ -62,7 +62,6 @@ pub struct CreateOperatorPool<'info> {
     )]
     pub fee_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
-        mut,
         token::mint = utils::get_usdc_mint()?,
         token::authority = admin.key()
     )]
