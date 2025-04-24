@@ -314,15 +314,15 @@ const _IDL = {
           pda: {
             seeds: [
               {
-                kind: "account",
-                path: "operator_pool.pool_id",
-                account: "operatorPool",
-              },
-              {
                 kind: "const",
                 value: [
                   79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
                 ],
+              },
+              {
+                kind: "account",
+                path: "operator_pool.pool_id",
+                account: "operatorPool",
               },
             ],
           },
@@ -334,18 +334,18 @@ const _IDL = {
           pda: {
             seeds: [
               {
+                kind: "const",
+                value: [
+                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
+                ],
+              },
+              {
                 kind: "account",
                 path: "operatorPool",
               },
               {
                 kind: "account",
                 path: "owner",
-              },
-              {
-                kind: "const",
-                value: [
-                  83, 116, 97, 107, 105, 110, 103, 82, 101, 99, 111, 114, 100,
-                ],
               },
             ],
           },
@@ -364,12 +364,12 @@ const _IDL = {
           pda: {
             seeds: [
               {
-                kind: "account",
-                path: "operatorPool",
-              },
-              {
                 kind: "const",
                 value: [83, 116, 97, 107, 101, 100, 84, 111, 107, 101, 110],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
               },
             ],
           },
