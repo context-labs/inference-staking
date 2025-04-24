@@ -11,8 +11,8 @@ pub struct UpdateOperatorPool<'info> {
     #[account(
         mut,
         seeds = [
-            &operator_pool.pool_id.to_le_bytes(),
-            b"OperatorPool".as_ref()
+            b"OperatorPool".as_ref(),
+            &operator_pool.pool_id.to_le_bytes()
         ],
         bump = operator_pool.bump,
         has_one = admin,
