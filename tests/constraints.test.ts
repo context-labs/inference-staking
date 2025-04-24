@@ -24,7 +24,31 @@ describe("Additional tests for instruction constraints", () => {
   before(async () => {
     setup = await setupTests();
     program = setup.sdk.program;
+  });
 
+  it("Fail to create PoolOverview with an invalid USDC mint", async () => {
+    try {
+      await program.methods
+        .createPoolOverview()
+        .accountsStrict({
+          payer: setup.payer,
+          programAdmin: setup.signer1,
+          poolOverview: setup.poolOverview,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          usdcMint: setup.invalidUsdcTokenMint,
+          mint: setup.tokenMint,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.payerKp, setup.signer1Kp])
+        .rpc();
+    } catch (err) {
+      assertStakingProgramError(err, "invalidUsdcMint");
+    }
+  });
+
+  it("Create PoolOverview and update with a valid admin", async () => {
     await program.methods
       .createPoolOverview()
       .accountsStrict({

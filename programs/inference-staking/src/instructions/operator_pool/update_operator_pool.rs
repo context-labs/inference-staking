@@ -30,9 +30,9 @@ pub struct UpdateOperatorPoolArgs {
     /// Update Operator commission rate that will become active next epoch
     pub new_commission_rate_bps: Option<u16>,
     /// Allow delegation from stakers that are not the Operator
-    pub allow_delegation: bool,
+    pub allow_delegation: Option<bool>,
     /// Auto stake operator fees
-    pub auto_stake_fees: bool,
+    pub auto_stake_fees: Option<bool>,
 }
 
 pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -> Result<()> {
@@ -42,8 +42,14 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
 
     let operator_pool = &mut ctx.accounts.operator_pool;
     operator_pool.new_commission_rate_bps = args.new_commission_rate_bps;
-    operator_pool.allow_delegation = args.allow_delegation;
-    operator_pool.auto_stake_fees = args.auto_stake_fees;
+
+    if let Some(allow_delegation) = args.allow_delegation {
+        operator_pool.allow_delegation = allow_delegation;
+    }
+
+    if let Some(auto_stake_fees) = args.auto_stake_fees {
+        operator_pool.auto_stake_fees = auto_stake_fees;
+    }
 
     let usdc_payout_destination = &ctx.accounts.usdc_payout_destination;
     if let Some(usdc_payout_destination) = usdc_payout_destination {
