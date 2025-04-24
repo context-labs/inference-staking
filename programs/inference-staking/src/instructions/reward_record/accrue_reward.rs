@@ -44,12 +44,14 @@ pub struct AccrueReward<'info> {
     #[account(
         mut,
         seeds = [b"RewardToken".as_ref()],
+        token::authority = pool_overview.key(),
         bump,
     )]
     pub reward_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         seeds = [b"USDC".as_ref()],
+        token::authority = pool_overview.key(),
         bump,
     )]
     pub usdc_token_account: Box<Account<'info, TokenAccount>>,
