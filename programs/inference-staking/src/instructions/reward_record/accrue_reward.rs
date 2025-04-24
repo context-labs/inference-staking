@@ -81,6 +81,7 @@ pub fn handler(
 ) -> Result<()> {
     let reward_record = &ctx.accounts.reward_record;
     let operator_pool = &mut ctx.accounts.operator_pool;
+    let usdc_payout_destination = &ctx.accounts.usdc_payout_destination;
     reward_record.verify_proof(
         merkle_index,
         operator_pool.key(),
@@ -89,11 +90,6 @@ pub fn handler(
         reward_amount,
         usdc_amount,
     )?;
-
-    let usdc_payout_destination = &ctx.accounts.usdc_payout_destination;
-    if usdc_payout_destination.key() != operator_pool.usdc_payout_destination.key() {
-        return Err(ErrorCode::InvalidUsdcPayoutDestination.into());
-    }
 
     let pool_overview = &ctx.accounts.pool_overview;
     let operator_staking_record: &mut Box<Account<'_, StakingRecord>> =
