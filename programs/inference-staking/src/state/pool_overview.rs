@@ -24,6 +24,9 @@ pub struct PoolOverview {
     #[max_len(5)]
     pub slashing_authorities: Vec<Pubkey>,
 
+    /// Whether the current epoch is in the finalizing state.
+    pub is_epoch_finalizing: bool,
+
     /// Halts all staking instructions when true. Used as a security backstop.
     pub is_staking_halted: bool,
 

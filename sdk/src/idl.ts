@@ -1768,6 +1768,11 @@ const _IDL = {
             },
           },
           {
+            name: "isEpochFinalizing",
+            docs: ["Whether the current epoch is in the finalizing state."],
+            type: "bool",
+          },
+          {
             name: "isStakingHalted",
             docs: [
               "Halts all staking instructions when true. Used as a security backstop.",
@@ -2060,6 +2065,12 @@ const _IDL = {
       type: {
         kind: "struct",
         fields: [
+          {
+            name: "isEpochFinalizing",
+            type: {
+              option: "bool",
+            },
+          },
           {
             name: "isStakingHalted",
             type: {

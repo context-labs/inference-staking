@@ -115,6 +115,16 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.reward_last_claimed_epoch =
         pool_overview.completed_reward_epoch.checked_add(1).unwrap();
 
+    match pool_overview.is_epoch_finalizing {
+        true => {
+            operator_pool.reward_last_claimed_epoch =
+                pool_overview.completed_reward_epoch.checked_add(1).unwrap();
+        }
+        false => {
+            operator_pool.reward_last_claimed_epoch = pool_overview.completed_reward_epoch;
+        }
+    }
+
     let staking_record = &mut ctx.accounts.staking_record;
     staking_record.owner = ctx.accounts.admin.key();
     staking_record.operator_pool = operator_pool.key();
