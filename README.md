@@ -71,6 +71,7 @@ Rewards are computed off-chain based on network performance metrics and distribu
 3. Rewards are claimed permissionlessly using Merkle proofs via `AccrueReward`
    - Operators receive commission fees and delegators receive staking rewards
    - Rewards auto-compound when added to the staking pool
+   - USDC payments are also distributed to operators
 
 # Getting Started
 
