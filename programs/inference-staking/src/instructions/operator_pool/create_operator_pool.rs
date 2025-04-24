@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::{
+    constants,
     error::ErrorCode,
     state::{OperatorPool, StakingRecord},
     PoolOverview,
@@ -61,6 +62,10 @@ pub struct CreateOperatorPool<'info> {
         token::authority = operator_pool
     )]
     pub fee_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        token::mint = constants::USDC_MINT_PUBKEY,
+    )]
+    pub usdc_payout_destination: Account<'info, TokenAccount>,
     pub mint: Box<Account<'info, Mint>>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -86,6 +91,7 @@ pub fn handler(
     operator_pool.auto_stake_fees = auto_stake_fees;
     operator_pool.commission_rate_bps = commission_rate_bps;
     operator_pool.allow_delegation = allow_delegation;
+    operator_pool.usdc_payout_destination = ctx.accounts.usdc_payout_destination.key();
 
     // Pool starts earning rewards from next full epoch.
     operator_pool.reward_last_claimed_epoch =

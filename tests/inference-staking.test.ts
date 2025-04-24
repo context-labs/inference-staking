@@ -58,6 +58,8 @@ describe("inference-staking", () => {
         rewardTokenAccount: setup.rewardTokenAccount,
         mint: setup.tokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
+        usdcMint: setup.usdcTokenMint,
+        usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.signer1Kp])
@@ -95,6 +97,7 @@ describe("inference-staking", () => {
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
+          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
         .signers([setup.payerKp, setup.signer1Kp])
@@ -216,6 +219,7 @@ describe("inference-staking", () => {
         feeTokenAccount: setup.pool1.feeTokenAccount,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
+        usdcPayoutDestination: setup.pool1.usdcTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
@@ -295,6 +299,7 @@ describe("inference-staking", () => {
         .accountsStrict({
           admin: setup.signer1,
           operatorPool: setup.pool1.pool,
+          usdcPayoutDestination: null,
         })
         .signers([setup.signer1Kp])
         .rpc();
@@ -315,6 +320,7 @@ describe("inference-staking", () => {
       .accountsStrict({
         admin: setup.signer1,
         operatorPool: setup.pool1.pool,
+        usdcPayoutDestination: null,
       })
       .signers([setup.signer1Kp])
       .rpc();
@@ -341,6 +347,7 @@ describe("inference-staking", () => {
       .accountsStrict({
         admin: setup.signer1,
         operatorPool: setup.pool1.pool,
+        usdcPayoutDestination: null,
       })
       .signers([setup.signer1Kp])
       .rpc();
@@ -495,6 +502,7 @@ describe("inference-staking", () => {
       .accountsStrict({
         admin: setup.signer1,
         operatorPool: setup.pool1.pool,
+        usdcPayoutDestination: null,
       })
       .signers([setup.signer1Kp])
       .rpc();
@@ -556,6 +564,7 @@ describe("inference-staking", () => {
       .accountsStrict({
         admin: setup.signer1,
         operatorPool: setup.pool1.pool,
+        usdcPayoutDestination: null,
       })
       .signers([setup.signer1Kp])
       .rpc();
@@ -973,13 +982,14 @@ describe("inference-staking", () => {
   it("Fail to create RewardRecord with invalid authority", async () => {
     try {
       await program.methods
-        .createRewardRecord([], new anchor.BN(0))
+        .createRewardRecord([], new anchor.BN(0), new anchor.BN(0))
         .accountsStrict({
           payer: setup.payer,
           authority: setup.signer1Kp.publicKey,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[1],
           rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
         .signers([setup.payerKp, setup.signer1Kp])
@@ -993,13 +1003,14 @@ describe("inference-staking", () => {
   it("Create RewardRecord 1 successfully", async () => {
     // Create an empty record with no rewards.
     await program.methods
-      .createRewardRecord([], new anchor.BN(0))
+      .createRewardRecord([], new anchor.BN(0), new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[1],
         rewardTokenAccount: setup.rewardTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
@@ -1027,13 +1038,14 @@ describe("inference-staking", () => {
     // Create a record for epoch 2 with rewards for Operator 1 to 4.
     await program.methods
       // @ts-expect-error - ignore
-      .createRewardRecord(merkleRoots, totalRewards)
+      .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
         rewardTokenAccount: setup.rewardTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
@@ -1064,6 +1076,7 @@ describe("inference-staking", () => {
         feeTokenAccount: setup.pool2.feeTokenAccount,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
+        usdcPayoutDestination: setup.pool2.usdcTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
@@ -1125,18 +1138,22 @@ describe("inference-staking", () => {
       {
         address: setup.pool1.pool.toString(),
         amount: 200n,
+        usdcAmount: 0n,
       },
       {
         address: setup.pool2.pool.toString(),
         amount: 100n,
+        usdcAmount: 0n,
       },
       {
         address: setup.pool3.pool.toString(),
         amount: 300n,
+        usdcAmount: 0n,
       },
       {
         address: setup.pool4.pool.toString(),
         amount: 400n,
+        usdcAmount: 0n,
       },
     ].sort((a, b) => a.address.localeCompare(b.address));
     const merkleTree = MerkleUtils.constructMerkleTree(addressInputs);
@@ -1322,7 +1339,8 @@ describe("inference-staking", () => {
           0,
           proof as unknown as number[][],
           proofPath,
-          rewardAmount
+          rewardAmount,
+          new anchor.BN(0)
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -1332,6 +1350,8 @@ describe("inference-staking", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();

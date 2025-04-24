@@ -55,6 +55,9 @@ pub struct OperatorPool {
     /// Commission that have been calculated in `accrueRewards` , that are yet to be physically transferred to fee account.
     /// Used to optimize compute.
     pub accrued_commission: u64,
+
+    /// Destination for USDC payouts for this operator pool.
+    pub usdc_payout_destination: Pubkey,
 }
 
 impl OperatorPool {

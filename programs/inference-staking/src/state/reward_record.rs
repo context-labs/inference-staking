@@ -15,6 +15,9 @@ pub struct RewardRecord {
 
     /// Amount of reward tokens issued for this epoch.
     pub total_rewards: u64,
+
+    /// Amount of USDC tokens issued for this epoch.
+    pub total_usdc_payout: u64,
 }
 
 impl RewardRecord {
@@ -28,12 +31,13 @@ impl RewardRecord {
         proof: Vec<[u8; 32]>,
         proof_path: Vec<bool>,
         reward_amount: u64,
+        usdc_amount: u64,
     ) -> Result<()> {
         require_eq!(proof.len(), proof_path.len(), ErrorCode::InvalidProof);
 
         let root = self.merkle_roots.get(usize::from(merkle_index)).unwrap();
 
-        let leaf_data = format!("{},{}", pool_address, reward_amount);
+        let leaf_data = format!("{},{},{}", pool_address, reward_amount, usdc_amount);
         let mut node = hash::hash(leaf_data.as_bytes());
 
         for i in 0..proof.len() {

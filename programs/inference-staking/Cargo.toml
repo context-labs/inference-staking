@@ -15,7 +15,8 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
-
+test = []
+devnet = []
 
 [dependencies]
 anchor-lang = "0.31.0"

@@ -16,6 +16,8 @@ pub enum ErrorCode {
     PendingDelay,
     #[msg("Insufficient reward tokens to issue")]
     InsufficientRewards,
+    #[msg("Insufficient USDC tokens to issue")]
+    InsufficientUsdc,
     #[msg("Pool is closed")]
     ClosedPool,
     #[msg("Invalid Proof")]
@@ -32,4 +34,8 @@ pub enum ErrorCode {
     AccountNotEmpty,
     #[msg("Pool creation is disabled")]
     PoolCreationDisabled,
+    #[msg("Could not initialize USDC mint")]
+    InvalidUsdcMint,
+    #[msg("Invalid USDC payout destination")]
+    InvalidUsdcPayoutDestination,
 }

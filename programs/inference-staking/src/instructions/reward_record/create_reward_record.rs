@@ -33,6 +33,11 @@ pub struct CreateRewardRecord<'info> {
         bump,
     )]
     pub reward_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        seeds = [b"USDC".as_ref()],
+        bump,
+    )]
+    pub usdc_token_account: Box<Account<'info, TokenAccount>>,
     pub system_program: Program<'info, System>,
 }
 
@@ -41,6 +46,7 @@ pub fn handler(
     ctx: Context<CreateRewardRecord>,
     merkle_roots: Vec<[u8; 32]>,
     total_rewards: u64,
+    total_usdc_payout: u64,
 ) -> Result<()> {
     let pool_overview = &mut ctx.accounts.pool_overview;
     let reward_record = &mut ctx.accounts.reward_record;
@@ -48,11 +54,15 @@ pub fn handler(
     reward_record.epoch = pool_overview.completed_reward_epoch.checked_add(1).unwrap();
     reward_record.merkle_roots = merkle_roots;
     reward_record.total_rewards = total_rewards;
-
+    reward_record.total_usdc_payout = total_usdc_payout;
     // Update unclaimed rewards to include new epoch rewards.
     pool_overview.unclaimed_rewards = pool_overview
         .unclaimed_rewards
         .checked_add(total_rewards)
+        .unwrap();
+    pool_overview.unclaimed_usdc_payout = pool_overview
+        .unclaimed_usdc_payout
+        .checked_add(total_usdc_payout)
         .unwrap();
     pool_overview.completed_reward_epoch = reward_record.epoch;
 
@@ -64,5 +74,14 @@ pub fn handler(
         ErrorCode::InsufficientRewards
     );
 
+    // Ensure that there's sufficient USDC tokens funded.
+    let usdc_token_account = &ctx.accounts.usdc_token_account;
+    require_gte!(
+        usdc_token_account.amount,
+        pool_overview.unclaimed_usdc_payout,
+        ErrorCode::InsufficientUsdc
+    );
+
     Ok(())
 }
+

@@ -50,7 +50,9 @@ describe("Test Reward Creation and Accrual", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardTokenAccount: setup.rewardTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
         mint: setup.tokenMint,
+        usdcMint: setup.usdcTokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
@@ -99,6 +101,7 @@ describe("Test Reward Creation and Accrual", () => {
         mint: setup.tokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
+        usdcPayoutDestination: setup.pool1.usdcTokenAccount,
       })
       .signers([setup.payerKp, setup.signer1Kp])
       .rpc();
@@ -162,6 +165,7 @@ describe("Test Reward Creation and Accrual", () => {
       .accountsStrict({
         admin: setup.signer1,
         operatorPool: setup.pool1.pool,
+        usdcPayoutDestination: null,
       })
       .signers([setup.signer1Kp])
       .rpc();
@@ -170,13 +174,14 @@ describe("Test Reward Creation and Accrual", () => {
   it("Fail to create future RewardReward", async () => {
     try {
       await program.methods
-        .createRewardRecord([], new anchor.BN(0))
+        .createRewardRecord([], new anchor.BN(0), new anchor.BN(0))
         .accountsStrict({
           payer: setup.payer,
           authority: setup.poolOverviewAdminKp.publicKey,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
         .signers([setup.payerKp, setup.poolOverviewAdminKp])
@@ -190,13 +195,14 @@ describe("Test Reward Creation and Accrual", () => {
   it("Create RewardRecord 1 successfully", async () => {
     // Create an empty record with no rewards.
     await program.methods
-      .createRewardRecord([], new anchor.BN(0))
+      .createRewardRecord([], new anchor.BN(0), new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[1],
         rewardTokenAccount: setup.rewardTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
@@ -206,13 +212,14 @@ describe("Test Reward Creation and Accrual", () => {
   it("Fail to create RewardRecord 1 again", async () => {
     try {
       await program.methods
-        .createRewardRecord([], new anchor.BN(0))
+        .createRewardRecord([], new anchor.BN(0), new anchor.BN(0))
         .accountsStrict({
           payer: setup.payer,
           authority: setup.poolOverviewAdminKp.publicKey,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[1],
           rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
         .signers([setup.payerKp, setup.poolOverviewAdminKp])
@@ -226,13 +233,14 @@ describe("Test Reward Creation and Accrual", () => {
   it("Fail to create RewardRecord with insufficient tokens", async () => {
     try {
       await program.methods
-        .createRewardRecord([], new anchor.BN(100_000))
+        .createRewardRecord([], new anchor.BN(100_000), new anchor.BN(0))
         .accountsStrict({
           payer: setup.payer,
           authority: setup.poolOverviewAdminKp.publicKey,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
         .signers([setup.payerKp, setup.poolOverviewAdminKp])
@@ -255,13 +263,14 @@ describe("Test Reward Creation and Accrual", () => {
     try {
       await program.methods
         // @ts-expect-error - ignore.
-        .createRewardRecord(merkleRoots, totalRewards)
+        .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
         .accountsStrict({
           payer: setup.payer,
           authority: setup.poolOverviewAdminKp.publicKey,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
         .signers([setup.payerKp, setup.poolOverviewAdminKp])
@@ -284,13 +293,14 @@ describe("Test Reward Creation and Accrual", () => {
     // Should succeed with sufficent rewards.
     await program.methods
       // @ts-expect-error - ignore.
-      .createRewardRecord(merkleRoots, totalRewards)
+      .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
         rewardTokenAccount: setup.rewardTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
@@ -334,13 +344,14 @@ describe("Test Reward Creation and Accrual", () => {
 
     await program.methods
       // @ts-expect-error - ignore.
-      .createRewardRecord(merkleRoots, totalRewards)
+      .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[3],
         rewardTokenAccount: setup.rewardTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
@@ -379,7 +390,8 @@ describe("Test Reward Creation and Accrual", () => {
           treeIndex,
           proof as unknown as number[][],
           proofPath,
-          new anchor.BN(proofInputs.amount.toString())
+          new anchor.BN(proofInputs.amount.toString()),
+          new anchor.BN(0)
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -389,6 +401,8 @@ describe("Test Reward Creation and Accrual", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
+          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -421,7 +435,8 @@ describe("Test Reward Creation and Accrual", () => {
           proofPath,
           new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
-          )
+          ),
+          new anchor.BN(0)
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -431,6 +446,8 @@ describe("Test Reward Creation and Accrual", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
+          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -448,7 +465,8 @@ describe("Test Reward Creation and Accrual", () => {
           [true, false, false],
           new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
-          )
+          ),
+          new anchor.BN(0)
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -458,6 +476,8 @@ describe("Test Reward Creation and Accrual", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
+          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -487,7 +507,13 @@ describe("Test Reward Creation and Accrual", () => {
 
     const rewardAmount = new anchor.BN(proofInputs.amount.toString());
     await program.methods
-      .accrueReward(0, proof as unknown as number[][], proofPath, rewardAmount)
+      .accrueReward(
+        0,
+        proof as unknown as number[][],
+        proofPath,
+        rewardAmount,
+        new anchor.BN(0)
+      )
       .accountsStrict({
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
@@ -496,6 +522,8 @@ describe("Test Reward Creation and Accrual", () => {
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         feeTokenAccount: setup.pool1.feeTokenAccount,
+        usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
@@ -545,7 +573,8 @@ describe("Test Reward Creation and Accrual", () => {
           0,
           proof as unknown as number[][],
           proofPath,
-          new anchor.BN(proofInputs.amount.toString())
+          new anchor.BN(proofInputs.amount.toString()),
+          new anchor.BN(0)
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -555,6 +584,8 @@ describe("Test Reward Creation and Accrual", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
+          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -596,7 +627,8 @@ describe("Test Reward Creation and Accrual", () => {
         treeIndex,
         proof as unknown as number[][],
         proofPath,
-        rewardAmount
+        rewardAmount,
+        new anchor.BN(0)
       )
       .accountsStrict({
         poolOverview: setup.poolOverview,
@@ -606,6 +638,8 @@ describe("Test Reward Creation and Accrual", () => {
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         feeTokenAccount: setup.pool1.feeTokenAccount,
+        usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
@@ -688,6 +722,7 @@ describe("Test Reward Creation and Accrual", () => {
       rewardInputs4.push({
         address: PublicKey.unique().toString(),
         amount: BigInt(i * 100),
+        usdcAmount: BigInt(0),
       });
       totalRewards = totalRewards.addn(i * 100);
     }
@@ -696,6 +731,7 @@ describe("Test Reward Creation and Accrual", () => {
     rewardInputs4.push({
       address: setup.pool1.pool.toString(),
       amount: BigInt(10000),
+      usdcAmount: BigInt(0),
     });
     rewardInputs4.sort((a, b) => a.address.localeCompare(b.address));
 
@@ -714,13 +750,14 @@ describe("Test Reward Creation and Accrual", () => {
 
     await program.methods
       // @ts-expect-error - ignore.
-      .createRewardRecord(merkleRoots, totalRewards)
+      .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[4],
         rewardTokenAccount: setup.rewardTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
@@ -740,7 +777,13 @@ describe("Test Reward Creation and Accrual", () => {
 
     const rewardAmount = new anchor.BN(proofInputs.amount.toString());
     await program.methods
-      .accrueReward(0, proof as unknown as number[][], proofPath, rewardAmount)
+      .accrueReward(
+        0,
+        proof as unknown as number[][],
+        proofPath,
+        rewardAmount,
+        new anchor.BN(0)
+      )
       .accountsStrict({
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[4],
@@ -749,6 +792,8 @@ describe("Test Reward Creation and Accrual", () => {
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         feeTokenAccount: setup.pool1.feeTokenAccount,
+        usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
@@ -786,13 +831,14 @@ describe("Test Reward Creation and Accrual", () => {
 
     await program.methods
       // @ts-expect-error - ignore.
-      .createRewardRecord(merkleRoots, totalRewards)
+      .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[5],
         rewardTokenAccount: setup.rewardTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
@@ -816,7 +862,8 @@ describe("Test Reward Creation and Accrual", () => {
           0,
           proof as unknown as number[][],
           proofPath,
-          new anchor.BN(proofInputs.amount.toString())
+          new anchor.BN(proofInputs.amount.toString()),
+          new anchor.BN(0)
         )
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -826,6 +873,8 @@ describe("Test Reward Creation and Accrual", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
+          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();

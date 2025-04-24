@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-use crate::PoolOverview;
+use crate::{constants, error::ErrorCode, PoolOverview};
 
 #[derive(Accounts)]
 pub struct CreatePoolOverview<'info> {
@@ -25,7 +25,20 @@ pub struct CreatePoolOverview<'info> {
         token::authority = pool_overview
     )]
     pub reward_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        init,
+        seeds = [b"USDC".as_ref()],
+        bump,
+        payer = payer,
+        token::mint = usdc_mint,
+        token::authority = pool_overview
+    )]
+    pub usdc_token_account: Box<Account<'info, TokenAccount>>,
     pub mint: Box<Account<'info, Mint>>,
+    #[account(
+        constraint = usdc_mint.key() == constants::USDC_MINT_PUBKEY @ ErrorCode::InvalidUsdcMint
+    )]
+    pub usdc_mint: Box<Account<'info, Mint>>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }

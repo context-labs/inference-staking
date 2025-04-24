@@ -1,6 +1,7 @@
 #![allow(ambiguous_glob_reexports)]
 #![allow(unexpected_cfgs)] // See: https://solana.stackexchange.com/a/19845
 
+pub mod constants;
 pub mod error;
 pub mod events;
 pub mod instructions;
@@ -80,8 +81,9 @@ pub mod inference_staking {
         ctx: Context<CreateRewardRecord>,
         merkle_roots: Vec<[u8; 32]>,
         total_rewards: u64,
+        total_usdc_payout: u64,
     ) -> Result<()> {
-        create_reward_record::handler(ctx, merkle_roots, total_rewards)
+        create_reward_record::handler(ctx, merkle_roots, total_rewards, total_usdc_payout)
     }
 
     pub fn accrue_reward(
@@ -90,8 +92,16 @@ pub mod inference_staking {
         proof: Vec<[u8; 32]>,
         proof_path: Vec<bool>,
         reward_amount: u64,
+        usdc_amount: u64,
     ) -> Result<()> {
-        accrue_reward::handler(ctx, merkle_index, proof, proof_path, reward_amount)
+        accrue_reward::handler(
+            ctx,
+            merkle_index,
+            proof,
+            proof_path,
+            reward_amount,
+            usdc_amount,
+        )
     }
 
     pub fn close_staking_record(ctx: Context<CloseStakingRecord>) -> Result<()> {

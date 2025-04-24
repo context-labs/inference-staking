@@ -4,7 +4,7 @@
 solana config set --url localhost
 
 # Build the program
-anchor build
+anchor build -- --features test
 
 # Deploy the program to your local validator
 solana program deploy target/deploy/inference_staking.so --program-id target/deploy/inference_staking-keypair.json

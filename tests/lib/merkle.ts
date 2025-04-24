@@ -103,6 +103,7 @@ function fillAddresses(addresses: MerkleTreeAddressInput[]): void {
     addresses.push({
       address: PublicKey.default.toString(),
       amount: BigInt(0),
+      usdcAmount: BigInt(0),
     });
   }
 }
@@ -110,6 +111,7 @@ function fillAddresses(addresses: MerkleTreeAddressInput[]): void {
 export type MerkleTreeAddressInput = {
   address: string;
   amount: bigint;
+  usdcAmount: bigint;
 };
 
 function constructMerkleTree(
@@ -128,8 +130,8 @@ function constructMerkleTree(
 
   // Create the initial level of tree nodes by hashing each wallet and its token amount,
   // separated by a comma.
-  for (const { address, amount } of input) {
-    const data = encoder.encode(`${address},${amount}`);
+  for (const { address, amount, usdcAmount } of input) {
+    const data = encoder.encode(`${address},${amount},${usdcAmount}`);
     const hash = sha256(data);
     tree[0]?.push(hash);
   }
@@ -170,6 +172,7 @@ function getTreeRoot(tree: Uint8Array[][]): Uint8Array {
 export type GenerateMerkleProofInput = {
   address: string;
   amount: bigint;
+  usdcAmount: bigint;
   index: number;
   merkleTree: Uint8Array[][];
   skipChecksForTests?: boolean;
@@ -186,13 +189,14 @@ type GenerateMerkleProofOutput = {
 function generateMerkleProof({
   address,
   amount,
+  usdcAmount,
   index,
   merkleTree,
   // This allows us to construct deliberately invalid proofs for testing purposes.
   skipChecksForTests = false,
 }: GenerateMerkleProofInput): GenerateMerkleProofOutput {
   const encoder = new TextEncoder();
-  const data = encoder.encode(`${address},${amount}`);
+  const data = encoder.encode(`${address},${amount},${usdcAmount}`);
   const hash = sha256(data);
 
   // Verify that leaf node matches expected hash.
