@@ -7,19 +7,21 @@ use crate::state::OperatorPool;
 #[derive(Accounts)]
 pub struct UpdateOperatorPool<'info> {
     pub admin: Signer<'info>,
+
     #[account(
-      mut,
-      seeds = [
-        &operator_pool.pool_id.to_le_bytes(),
-        b"OperatorPool".as_ref()
-      ],
-      bump = operator_pool.bump,
-      has_one = admin,
+        mut,
+        seeds = [
+            &operator_pool.pool_id.to_le_bytes(),
+            b"OperatorPool".as_ref()
+        ],
+        bump = operator_pool.bump,
+        has_one = admin,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
+
     #[account(
-      token::mint = constants::USDC_MINT_PUBKEY,
-  )]
+        token::mint = constants::USDC_MINT_PUBKEY,
+    )]
     pub usdc_payout_destination: Option<Account<'info, TokenAccount>>,
 }
 
