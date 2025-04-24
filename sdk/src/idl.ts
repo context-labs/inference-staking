@@ -1445,6 +1445,11 @@ const _IDL = {
       name: "invalidUsdcPayoutDestination",
       msg: "Invalid USDC payout destination",
     },
+    {
+      code: 6019,
+      name: "epochMustBeFinalizing",
+      msg: "Epoch must be finalizing when creating reward record",
+    },
   ],
   types: [
     {

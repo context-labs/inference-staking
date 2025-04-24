@@ -28,6 +28,7 @@ describe("Reward creation and accrual tests", () => {
   const autoStakeFees = true;
   const commissionRateBps = 1500;
   const newCommissionRateBps = 0;
+  const isEpochFinalizing = false;
   const allowDelegation = true;
   const minOperatorShareBps = 0;
   const allowPoolCreation = true;
@@ -76,6 +77,7 @@ describe("Reward creation and accrual tests", () => {
 
     await program.methods
       .updatePoolOverview({
+        isEpochFinalizing,
         isStakingHalted,
         isWithdrawalHalted,
         allowPoolCreation,
