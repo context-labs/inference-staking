@@ -23,8 +23,8 @@ pub struct CreateRewardRecord<'info> {
     #[account(
         init,
         seeds = [
-          &(pool_overview.completed_reward_epoch + 1).to_le_bytes(),
-          b"RewardRecord".as_ref()
+            b"RewardRecord".as_ref(),
+            &(pool_overview.completed_reward_epoch + 1).to_le_bytes()
         ],
         bump,
         payer = payer,

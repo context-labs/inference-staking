@@ -9,13 +9,13 @@ pub struct ChangeOperatorAdmin<'info> {
     pub new_admin: Signer<'info>,
 
     #[account(
-      mut,
-      seeds = [
-        &operator_pool.pool_id.to_le_bytes(),
-        b"OperatorPool".as_ref()
-      ],
-      bump = operator_pool.bump,
-      has_one = admin,
+        mut,
+        seeds = [
+          b"OperatorPool".as_ref(),
+          &operator_pool.pool_id.to_le_bytes()
+        ],
+        bump = operator_pool.bump,
+        has_one = admin,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
 }

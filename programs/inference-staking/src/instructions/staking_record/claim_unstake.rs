@@ -18,7 +18,7 @@ pub struct ClaimUnstake<'info> {
 
     #[account(
         mut,
-        seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
+        seeds = [b"OperatorPool".as_ref(), &operator_pool.pool_id.to_le_bytes()],
         bump = operator_pool.bump,
         has_one = operator_staking_record,
     )]
@@ -27,9 +27,9 @@ pub struct ClaimUnstake<'info> {
     #[account(
         mut,
         seeds = [
-          operator_pool.key().as_ref(),
-          owner.key().as_ref(),
-          b"StakingRecord".as_ref()
+            b"StakingRecord".as_ref(),
+            operator_pool.key().as_ref(),
+            owner.key().as_ref(),
         ],
         bump,
         has_one = owner,
@@ -51,7 +51,7 @@ pub struct ClaimUnstake<'info> {
 
     #[account(
         mut,
-        seeds = [operator_pool.key().as_ref(), b"StakedToken".as_ref()],
+        seeds = [b"StakedToken".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
     pub staked_token_account: Box<Account<'info, TokenAccount>>,
@@ -116,8 +116,8 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
                 authority: ctx.accounts.operator_pool.to_account_info(),
             },
             &[&[
-                &operator_pool.pool_id.to_le_bytes(),
                 b"OperatorPool".as_ref(),
+                &operator_pool.pool_id.to_le_bytes(),
                 &[operator_pool.bump],
             ]],
         ),

@@ -17,8 +17,8 @@ pub struct AccrueReward<'info> {
 
     #[account(
         seeds = [
-          &reward_record.epoch.to_le_bytes(),
-          b"RewardRecord".as_ref()
+            b"RewardRecord".as_ref(),
+            &reward_record.epoch.to_le_bytes()
         ],
         bump,
         constraint = reward_record.epoch == operator_pool.reward_last_claimed_epoch + 1
@@ -27,7 +27,10 @@ pub struct AccrueReward<'info> {
 
     #[account(
         mut,
-        seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
+        seeds = [
+            b"OperatorPool".as_ref(),
+            &operator_pool.pool_id.to_le_bytes()
+        ],
         bump = operator_pool.bump,
         has_one = operator_staking_record,
     )]
@@ -62,14 +65,14 @@ pub struct AccrueReward<'info> {
 
     #[account(
         mut,
-        seeds = [operator_pool.key().as_ref(), b"StakedToken".as_ref()],
+        seeds = [b"StakedToken".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
     pub staked_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [operator_pool.key().as_ref(), b"FeeToken".as_ref()],
+        seeds = [b"FeeToken".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
     pub fee_token_account: Box<Account<'info, TokenAccount>>,

@@ -12,11 +12,15 @@ pub struct CloseStakingRecord<'info> {
     pub owner: Signer<'info>,
 
     #[account(
-      mut,
-      close = receiver,
-      seeds = [staking_record.operator_pool.as_ref(), owner.key().as_ref(), b"StakingRecord".as_ref()],
-      bump,
-      has_one = owner,
+        mut,
+        close = receiver,
+        seeds = [
+            b"StakingRecord".as_ref(),
+            staking_record.operator_pool.as_ref(),
+            owner.key().as_ref()
+        ],
+        bump,
+        has_one = owner,
     )]
     pub staking_record: Account<'info, StakingRecord>,
 

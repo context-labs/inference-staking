@@ -17,7 +17,7 @@ pub struct Stake<'info> {
 
     #[account(
         mut,
-        seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
+        seeds = [b"OperatorPool".as_ref(), &operator_pool.pool_id.to_le_bytes()],
         bump = operator_pool.bump,
         has_one = operator_staking_record,
     )]
@@ -26,9 +26,9 @@ pub struct Stake<'info> {
     #[account(
         mut,
         seeds = [
-          operator_pool.key().as_ref(),
-          owner.key().as_ref(),
-          b"StakingRecord".as_ref()
+            b"StakingRecord".as_ref(),
+            operator_pool.key().as_ref(),
+            owner.key().as_ref()
         ],
         bump,
         has_one = owner,
@@ -50,7 +50,7 @@ pub struct Stake<'info> {
 
     #[account(
         mut,
-        seeds = [operator_pool.key().as_ref(), b"StakedToken".as_ref()],
+        seeds = [b"StakedToken".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
     pub staked_token_account: Box<Account<'info, TokenAccount>>,

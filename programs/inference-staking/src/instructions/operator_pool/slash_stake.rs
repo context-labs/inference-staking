@@ -13,30 +13,30 @@ pub struct SlashStake<'info> {
     pub authority: Signer<'info>,
 
     #[account(
-      seeds = [b"PoolOverview".as_ref()],
-      bump = pool_overview.bump,
-      constraint = pool_overview.slashing_authorities.contains(authority.key)
+        seeds = [b"PoolOverview".as_ref()],
+        bump = pool_overview.bump,
+        constraint = pool_overview.slashing_authorities.contains(authority.key)
           @ ErrorCode::InvalidAuthority,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
 
     #[account(
-      mut,
-      seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
-      bump = operator_pool.bump,
+        mut,
+        seeds = [b"OperatorPool".as_ref(),&operator_pool.pool_id.to_le_bytes()],
+        bump = operator_pool.bump,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
 
     #[account(
-      mut,
-      address = operator_pool.operator_staking_record,
+        mut,
+        address = operator_pool.operator_staking_record,
     )]
     pub operator_staking_record: Account<'info, StakingRecord>,
 
     #[account(
-      mut,
-      seeds = [operator_pool.key().as_ref(), b"StakedToken".as_ref()],
-      bump,
+        mut,
+        seeds = [b"StakedToken".as_ref(), operator_pool.key().as_ref()],
+        bump,
     )]
     pub staked_token_account: Account<'info, TokenAccount>,
 

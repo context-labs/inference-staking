@@ -18,8 +18,8 @@ pub struct CreateOperatorPool<'info> {
     #[account(
         init,
         seeds = [
-          &(pool_overview.total_pools + 1).to_le_bytes(),
-          b"OperatorPool".as_ref()
+            b"OperatorPool".as_ref(),
+          &(pool_overview.total_pools + 1).to_le_bytes()
         ],
         bump,
         payer = payer,
@@ -30,9 +30,9 @@ pub struct CreateOperatorPool<'info> {
     #[account(
         init,
         seeds = [
+            b"StakingRecord".as_ref(),
           operator_pool.key().as_ref(),
-          admin.key().as_ref(),
-          b"StakingRecord".as_ref()
+          admin.key().as_ref()
         ],
         bump,
         payer = payer,
@@ -51,7 +51,7 @@ pub struct CreateOperatorPool<'info> {
 
     #[account(
         init,
-        seeds = [operator_pool.key().as_ref(), b"StakedToken".as_ref()],
+        seeds = [b"StakedToken".as_ref(), operator_pool.key().as_ref()],
         bump,
         payer = payer,
         token::mint = mint,
@@ -61,7 +61,7 @@ pub struct CreateOperatorPool<'info> {
 
     #[account(
         init,
-        seeds = [operator_pool.key().as_ref(), b"FeeToken".as_ref()],
+        seeds = [b"FeeToken".as_ref(), operator_pool.key().as_ref()],
         bump,
         payer = payer,
         token::mint = mint,
