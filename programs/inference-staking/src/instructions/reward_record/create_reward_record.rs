@@ -15,7 +15,7 @@ pub struct CreateRewardRecord<'info> {
         mut,
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
-        constraint = pool_overview.reward_distribution_authorities.contains(authority.key) 
+        constraint = pool_overview.reward_distribution_authorities.contains(authority.key)
             @ ErrorCode::InvalidAuthority,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
@@ -55,10 +55,7 @@ pub struct CreateRewardRecordArgs {
 }
 
 /// Instruction to setup a RewardRecord.
-pub fn handler(
-    ctx: Context<CreateRewardRecord>,
-    args: CreateRewardRecordArgs,
-) -> Result<()> {
+pub fn handler(ctx: Context<CreateRewardRecord>, args: CreateRewardRecordArgs) -> Result<()> {
     let CreateRewardRecordArgs {
         merkle_roots,
         total_rewards,
@@ -101,4 +98,3 @@ pub fn handler(
 
     Ok(())
 }
-

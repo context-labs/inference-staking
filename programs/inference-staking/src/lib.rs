@@ -22,7 +22,6 @@ pub mod inference_staking {
     /** -----------------------------------------------------------------------
      * PoolOverview Admin Instructions
      * ------------------------------------------------------------------------ */
-
     pub fn create_pool_overview(ctx: Context<CreatePoolOverview>) -> Result<()> {
         create_pool_overview::handler(ctx)
     }
@@ -44,7 +43,6 @@ pub mod inference_staking {
     /** -----------------------------------------------------------------------
      * Staking Instructions
      * ------------------------------------------------------------------------ */
-
     pub fn create_staking_record(ctx: Context<CreateStakingRecord>) -> Result<()> {
         create_staking_record::handler(ctx)
     }
@@ -72,7 +70,6 @@ pub mod inference_staking {
     /** -----------------------------------------------------------------------
      * Reward Distribution Instructions
      * ------------------------------------------------------------------------ */
-
     pub fn create_reward_record(
         ctx: Context<CreateRewardRecord>,
         args: CreateRewardRecordArgs,
@@ -94,7 +91,6 @@ pub mod inference_staking {
     /** -----------------------------------------------------------------------
      * OperatorPool Admin Instructions
      * ------------------------------------------------------------------------ */
-
     pub fn create_operator_pool(
         ctx: Context<CreateOperatorPool>,
         args: CreateOperatorPoolArgs,
@@ -128,7 +124,6 @@ pub mod inference_staking {
     /** -----------------------------------------------------------------------
      * Program Admin Security Instructions
      * ------------------------------------------------------------------------ */
-
     pub fn set_halt_status(ctx: Context<SetHaltStatus>, args: SetHaltStatusArgs) -> Result<()> {
         set_halt_status::handler(ctx, args)
     }

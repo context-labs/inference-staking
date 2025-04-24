@@ -133,12 +133,14 @@ describe("Additional tests for instruction constraints", () => {
   it("Fail to update PoolOverview authorities with invalid admin", async () => {
     try {
       await program.methods
-        .updatePoolOverviewAuthorities(
-          setup.poolOverviewAdminKp.publicKey,
-          [setup.poolOverviewAdminKp.publicKey],
-          [setup.haltAuthority1Kp.publicKey],
-          [setup.poolOverviewAdminKp.publicKey]
-        )
+        .updatePoolOverviewAuthorities({
+          newProgramAdmin: setup.poolOverviewAdminKp.publicKey,
+          newRewardDistributionAuthorities: [
+            setup.poolOverviewAdminKp.publicKey,
+          ],
+          newHaltAuthorities: [setup.haltAuthority1Kp.publicKey],
+          newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
+        })
         .accountsStrict({
           programAdmin: setup.poolOverviewAdminKp.publicKey,
           poolOverview: setup.poolOverview,
@@ -155,17 +157,32 @@ describe("Additional tests for instruction constraints", () => {
     try {
       await program.methods
         .updatePoolOverviewAuthorities(
-          setup.poolOverviewAdminKp.publicKey,
-          [setup.poolOverviewAdminKp.publicKey],
-          [
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-            PublicKey.unique(),
-          ],
-          [setup.poolOverviewAdminKp.publicKey]
+          {
+            newProgramAdmin: setup.poolOverviewAdminKp.publicKey,
+            newRewardDistributionAuthorities: [
+              setup.poolOverviewAdminKp.publicKey,
+            ],
+            newHaltAuthorities: [
+              PublicKey.unique(),
+              PublicKey.unique(),
+              PublicKey.unique(),
+              PublicKey.unique(),
+              PublicKey.unique(),
+              PublicKey.unique(),
+            ],
+            newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
+          }
+          // setup.poolOverviewAdminKp.publicKey,
+          // [setup.poolOverviewAdminKp.publicKey],
+          // [
+          //   PublicKey.unique(),
+          //   PublicKey.unique(),
+          //   PublicKey.unique(),
+          //   PublicKey.unique(),
+          //   PublicKey.unique(),
+          //   PublicKey.unique(),
+          // ],
+          // [setup.poolOverviewAdminKp.publicKey]
         )
         .accountsStrict({
           programAdmin: setup.signer1Kp.publicKey,
@@ -183,7 +200,11 @@ describe("Additional tests for instruction constraints", () => {
     try {
       // Expect failure as commission cannot exceed 100%.
       await program.methods
-        .createOperatorPool(autoStakeFees, 110_00, allowDelegation)
+        .createOperatorPool({
+          autoStakeFees,
+          commissionRateBps: 110_00,
+          allowDelegation,
+        })
         .accountsStrict({
           payer: setup.payer,
           admin: setup.signer1,

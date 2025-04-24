@@ -18,7 +18,7 @@ const TEST_PROGRAM_ID = new PublicKey(
   "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
 );
 
-const USDC_MINT_KEYPAIR = Keypair.fromSecretKey(
+const TEST_USDC_MINT_KEYPAIR = Keypair.fromSecretKey(
   new Uint8Array([
     179, 226, 235, 137, 212, 133, 83, 227, 197, 150, 39, 172, 72, 134, 146, 231,
     220, 198, 81, 152, 12, 117, 216, 195, 20, 82, 251, 130, 193, 30, 63, 168,
@@ -101,7 +101,7 @@ export async function setupTests() {
     signer1Kp.publicKey,
     signer1Kp.publicKey,
     6,
-    USDC_MINT_KEYPAIR
+    TEST_USDC_MINT_KEYPAIR
   );
 
   await confirmTransaction(

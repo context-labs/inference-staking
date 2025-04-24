@@ -31,8 +31,8 @@ pub struct WithdrawOperatorCommission<'info> {
       bump,
     )]
     pub fee_token_account: Account<'info, TokenAccount>,
-    /// Destination for the commission.
 
+    /// Destination for the commission.
     #[account(mut)]
     pub destination: Account<'info, TokenAccount>,
 

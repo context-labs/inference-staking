@@ -61,12 +61,12 @@ describe("Test Reward Creation and Accrual", () => {
       .rpc();
 
     await program.methods
-      .updatePoolOverviewAuthorities(
-        setup.poolOverviewAdminKp.publicKey,
-        [setup.poolOverviewAdminKp.publicKey],
-        [setup.haltAuthority1Kp.publicKey],
-        [setup.poolOverviewAdminKp.publicKey]
-      )
+      .updatePoolOverviewAuthorities({
+        newProgramAdmin: setup.poolOverviewAdminKp.publicKey,
+        newRewardDistributionAuthorities: [setup.poolOverviewAdminKp.publicKey],
+        newHaltAuthorities: [setup.haltAuthority1Kp.publicKey],
+        newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
@@ -91,7 +91,11 @@ describe("Test Reward Creation and Accrual", () => {
       .rpc();
 
     await program.methods
-      .createOperatorPool(autoStakeFees, commissionRateBps, allowDelegation)
+      .createOperatorPool({
+        autoStakeFees,
+        commissionRateBps,
+        allowDelegation,
+      })
       .accountsStrict({
         payer: setup.payer,
         admin: setup.signer1,
@@ -176,7 +180,11 @@ describe("Test Reward Creation and Accrual", () => {
   it("Fail to create future RewardRecord", async () => {
     try {
       await program.methods
-        .createRewardRecord([], new anchor.BN(0), new anchor.BN(0))
+        .createRewardRecord({
+          merkleRoots: [],
+          totalRewards: new anchor.BN(0),
+          totalUsdcPayout: new anchor.BN(0),
+        })
         .accountsStrict({
           payer: setup.payer,
           authority: setup.poolOverviewAdminKp.publicKey,
@@ -197,7 +205,11 @@ describe("Test Reward Creation and Accrual", () => {
   it("Create RewardRecord 1 successfully", async () => {
     // Create an empty record with no rewards.
     await program.methods
-      .createRewardRecord([], new anchor.BN(0), new anchor.BN(0))
+      .createRewardRecord({
+        merkleRoots: [],
+        totalRewards: new anchor.BN(0),
+        totalUsdcPayout: new anchor.BN(0),
+      })
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
@@ -214,7 +226,11 @@ describe("Test Reward Creation and Accrual", () => {
   it("Fail to create RewardRecord 1 again", async () => {
     try {
       await program.methods
-        .createRewardRecord([], new anchor.BN(0), new anchor.BN(0))
+        .createRewardRecord({
+          merkleRoots: [],
+          totalRewards: new anchor.BN(0),
+          totalUsdcPayout: new anchor.BN(0),
+        })
         .accountsStrict({
           payer: setup.payer,
           authority: setup.poolOverviewAdminKp.publicKey,
@@ -235,7 +251,11 @@ describe("Test Reward Creation and Accrual", () => {
   it("Fail to create RewardRecord with insufficient tokens", async () => {
     try {
       await program.methods
-        .createRewardRecord([], new anchor.BN(100_000), new anchor.BN(0))
+        .createRewardRecord({
+          merkleRoots: [],
+          totalRewards: new anchor.BN(100_000),
+          totalUsdcPayout: new anchor.BN(0),
+        })
         .accountsStrict({
           payer: setup.payer,
           authority: setup.poolOverviewAdminKp.publicKey,
@@ -269,7 +289,11 @@ describe("Test Reward Creation and Accrual", () => {
     // Should fail with insufficient rewards.
     try {
       await program.methods
-        .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
+        .createRewardRecord({
+          merkleRoots,
+          totalRewards,
+          totalUsdcPayout: new anchor.BN(0),
+        })
         .accountsStrict({
           payer: setup.payer,
           authority: setup.poolOverviewAdminKp.publicKey,
@@ -298,7 +322,11 @@ describe("Test Reward Creation and Accrual", () => {
 
     try {
       await program.methods
-        .createRewardRecord(merkleRoots, totalRewards, totalUSDC)
+        .createRewardRecord({
+          merkleRoots,
+          totalRewards,
+          totalUsdcPayout: totalUSDC,
+        })
         .accountsStrict({
           payer: setup.payer,
           authority: setup.poolOverviewAdminKp.publicKey,
@@ -327,7 +355,11 @@ describe("Test Reward Creation and Accrual", () => {
 
     // Should succeed with sufficient rewards.
     await program.methods
-      .createRewardRecord(merkleRoots, totalRewards, totalUSDC)
+      .createRewardRecord({
+        merkleRoots,
+        totalRewards,
+        totalUsdcPayout: totalUSDC,
+      })
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
@@ -377,7 +409,11 @@ describe("Test Reward Creation and Accrual", () => {
     );
 
     await program.methods
-      .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
+      .createRewardRecord({
+        merkleRoots,
+        totalRewards,
+        totalUsdcPayout: new anchor.BN(0),
+      })
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
@@ -419,13 +455,13 @@ describe("Test Reward Creation and Accrual", () => {
 
     try {
       await program.methods
-        .accrueReward(
-          treeIndex,
-          proof.map((arr) => Array.from(arr)),
+        .accrueReward({
+          merkleIndex: treeIndex,
+          proof: proof.map((arr) => Array.from(arr)),
           proofPath,
-          new anchor.BN(proofInputs.amount.toString()),
-          new anchor.BN(proofInputs.usdcAmount.toString())
-        )
+          rewardAmount: new anchor.BN(proofInputs.amount.toString()),
+          usdcAmount: new anchor.BN(proofInputs.usdcAmount.toString()),
+        })
         .accountsStrict({
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[3],
@@ -471,17 +507,17 @@ describe("Test Reward Creation and Accrual", () => {
     try {
       // Use proof and proof path for a different node
       await program.methods
-        .accrueReward(
-          0,
-          invalidProof.map((arr) => Array.from(arr)),
-          invalidProofPath,
-          new anchor.BN(
+        .accrueReward({
+          merkleIndex: 0,
+          proof: invalidProof.map((arr) => Array.from(arr)),
+          proofPath: invalidProofPath,
+          rewardAmount: new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
           ),
-          new anchor.BN(
+          usdcAmount: new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.usdcAmount.toString() ?? "0"
-          )
-        )
+          ),
+        })
         .accountsStrict({
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
@@ -503,17 +539,17 @@ describe("Test Reward Creation and Accrual", () => {
     try {
       // Use proof and proof path with different lengths
       await program.methods
-        .accrueReward(
-          0,
-          validProof.map((arr) => Array.from(arr)),
-          validProofPath.concat(true),
-          new anchor.BN(
+        .accrueReward({
+          merkleIndex: 0,
+          proof: validProof.map((arr) => Array.from(arr)),
+          proofPath: validProofPath.concat(true),
+          rewardAmount: new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
           ),
-          new anchor.BN(
+          usdcAmount: new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.usdcAmount.toString() ?? "0"
-          )
-        )
+          ),
+        })
         .accountsStrict({
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
@@ -535,19 +571,19 @@ describe("Test Reward Creation and Accrual", () => {
     try {
       // Use a valid proof with an valid token amount
       await program.methods
-        .accrueReward(
-          0,
-          validProof.map((arr) => Array.from(arr)),
-          validProofPath,
-          new anchor.BN(
+        .accrueReward({
+          merkleIndex: 0,
+          proof: validProof.map((arr) => Array.from(arr)),
+          proofPath: validProofPath,
+          rewardAmount: new anchor.BN(
             (
               Number(setup.rewardEpochs[2][nodeIndex]?.amount ?? 0) + 1
             ).toString()
           ),
-          new anchor.BN(
+          usdcAmount: new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.usdcAmount.toString() ?? "0"
-          )
-        )
+          ),
+        })
         .accountsStrict({
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
@@ -569,19 +605,19 @@ describe("Test Reward Creation and Accrual", () => {
     try {
       // Use a valid proof with an invalid USDC amount
       await program.methods
-        .accrueReward(
-          0,
-          validProof.map((arr) => Array.from(arr)),
-          validProofPath,
-          new anchor.BN(
+        .accrueReward({
+          merkleIndex: 0,
+          proof: validProof.map((arr) => Array.from(arr)),
+          proofPath: validProofPath,
+          rewardAmount: new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
           ),
-          new anchor.BN(
+          usdcAmount: new anchor.BN(
             (
               Number(setup.rewardEpochs[2][nodeIndex]?.usdcAmount ?? 0) + 1
             ).toString()
-          )
-        )
+          ),
+        })
         .accountsStrict({
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
@@ -625,13 +661,13 @@ describe("Test Reward Creation and Accrual", () => {
     const rewardAmount = new anchor.BN(proofInputs.amount.toString());
     const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
     await program.methods
-      .accrueReward(
-        0,
-        proof.map((arr) => Array.from(arr)),
+      .accrueReward({
+        merkleIndex: 0,
+        proof: proof.map((arr) => Array.from(arr)),
         proofPath,
         rewardAmount,
-        usdcAmount
-      )
+        usdcAmount,
+      })
       .accountsStrict({
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
@@ -697,13 +733,13 @@ describe("Test Reward Creation and Accrual", () => {
       } as GenerateMerkleProofInput;
       const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
       await program.methods
-        .accrueReward(
-          0,
-          proof.map((arr) => Array.from(arr)),
+        .accrueReward({
+          merkleIndex: 0,
+          proof: proof.map((arr) => Array.from(arr)),
           proofPath,
-          new anchor.BN(proofInputs.amount.toString()),
-          new anchor.BN(proofInputs.usdcAmount.toString())
-        )
+          rewardAmount: new anchor.BN(proofInputs.amount.toString()),
+          usdcAmount: new anchor.BN(proofInputs.usdcAmount.toString()),
+        })
         .accountsStrict({
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
@@ -758,13 +794,13 @@ describe("Test Reward Creation and Accrual", () => {
     const rewardAmount = new anchor.BN(proofInputs.amount.toString());
     const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
     await program.methods
-      .accrueReward(
-        treeIndex,
-        proof.map((arr) => Array.from(arr)),
+      .accrueReward({
+        merkleIndex: treeIndex,
+        proof: proof.map((arr) => Array.from(arr)),
         proofPath,
         rewardAmount,
-        usdcAmount
-      )
+        usdcAmount,
+      })
       .accountsStrict({
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[3],
@@ -914,7 +950,11 @@ describe("Test Reward Creation and Accrual", () => {
     );
 
     await program.methods
-      .createRewardRecord(merkleRoots, totalRewards, totalUSDC)
+      .createRewardRecord({
+        merkleRoots,
+        totalRewards,
+        totalUsdcPayout: totalUSDC,
+      })
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
@@ -942,13 +982,13 @@ describe("Test Reward Creation and Accrual", () => {
     const rewardAmount = new anchor.BN(proofInputs.amount.toString());
     const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
     await program.methods
-      .accrueReward(
-        0,
-        proof.map((arr) => Array.from(arr)),
+      .accrueReward({
+        merkleIndex: 0,
+        proof: proof.map((arr) => Array.from(arr)),
         proofPath,
         rewardAmount,
-        usdcAmount
-      )
+        usdcAmount,
+      })
       .accountsStrict({
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[4],
@@ -995,7 +1035,11 @@ describe("Test Reward Creation and Accrual", () => {
     );
 
     await program.methods
-      .createRewardRecord(merkleRoots, totalRewards, new anchor.BN(0))
+      .createRewardRecord({
+        merkleRoots,
+        totalRewards,
+        totalUsdcPayout: new anchor.BN(0),
+      })
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
@@ -1022,13 +1066,13 @@ describe("Test Reward Creation and Accrual", () => {
       } as GenerateMerkleProofInput;
       const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
       await program.methods
-        .accrueReward(
-          0,
-          proof.map((arr) => Array.from(arr)),
+        .accrueReward({
+          merkleIndex: 0,
+          proof: proof.map((arr) => Array.from(arr)),
           proofPath,
-          new anchor.BN(proofInputs.amount.toString()),
-          new anchor.BN(proofInputs.usdcAmount.toString())
-        )
+          rewardAmount: new anchor.BN(proofInputs.amount.toString()),
+          usdcAmount: new anchor.BN(proofInputs.usdcAmount.toString()),
+        })
         .accountsStrict({
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[5],

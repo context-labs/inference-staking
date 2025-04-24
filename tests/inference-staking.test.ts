@@ -88,7 +88,11 @@ describe("inference-staking", () => {
   it("Fail to create OperatorPool when pool creation is disabled", async () => {
     try {
       await program.methods
-        .createOperatorPool(autoStakeFees, commissionRateBps, allowDelegation)
+        .createOperatorPool({
+          autoStakeFees,
+          commissionRateBps,
+          allowDelegation,
+        })
         .accountsStrict({
           payer: setup.payer,
           admin: setup.signer1,
@@ -153,7 +157,12 @@ describe("inference-staking", () => {
   it("Update partial PoolOverview authorities successfully", async () => {
     // Update only halt authorities
     await program.methods
-      .updatePoolOverviewAuthorities(null, null, [setup.user1], null)
+      .updatePoolOverviewAuthorities({
+        newProgramAdmin: null,
+        newRewardDistributionAuthorities: null,
+        newHaltAuthorities: [setup.user1],
+        newSlashingAuthorities: null,
+      })
       .accountsStrict({
         programAdmin: setup.signer1,
         poolOverview: setup.poolOverview,
@@ -173,12 +182,12 @@ describe("inference-staking", () => {
 
   it("Update PoolOverview authorities successfully", async () => {
     await program.methods
-      .updatePoolOverviewAuthorities(
-        setup.poolOverviewAdminKp.publicKey,
-        [setup.poolOverviewAdminKp.publicKey],
-        [setup.haltAuthority1Kp.publicKey],
-        [setup.poolOverviewAdminKp.publicKey]
-      )
+      .updatePoolOverviewAuthorities({
+        newProgramAdmin: setup.poolOverviewAdminKp.publicKey,
+        newRewardDistributionAuthorities: [setup.poolOverviewAdminKp.publicKey],
+        newHaltAuthorities: [setup.haltAuthority1Kp.publicKey],
+        newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
+      })
       .accountsStrict({
         programAdmin: setup.signer1,
         poolOverview: setup.poolOverview,
@@ -212,7 +221,11 @@ describe("inference-staking", () => {
 
   it("Create OperatorPool 1 successfully", async () => {
     await program.methods
-      .createOperatorPool(autoStakeFees, commissionRateBps, allowDelegation)
+      .createOperatorPool({
+        autoStakeFees,
+        commissionRateBps,
+        allowDelegation,
+      })
       .accountsStrict({
         payer: setup.payer,
         admin: setup.signer1,
@@ -1070,7 +1083,11 @@ describe("inference-staking", () => {
   it("Fail to create RewardRecord with invalid authority", async () => {
     try {
       await program.methods
-        .createRewardRecord([], new anchor.BN(0), new anchor.BN(0))
+        .createRewardRecord({
+          merkleRoots: [],
+          totalRewards: new anchor.BN(0),
+          totalUsdcPayout: new anchor.BN(0),
+        })
         .accountsStrict({
           payer: setup.payer,
           authority: setup.signer1Kp.publicKey,
@@ -1091,7 +1108,11 @@ describe("inference-staking", () => {
   it("Create RewardRecord 1 successfully", async () => {
     // Create an empty record with no rewards.
     await program.methods
-      .createRewardRecord([], new anchor.BN(0), new anchor.BN(0))
+      .createRewardRecord({
+        merkleRoots: [],
+        totalRewards: new anchor.BN(0),
+        totalUsdcPayout: new anchor.BN(0),
+      })
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
@@ -1138,7 +1159,11 @@ describe("inference-staking", () => {
 
     // Create a record for epoch 2 with rewards for Operator 1 to 4.
     await program.methods
-      .createRewardRecord(merkleRoots, totalRewards, totalUsdcAmount)
+      .createRewardRecord({
+        merkleRoots,
+        totalRewards,
+        totalUsdcPayout: totalUsdcAmount,
+      })
       .accountsStrict({
         payer: setup.payer,
         authority: setup.poolOverviewAdminKp.publicKey,
@@ -1166,7 +1191,11 @@ describe("inference-staking", () => {
 
   it("Create OperatorPool 2 successfully", async () => {
     await program.methods
-      .createOperatorPool(autoStakeFees, commissionRateBps, allowDelegation)
+      .createOperatorPool({
+        autoStakeFees,
+        commissionRateBps,
+        allowDelegation,
+      })
       .accountsStrict({
         payer: setup.payer,
         admin: setup.signer2,
@@ -1434,13 +1463,13 @@ describe("inference-staking", () => {
     });
 
     await program.methods
-      .accrueReward(
-        0,
-        proof.map((arr) => Array.from(arr)),
+      .accrueReward({
+        merkleIndex: 0,
+        proof: proof.map((arr) => Array.from(arr)),
         proofPath,
         rewardAmount,
-        usdcAmount
-      )
+        usdcAmount,
+      })
       .accountsStrict({
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
