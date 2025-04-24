@@ -503,28 +503,29 @@ describe("inference-staking", () => {
     );
     const stakeAmount = new anchor.BN(150_000);
 
-    let listenerId: number | null = null;
-    const event: StakeEvent = await new Promise<StakeEvent>((res) => {
-      listenerId = program.addEventListener("stakeEvent", (event) => {
-        res(event);
+    const eventPromise = new Promise<StakeEvent>((resolve) => {
+      const listenerId = program.addEventListener("stakeEvent", (event) => {
+        void program.removeEventListener(listenerId);
+        resolve(event);
       });
-      void program.methods
-        .stake(stakeAmount)
-        .accountsStrict({
-          owner: setup.signer1,
-          poolOverview: setup.poolOverview,
-          operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.signer1Record,
-          operatorStakingRecord: setup.pool1.signer1Record,
-          stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          ownerTokenAccount,
-        })
-        .signers([setup.signer1Kp])
-        .rpc();
     });
-    // @ts-expect-error - ignore
-    await program.removeEventListener(listenerId);
+
+    await program.methods
+      .stake(stakeAmount)
+      .accountsStrict({
+        owner: setup.signer1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        ownerTokenAccount,
+      })
+      .signers([setup.signer1Kp])
+      .rpc();
+
+    const event = await eventPromise;
 
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
@@ -838,25 +839,26 @@ describe("inference-staking", () => {
     );
 
     // Expect unstaking to be successful even when operator falls below min. share.
-    let listenerId: number;
-    const event: UnstakeEvent = await new Promise((res) => {
-      listenerId = program.addEventListener("unstakeEvent", (event) => {
-        res(event);
+    const eventPromise = new Promise<UnstakeEvent>((resolve) => {
+      const listenerId = program.addEventListener("unstakeEvent", (event) => {
+        void program.removeEventListener(listenerId);
+        resolve(event);
       });
-      void program.methods
-        .unstake(unstakeAmount)
-        .accountsStrict({
-          owner: setup.user1,
-          poolOverview: setup.poolOverview,
-          operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user1Record,
-          operatorStakingRecord: setup.pool1.signer1Record,
-        })
-        .signers([setup.user1Kp])
-        .rpc();
     });
-    // @ts-expect-error - ignore
-    await program.removeEventListener(listenerId);
+
+    await program.methods
+      .unstake(unstakeAmount)
+      .accountsStrict({
+        owner: setup.user1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.user1Record,
+        operatorStakingRecord: setup.pool1.signer1Record,
+      })
+      .signers([setup.user1Kp])
+      .rpc();
+
+    const event = await eventPromise;
 
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
