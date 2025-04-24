@@ -20,7 +20,7 @@ import type { SetupTestResult } from "@tests/lib/setup";
 import { setupTests } from "@tests/lib/setup";
 import { assertError, assertStakingProgramError } from "@tests/lib/utils";
 
-describe("Test Reward Creation and Accrual", () => {
+describe("Reward creation and accrual tests", () => {
   let setup: SetupTestResult;
   let connection: Connection;
   let program: anchor.Program<InferenceStaking>;

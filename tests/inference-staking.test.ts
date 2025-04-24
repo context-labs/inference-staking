@@ -29,7 +29,7 @@ import {
   sleep,
 } from "@tests/lib/utils";
 
-describe("inference-staking", () => {
+describe("inference-staking program tests", () => {
   let setup: SetupTestResult;
   let connection: Connection;
   let program: Program<InferenceStaking>;
