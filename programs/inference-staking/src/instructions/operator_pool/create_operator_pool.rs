@@ -111,6 +111,12 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.allow_delegation = allow_delegation;
     operator_pool.usdc_payout_destination = ctx.accounts.usdc_payout_destination.key();
 
+    // The reward_last_claimed_epoch is initialized conditionally like this to avoid
+    // the edge case where an operator joins during reward finalization for an epoch,
+    // and is not included in the reward distribution. This would leave them "stranded"
+    // in the epoch they joined, which is why we bump their epoch to the next one here
+    // if the epoch is currently finalizing. This requires us to always initiate the
+    // epoch finalization process first, before calculating the reward distribution.
     match pool_overview.is_epoch_finalizing {
         true => {
             operator_pool.reward_last_claimed_epoch =
