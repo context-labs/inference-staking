@@ -7,11 +7,13 @@ use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 #[derive(Accounts)]
 pub struct Unstake<'info> {
     pub owner: Signer<'info>,
+
     #[account(
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
+
     #[account(
         mut,
         seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
@@ -19,6 +21,7 @@ pub struct Unstake<'info> {
         has_one = operator_staking_record,
     )]
     pub operator_pool: Box<Account<'info, OperatorPool>>,
+
     #[account(
         mut,
         seeds = [
@@ -31,6 +34,7 @@ pub struct Unstake<'info> {
         has_one = operator_pool,
     )]
     pub owner_staking_record: Box<Account<'info, StakingRecord>>,
+
     #[account(
         address = operator_pool.operator_staking_record,
     )]

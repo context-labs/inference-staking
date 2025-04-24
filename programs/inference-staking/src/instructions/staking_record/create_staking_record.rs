@@ -6,12 +6,15 @@ use crate::state::{OperatorPool, StakingRecord};
 pub struct CreateStakingRecord<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
+
     pub owner: Signer<'info>,
+
     #[account(
         seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
         bump,
     )]
     pub operator_pool: Box<Account<'info, OperatorPool>>,
+
     #[account(
         init,
         seeds = [
@@ -24,6 +27,7 @@ pub struct CreateStakingRecord<'info> {
         space = 8 + StakingRecord::INIT_SPACE
     )]
     pub staking_record: Box<Account<'info, StakingRecord>>,
+
     pub system_program: Program<'info, System>,
 }
 

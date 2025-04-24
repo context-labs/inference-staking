@@ -6,9 +6,12 @@ use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 #[derive(Accounts)]
 pub struct CancelUnstake<'info> {
     pub owner: Signer<'info>,
+
     pub pool_overview: Box<Account<'info, PoolOverview>>,
+
     #[account(mut)]
     pub operator_pool: Box<Account<'info, OperatorPool>>,
+
     #[account(
         mut,
         has_one = owner,

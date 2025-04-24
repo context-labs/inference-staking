@@ -8,11 +8,13 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 #[derive(Accounts)]
 pub struct Stake<'info> {
     pub owner: Signer<'info>,
+
     #[account(
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
+
     #[account(
         mut,
         seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
@@ -20,6 +22,7 @@ pub struct Stake<'info> {
         has_one = operator_staking_record,
     )]
     pub operator_pool: Box<Account<'info, OperatorPool>>,
+
     #[account(
         mut,
         seeds = [
@@ -32,22 +35,26 @@ pub struct Stake<'info> {
         has_one = operator_pool,
     )]
     pub owner_staking_record: Box<Account<'info, StakingRecord>>,
+
     #[account(
         address = operator_pool.operator_staking_record,
     )]
     pub operator_staking_record: Box<Account<'info, StakingRecord>>,
+
     #[account(
         mut,
         token::mint = staked_token_account.mint,
         token::authority = owner
     )]
     pub owner_token_account: Box<Account<'info, TokenAccount>>,
+
     #[account(
         mut,
         seeds = [operator_pool.key().as_ref(), b"StakedToken".as_ref()],
         bump,
     )]
     pub staked_token_account: Box<Account<'info, TokenAccount>>,
+
     pub token_program: Program<'info, Token>,
 }
 

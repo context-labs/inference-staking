@@ -8,7 +8,9 @@ pub struct CloseStakingRecord<'info> {
     /// CHECK: not needed as owner is checked
     #[account(mut)]
     pub receiver: UncheckedAccount<'info>,
+
     pub owner: Signer<'info>,
+
     #[account(
       mut,
       close = receiver,
@@ -17,6 +19,7 @@ pub struct CloseStakingRecord<'info> {
       has_one = owner,
     )]
     pub staking_record: Account<'info, StakingRecord>,
+
     pub system_program: Program<'info, System>,
 }
 

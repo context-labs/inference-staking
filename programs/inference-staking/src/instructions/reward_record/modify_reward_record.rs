@@ -6,6 +6,7 @@ use crate::state::{PoolOverview, RewardRecord};
 #[derive(Accounts)]
 pub struct ModifyRewardRecord<'info> {
     pub authority: Signer<'info>,
+    
     #[account(
       seeds = [b"PoolOverview"],
       bump = pool_overview.bump,
@@ -13,6 +14,7 @@ pub struct ModifyRewardRecord<'info> {
           @ ErrorCode::InvalidAuthority,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
+    
     #[account(
       mut,
       seeds = [&reward_record.epoch.to_le_bytes(), b"RewardRecord"],

@@ -8,6 +8,7 @@ use crate::{
 #[derive(Accounts)]
 pub struct SetHaltStatus<'info> {
     pub authority: Signer<'info>,
+
     #[account(
       seeds = [b"PoolOverview".as_ref()],
       bump = pool_overview.bump,
@@ -15,6 +16,7 @@ pub struct SetHaltStatus<'info> {
           @ ErrorCode::InvalidAuthority,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
+
     #[account(
       mut,
       seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],

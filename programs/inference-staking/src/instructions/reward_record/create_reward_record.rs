@@ -8,7 +8,9 @@ use crate::state::{PoolOverview, RewardRecord};
 pub struct CreateRewardRecord<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
+
     pub authority: Signer<'info>,
+
     #[account(
         mut,
         seeds = [b"PoolOverview".as_ref()],
@@ -17,6 +19,7 @@ pub struct CreateRewardRecord<'info> {
             @ ErrorCode::InvalidAuthority,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
+
     #[account(
         init,
         seeds = [
@@ -28,16 +31,19 @@ pub struct CreateRewardRecord<'info> {
         space = 8 + RewardRecord::INIT_SPACE
     )]
     pub reward_record: Box<Account<'info, RewardRecord>>,
+
     #[account(
         seeds = [b"RewardToken".as_ref()],
         bump,
     )]
     pub reward_token_account: Box<Account<'info, TokenAccount>>,
+
     #[account(
         seeds = [b"USDC".as_ref()],
         bump,
     )]
     pub usdc_token_account: Box<Account<'info, TokenAccount>>,
+
     pub system_program: Program<'info, System>,
 }
 

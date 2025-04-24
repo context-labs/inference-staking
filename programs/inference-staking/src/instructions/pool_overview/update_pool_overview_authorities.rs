@@ -5,6 +5,7 @@ use crate::{error::ErrorCode, PoolOverview};
 #[derive(Accounts)]
 pub struct UpdatePoolOverviewAuthorities<'info> {
     pub program_admin: Signer<'info>,
+
     #[account(
         mut,
         seeds = [b"PoolOverview".as_ref()],
