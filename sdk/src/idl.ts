@@ -2013,12 +2013,16 @@ const _IDL = {
           {
             name: "allowDelegation",
             docs: ["Allow delegation from stakers that are not the Operator"],
-            type: "bool",
+            type: {
+              option: "bool",
+            },
           },
           {
             name: "autoStakeFees",
             docs: ["Auto stake operator fees"],
-            type: "bool",
+            type: {
+              option: "bool",
+            },
           },
         ],
       },

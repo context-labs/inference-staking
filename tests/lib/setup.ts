@@ -109,6 +109,20 @@ export async function setupTests() {
     await createAndMintToAta(payerKp, usdcTokenMint)
   );
 
+  const invalidUsdcTokenMint = await createMint(
+    provider.connection,
+    payerKp,
+    signer1Kp.publicKey,
+    signer1Kp.publicKey,
+    6,
+    Keypair.generate()
+  );
+
+  await confirmTransaction(
+    provider.connection,
+    await createAndMintToAta(payerKp, invalidUsdcTokenMint)
+  );
+
   const poolOverview = sdk.poolOverviewPda();
   const rewardTokenAccount = sdk.rewardTokenPda();
   const usdcTokenAccount = sdk.usdcTokenPda();
@@ -136,7 +150,7 @@ export async function setupTests() {
     pool: operatorPool2,
     stakedTokenAccount: sdk.stakedTokenPda(operatorPool2),
     feeTokenAccount: sdk.feeTokenPda(operatorPool2),
-    signer1Record: sdk.stakingRecordPda(operatorPool2, signer1Kp.publicKey),
+    signer2Record: sdk.stakingRecordPda(operatorPool2, signer2Kp.publicKey),
     usdcTokenAccount: signer1UsdcTokenAccount.address,
   };
   const pool3 = {
@@ -209,5 +223,6 @@ export async function setupTests() {
     rewardEpochs,
     usdcTokenMint,
     usdcTokenAccount,
+    invalidUsdcTokenMint,
   };
 }
