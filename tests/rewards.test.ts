@@ -14,7 +14,7 @@ import type { InferenceStaking } from "@sdk/src/idl";
 import { MerkleUtils } from "@tests/lib/merkle";
 import type {
   GenerateMerkleProofInput,
-  MerkleTreeAddressInput,
+  ConstructMerkleTreeInput,
 } from "@tests/lib/merkle";
 import type { SetupTestResult } from "@tests/lib/setup";
 import { setupTests } from "@tests/lib/setup";
@@ -37,7 +37,7 @@ describe("Reward creation and accrual tests", () => {
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
 
   let merkleTree4: Uint8Array[][];
-  const rewardInputs4: MerkleTreeAddressInput[] = [];
+  const rewardInputs4: ConstructMerkleTreeInput[] = [];
 
   before(async () => {
     setup = await setupTests();
@@ -279,7 +279,7 @@ describe("Reward creation and accrual tests", () => {
     const merkleRoots = [Array.from(root)];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(Number(addressInput.amount));
+      totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
     }
     let totalUSDC = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
@@ -395,7 +395,7 @@ describe("Reward creation and accrual tests", () => {
     ];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(Number(addressInput.amount));
+      totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
     }
 
     // Fund rewardTokenAccount
@@ -459,7 +459,7 @@ describe("Reward creation and accrual tests", () => {
           merkleIndex: treeIndex,
           proof: proof.map((arr) => Array.from(arr)),
           proofPath,
-          rewardAmount: new anchor.BN(proofInputs.amount.toString()),
+          rewardAmount: new anchor.BN(proofInputs.tokenAmount.toString()),
           usdcAmount: new anchor.BN(proofInputs.usdcAmount.toString()),
         })
         .accountsStrict({
@@ -512,7 +512,7 @@ describe("Reward creation and accrual tests", () => {
           proof: invalidProof.map((arr) => Array.from(arr)),
           proofPath: invalidProofPath,
           rewardAmount: new anchor.BN(
-            setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
+            setup.rewardEpochs[2][nodeIndex]?.tokenAmount.toString() ?? "0"
           ),
           usdcAmount: new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.usdcAmount.toString() ?? "0"
@@ -544,7 +544,7 @@ describe("Reward creation and accrual tests", () => {
           proof: validProof.map((arr) => Array.from(arr)),
           proofPath: validProofPath.concat(true),
           rewardAmount: new anchor.BN(
-            setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
+            setup.rewardEpochs[2][nodeIndex]?.tokenAmount.toString() ?? "0"
           ),
           usdcAmount: new anchor.BN(
             setup.rewardEpochs[2][nodeIndex]?.usdcAmount.toString() ?? "0"
@@ -577,7 +577,7 @@ describe("Reward creation and accrual tests", () => {
           proofPath: validProofPath,
           rewardAmount: new anchor.BN(
             (
-              Number(setup.rewardEpochs[2][nodeIndex]?.amount ?? 0) + 1
+              Number(setup.rewardEpochs[2][nodeIndex]?.tokenAmount ?? 0) + 1
             ).toString()
           ),
           usdcAmount: new anchor.BN(
@@ -610,7 +610,7 @@ describe("Reward creation and accrual tests", () => {
           proof: validProof.map((arr) => Array.from(arr)),
           proofPath: validProofPath,
           rewardAmount: new anchor.BN(
-            setup.rewardEpochs[2][nodeIndex]?.amount.toString() ?? "0"
+            setup.rewardEpochs[2][nodeIndex]?.tokenAmount.toString() ?? "0"
           ),
           usdcAmount: new anchor.BN(
             (
@@ -658,7 +658,7 @@ describe("Reward creation and accrual tests", () => {
       setup.pool1.usdcTokenAccount
     );
 
-    const rewardAmount = new anchor.BN(proofInputs.amount.toString());
+    const rewardAmount = new anchor.BN(proofInputs.tokenAmount.toString());
     const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
     await program.methods
       .accrueReward({
@@ -737,7 +737,7 @@ describe("Reward creation and accrual tests", () => {
           merkleIndex: 0,
           proof: proof.map((arr) => Array.from(arr)),
           proofPath,
-          rewardAmount: new anchor.BN(proofInputs.amount.toString()),
+          rewardAmount: new anchor.BN(proofInputs.tokenAmount.toString()),
           usdcAmount: new anchor.BN(proofInputs.usdcAmount.toString()),
         })
         .accountsStrict({
@@ -791,7 +791,7 @@ describe("Reward creation and accrual tests", () => {
       setup.pool1.usdcTokenAccount
     );
 
-    const rewardAmount = new anchor.BN(proofInputs.amount.toString());
+    const rewardAmount = new anchor.BN(proofInputs.tokenAmount.toString());
     const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
     await program.methods
       .accrueReward({
@@ -912,7 +912,7 @@ describe("Reward creation and accrual tests", () => {
     for (let i = 0; i <= 500000; i++) {
       rewardInputs4.push({
         address: PublicKey.unique().toString(),
-        amount: BigInt(i * 100),
+        tokenAmount: BigInt(i * 100),
         usdcAmount: BigInt(i * 100),
       });
       totalRewards = totalRewards.addn(i * 100);
@@ -922,7 +922,7 @@ describe("Reward creation and accrual tests", () => {
     // Add OperatorPool 1 as a recipient.
     rewardInputs4.push({
       address: setup.pool1.pool.toString(),
-      amount: BigInt(10000),
+      tokenAmount: BigInt(10000),
       usdcAmount: BigInt(50),
     });
     rewardInputs4.sort((a, b) => a.address.localeCompare(b.address));
@@ -979,7 +979,7 @@ describe("Reward creation and accrual tests", () => {
     } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
-    const rewardAmount = new anchor.BN(proofInputs.amount.toString());
+    const rewardAmount = new anchor.BN(proofInputs.tokenAmount.toString());
     const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
     await program.methods
       .accrueReward({
@@ -1021,7 +1021,7 @@ describe("Reward creation and accrual tests", () => {
     const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(Number(addressInput.amount));
+      totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
     }
 
     // Fund rewardTokenAccount
@@ -1070,7 +1070,7 @@ describe("Reward creation and accrual tests", () => {
           merkleIndex: 0,
           proof: proof.map((arr) => Array.from(arr)),
           proofPath,
-          rewardAmount: new anchor.BN(proofInputs.amount.toString()),
+          rewardAmount: new anchor.BN(proofInputs.tokenAmount.toString()),
           usdcAmount: new anchor.BN(proofInputs.usdcAmount.toString()),
         })
         .accountsStrict({

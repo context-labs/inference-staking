@@ -58,23 +58,26 @@ function areRootsEqual(root1: Uint8Array, root2: Uint8Array): boolean {
 }
 
 function sortAddressList(
-  addresses: MerkleTreeAddressInput[]
-): MerkleTreeAddressInput[] {
+  addresses: ConstructMerkleTreeInput[]
+): ConstructMerkleTreeInput[] {
   return addresses.slice().sort((a, b) => a.address.localeCompare(b.address));
 }
 
 // Check that input addresses and amounts are of valid type and length.
-function validateInputs(addresses: MerkleTreeAddressInput[]) {
+function validateInputs(addresses: ConstructMerkleTreeInput[]) {
   if (addresses.length == 0) {
     throw new Error("Addresses length cannot be zero");
   }
 
-  for (const { address, amount } of addresses) {
+  for (const { address, tokenAmount, usdcAmount } of addresses) {
     if (!isValidPublicKey(address)) {
       throw new Error(`${address} is not a valid wallet pubkey`);
     }
-    if (typeof amount !== "bigint") {
-      throw new Error(`${String(amount)} is not a BigInt`);
+    if (typeof tokenAmount !== "bigint") {
+      throw new Error(`tokenAmount ${String(tokenAmount)} is not a BigInt`);
+    }
+    if (typeof usdcAmount !== "bigint") {
+      throw new Error(`usdcAmount ${String(usdcAmount)} is not a BigInt`);
     }
   }
 
@@ -95,27 +98,36 @@ function validateInputs(addresses: MerkleTreeAddressInput[]) {
 
 // Fill the list of addresses to the next power of 2 (2^N) length with dummy addresses
 // (using the system default address with an amount of 0) so a complete binary tree can be built.
-function fillAddresses(addresses: MerkleTreeAddressInput[]): void {
+function fillAddresses(addresses: ConstructMerkleTreeInput[]): void {
   const curLength = addresses.length;
   const lenWithPadding = Math.pow(2, Math.ceil(Math.log2(addresses.length)));
 
   for (let i = curLength; i < lenWithPadding; i++) {
     addresses.push({
       address: PublicKey.default.toString(),
-      amount: BigInt(0),
+      tokenAmount: BigInt(0),
       usdcAmount: BigInt(0),
     });
   }
 }
 
-export type MerkleTreeAddressInput = {
+function formatLeaf(input: ConstructMerkleTreeInput): string {
+  const { address, tokenAmount, usdcAmount } = input;
+  return `${address},${tokenAmount},${usdcAmount}`;
+}
+
+// Token and USDC amounts are included here for simplicity even though they are
+// not used in our airdrop program, because these utils are shared with our
+// staking program. Requiring both is less error-prone. The USDC amount should
+// be defaulted to zero in the airdrop program.
+export type ConstructMerkleTreeInput = {
   address: string;
-  amount: bigint;
+  tokenAmount: bigint;
   usdcAmount: bigint;
 };
 
 function constructMerkleTree(
-  initialInput: MerkleTreeAddressInput[]
+  initialInput: ConstructMerkleTreeInput[]
 ): Uint8Array[][] {
   const input = initialInput.slice();
   validateInputs(input);
@@ -130,8 +142,8 @@ function constructMerkleTree(
 
   // Create the initial level of tree nodes by hashing each wallet and its token amount,
   // separated by a comma.
-  for (const { address, amount, usdcAmount } of input) {
-    const data = encoder.encode(`${address},${amount},${usdcAmount}`);
+  for (const val of input) {
+    const data = encoder.encode(formatLeaf(val));
     const hash = sha256(data);
     tree[0]?.push(hash);
   }
@@ -171,7 +183,7 @@ function getTreeRoot(tree: Uint8Array[][]): Uint8Array {
 
 export type GenerateMerkleProofInput = {
   address: string;
-  amount: bigint;
+  tokenAmount: bigint;
   usdcAmount: bigint;
   index: number;
   merkleTree: Uint8Array[][];
@@ -188,7 +200,7 @@ type GenerateMerkleProofOutput = {
 // node, for each level from leaf to root-1.
 function generateMerkleProof({
   address,
-  amount,
+  tokenAmount,
   usdcAmount,
   index,
   merkleTree,
@@ -196,7 +208,7 @@ function generateMerkleProof({
   skipChecksForTests = false,
 }: GenerateMerkleProofInput): GenerateMerkleProofOutput {
   const encoder = new TextEncoder();
-  const data = encoder.encode(`${address},${amount},${usdcAmount}`);
+  const data = encoder.encode(formatLeaf({ address, tokenAmount, usdcAmount }));
   const hash = sha256(data);
 
   // Verify that leaf node matches expected hash.
