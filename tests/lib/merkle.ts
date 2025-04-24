@@ -207,6 +207,9 @@ function generateMerkleProof({
   // This allows us to construct deliberately invalid proofs for testing purposes.
   skipChecksForTests = false,
 }: GenerateMerkleProofInput): GenerateMerkleProofOutput {
+  if (index < 0) {
+    throw new Error(`Index is negative, received: ${index}`);
+  }
   const encoder = new TextEncoder();
   const data = encoder.encode(formatLeaf({ address, tokenAmount, usdcAmount }));
   const hash = sha256(data);

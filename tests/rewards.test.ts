@@ -18,7 +18,11 @@ import type {
 } from "@tests/lib/merkle";
 import type { SetupTestResult } from "@tests/lib/setup";
 import { setupTests } from "@tests/lib/setup";
-import { assertError, assertStakingProgramError } from "@tests/lib/utils";
+import {
+  assertError,
+  assertStakingProgramError,
+  setEpochFinalizationState,
+} from "@tests/lib/utils";
 
 describe("Reward creation and accrual tests", () => {
   let setup: SetupTestResult;
@@ -91,99 +95,17 @@ describe("Reward creation and accrual tests", () => {
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
-
-    await program.methods
-      .createOperatorPool({
-        autoStakeFees,
-        commissionRateBps,
-        allowDelegation,
-      })
-      .accountsStrict({
-        payer: setup.payer,
-        admin: setup.signer1,
-        operatorPool: setup.pool1.pool,
-        stakingRecord: setup.pool1.signer1Record,
-        stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
-        poolOverview: setup.poolOverview,
-        mint: setup.tokenMint,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-        usdcPayoutDestination: setup.pool1.usdcTokenAccount,
-      })
-      .signers([setup.payerKp, setup.signer1Kp])
-      .rpc();
-
-    const ownerTokenAccount = getAssociatedTokenAddressSync(
-      setup.tokenMint,
-      setup.signer1
-    );
-    await program.methods
-      .stake(new anchor.BN(150_000))
-      .accountsStrict({
-        owner: setup.signer1,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-        ownerStakingRecord: setup.pool1.signer1Record,
-        operatorStakingRecord: setup.pool1.signer1Record,
-        stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        ownerTokenAccount,
-      })
-      .signers([setup.signer1Kp])
-      .rpc();
-
-    await program.methods
-      .createStakingRecord()
-      .accountsStrict({
-        payer: setup.payer,
-        owner: setup.user1,
-        operatorPool: setup.pool1.pool,
-        stakingRecord: setup.pool1.user1Record,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([setup.payerKp, setup.user1Kp])
-      .rpc();
-
-    await program.methods
-      .stake(new anchor.BN(400_000))
-      .accountsStrict({
-        owner: setup.user1,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-        ownerStakingRecord: setup.pool1.user1Record,
-        operatorStakingRecord: setup.pool1.signer1Record,
-        stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        ownerTokenAccount: getAssociatedTokenAddressSync(
-          setup.tokenMint,
-          setup.user1
-        ),
-      })
-      .signers([setup.user1Kp])
-      .rpc();
-
-    // Change CommissionFeeBps
-    await program.methods
-      .updateOperatorPool({
-        newCommissionRateBps,
-        autoStakeFees: true,
-        allowDelegation: false,
-      })
-      .accountsStrict({
-        admin: setup.signer1,
-        operatorPool: setup.pool1.pool,
-        usdcPayoutDestination: null,
-      })
-      .signers([setup.signer1Kp])
-      .rpc();
   });
 
   it("Fail to create future RewardRecord", async () => {
     try {
+      const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+      const root = MerkleUtils.getTreeRoot(merkleTree);
+      const merkleRoots = [Array.from(root)];
+      await setEpochFinalizationState({ program, setup });
       await program.methods
         .createRewardRecord({
-          merkleRoots: [],
+          merkleRoots,
           totalRewards: new anchor.BN(0),
           totalUsdcPayout: new anchor.BN(0),
         })
@@ -201,11 +123,50 @@ describe("Reward creation and accrual tests", () => {
       assert(false);
     } catch (error) {
       assertError(error, "ConstraintSeeds");
+    } finally {
+      await setEpochFinalizationState({
+        program,
+        setup,
+        isEpochFinalizing: false,
+      });
+    }
+  });
+
+  it("Create RewardRecord should require amounts to be zero if no merkle roots are provided", async () => {
+    try {
+      await setEpochFinalizationState({ program, setup });
+      await program.methods
+        .createRewardRecord({
+          merkleRoots: [],
+          totalRewards: new anchor.BN(100),
+          totalUsdcPayout: new anchor.BN(100),
+        })
+        .accountsStrict({
+          payer: setup.payer,
+          authority: setup.poolOverviewAdminKp.publicKey,
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[1],
+          rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.payerKp, setup.poolOverviewAdminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertError(error, "RequireEqViolated");
+    } finally {
+      await setEpochFinalizationState({
+        program,
+        setup,
+        isEpochFinalizing: false,
+      });
     }
   });
 
   it("Create RewardRecord 1 successfully", async () => {
     // Create an empty record with no rewards.
+    await setEpochFinalizationState({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots: [],
@@ -225,11 +186,103 @@ describe("Reward creation and accrual tests", () => {
       .rpc();
   });
 
+  it("Create Operator Pool and Staking Record successfully", async () => {
+    await program.methods
+      .createOperatorPool({
+        autoStakeFees,
+        commissionRateBps,
+        allowDelegation,
+      })
+      .accountsStrict({
+        payer: setup.payer,
+        admin: setup.pool1.admin,
+        operatorPool: setup.pool1.pool,
+        stakingRecord: setup.pool1.stakingRecord,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        feeTokenAccount: setup.pool1.feeTokenAccount,
+        poolOverview: setup.poolOverview,
+        mint: setup.tokenMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+      })
+      .signers([setup.payerKp, setup.pool1.adminKp])
+      .rpc();
+
+    const ownerTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.pool1.admin
+    );
+    await program.methods
+      .stake(new anchor.BN(150_000))
+      .accountsStrict({
+        owner: setup.pool1.admin,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.stakingRecord,
+        operatorStakingRecord: setup.pool1.stakingRecord,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        ownerTokenAccount,
+      })
+      .signers([setup.pool1.adminKp])
+      .rpc();
+
+    await program.methods
+      .createStakingRecord()
+      .accountsStrict({
+        payer: setup.payer,
+        owner: setup.user1,
+        operatorPool: setup.pool1.pool,
+        stakingRecord: setup.pool1.user,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([setup.payerKp, setup.user1Kp])
+      .rpc();
+
+    await program.methods
+      .stake(new anchor.BN(400_000))
+      .accountsStrict({
+        owner: setup.user1,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        ownerStakingRecord: setup.pool1.user,
+        operatorStakingRecord: setup.pool1.stakingRecord,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        ownerTokenAccount: getAssociatedTokenAddressSync(
+          setup.tokenMint,
+          setup.user1
+        ),
+      })
+      .signers([setup.user1Kp])
+      .rpc();
+
+    // Change CommissionFeeBps
+    await program.methods
+      .updateOperatorPool({
+        newCommissionRateBps,
+        autoStakeFees: true,
+        allowDelegation: false,
+      })
+      .accountsStrict({
+        admin: setup.pool1.admin,
+        operatorPool: setup.pool1.pool,
+        usdcPayoutDestination: null,
+      })
+      .signers([setup.pool1.adminKp])
+      .rpc();
+  });
+
   it("Fail to create RewardRecord 1 again", async () => {
     try {
+      const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+      const root = MerkleUtils.getTreeRoot(merkleTree);
+      const merkleRoots = [Array.from(root)];
+      await setEpochFinalizationState({ program, setup });
       await program.methods
         .createRewardRecord({
-          merkleRoots: [],
+          merkleRoots,
           totalRewards: new anchor.BN(0),
           totalUsdcPayout: new anchor.BN(0),
         })
@@ -247,14 +300,24 @@ describe("Reward creation and accrual tests", () => {
       assert(false);
     } catch (error) {
       assertError(error, "ConstraintSeeds");
+    } finally {
+      await setEpochFinalizationState({
+        program,
+        setup,
+        isEpochFinalizing: false,
+      });
     }
   });
 
   it("Fail to create RewardRecord with insufficient tokens", async () => {
     try {
+      const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+      const root = MerkleUtils.getTreeRoot(merkleTree);
+      const merkleRoots = [Array.from(root)];
+      await setEpochFinalizationState({ program, setup });
       await program.methods
         .createRewardRecord({
-          merkleRoots: [],
+          merkleRoots,
           totalRewards: new anchor.BN(100_000),
           totalUsdcPayout: new anchor.BN(0),
         })
@@ -272,6 +335,12 @@ describe("Reward creation and accrual tests", () => {
       assert(false);
     } catch (error) {
       assertStakingProgramError(error, "insufficientRewards");
+    } finally {
+      await setEpochFinalizationState({
+        program,
+        setup,
+        isEpochFinalizing: false,
+      });
     }
   });
 
@@ -290,6 +359,7 @@ describe("Reward creation and accrual tests", () => {
 
     // Should fail with insufficient rewards.
     try {
+      await setEpochFinalizationState({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -310,6 +380,12 @@ describe("Reward creation and accrual tests", () => {
       assert(false);
     } catch (error) {
       assertStakingProgramError(error, "insufficientRewards");
+    } finally {
+      await setEpochFinalizationState({
+        program,
+        setup,
+        isEpochFinalizing: false,
+      });
     }
 
     // Fund rewardTokenAccount
@@ -318,11 +394,12 @@ describe("Reward creation and accrual tests", () => {
       setup.payerKp,
       setup.tokenMint,
       setup.rewardTokenAccount,
-      setup.signer1Kp,
+      setup.tokenHolderKp,
       totalRewards.toNumber()
     );
 
     try {
+      await setEpochFinalizationState({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -343,6 +420,12 @@ describe("Reward creation and accrual tests", () => {
       assert(false);
     } catch (error) {
       assertStakingProgramError(error, "insufficientUsdc");
+    } finally {
+      await setEpochFinalizationState({
+        program,
+        setup,
+        isEpochFinalizing: false,
+      });
     }
 
     // Fund usdcTokenAccount
@@ -351,11 +434,12 @@ describe("Reward creation and accrual tests", () => {
       setup.payerKp,
       setup.usdcTokenMint,
       setup.usdcTokenAccount,
-      setup.signer1Kp,
+      setup.tokenHolderKp,
       totalUSDC.toNumber()
     );
 
     // Should succeed with sufficient rewards.
+    await setEpochFinalizationState({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
@@ -406,10 +490,11 @@ describe("Reward creation and accrual tests", () => {
       setup.payerKp,
       setup.tokenMint,
       setup.rewardTokenAccount,
-      setup.signer1Kp,
+      setup.tokenHolderKp,
       totalRewards.toNumber()
     );
 
+    await setEpochFinalizationState({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
@@ -468,7 +553,7 @@ describe("Reward creation and accrual tests", () => {
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[3],
           operatorPool: setup.pool1.pool,
-          operatorStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
@@ -524,7 +609,7 @@ describe("Reward creation and accrual tests", () => {
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           operatorPool: setup.pool1.pool,
-          operatorStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
@@ -556,7 +641,7 @@ describe("Reward creation and accrual tests", () => {
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           operatorPool: setup.pool1.pool,
-          operatorStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
@@ -590,7 +675,7 @@ describe("Reward creation and accrual tests", () => {
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           operatorPool: setup.pool1.pool,
-          operatorStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
@@ -624,7 +709,7 @@ describe("Reward creation and accrual tests", () => {
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           operatorPool: setup.pool1.pool,
-          operatorStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
@@ -674,7 +759,7 @@ describe("Reward creation and accrual tests", () => {
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
         operatorPool: setup.pool1.pool,
-        operatorStakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.stakingRecord,
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         feeTokenAccount: setup.pool1.feeTokenAccount,
@@ -746,7 +831,7 @@ describe("Reward creation and accrual tests", () => {
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           operatorPool: setup.pool1.pool,
-          operatorStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
@@ -778,7 +863,7 @@ describe("Reward creation and accrual tests", () => {
       setup.pool1.pool
     );
     const operatorStakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.signer1Record
+      setup.pool1.stakingRecord
     );
     const rewardBalancePre = await connection.getTokenAccountBalance(
       setup.rewardTokenAccount
@@ -807,7 +892,7 @@ describe("Reward creation and accrual tests", () => {
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[3],
         operatorPool: setup.pool1.pool,
-        operatorStakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.stakingRecord,
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         feeTokenAccount: setup.pool1.feeTokenAccount,
@@ -855,7 +940,7 @@ describe("Reward creation and accrual tests", () => {
 
     // Check that operator's stake has increased.
     const operatorStakingRecord = await program.account.stakingRecord.fetch(
-      setup.pool1.signer1Record
+      setup.pool1.stakingRecord
     );
     assert(
       operatorStakingRecord.shares
@@ -938,7 +1023,7 @@ describe("Reward creation and accrual tests", () => {
       setup.payerKp,
       setup.tokenMint,
       setup.rewardTokenAccount,
-      setup.signer1Kp,
+      setup.tokenHolderKp,
       totalRewards.toNumber()
     );
 
@@ -947,10 +1032,11 @@ describe("Reward creation and accrual tests", () => {
       setup.payerKp,
       setup.usdcTokenMint,
       setup.usdcTokenAccount,
-      setup.signer1Kp,
+      setup.tokenHolderKp,
       totalUSDC.toNumber()
     );
 
+    await setEpochFinalizationState({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
@@ -995,7 +1081,7 @@ describe("Reward creation and accrual tests", () => {
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[4],
         operatorPool: setup.pool1.pool,
-        operatorStakingRecord: setup.pool1.signer1Record,
+        operatorStakingRecord: setup.pool1.stakingRecord,
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         feeTokenAccount: setup.pool1.feeTokenAccount,
@@ -1011,11 +1097,11 @@ describe("Reward creation and accrual tests", () => {
     await program.methods
       .closeOperatorPool()
       .accountsStrict({
-        admin: setup.signer1,
+        admin: setup.pool1.admin,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
       })
-      .signers([setup.signer1Kp])
+      .signers([setup.pool1.adminKp])
       .rpc();
 
     // Use same reward values as epoch 2
@@ -1032,10 +1118,11 @@ describe("Reward creation and accrual tests", () => {
       setup.payerKp,
       setup.tokenMint,
       setup.rewardTokenAccount,
-      setup.signer1Kp,
+      setup.tokenHolderKp,
       totalRewards.toNumber()
     );
 
+    await setEpochFinalizationState({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
@@ -1079,7 +1166,7 @@ describe("Reward creation and accrual tests", () => {
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[5],
           operatorPool: setup.pool1.pool,
-          operatorStakingRecord: setup.pool1.signer1Record,
+          operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,

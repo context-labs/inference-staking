@@ -63,6 +63,12 @@ pub fn handler(ctx: Context<CreateRewardRecord>, args: CreateRewardRecordArgs) -
         total_usdc_payout,
     } = args;
 
+    // If no merkle roots are provided then reward amounts must be zero.
+    if merkle_roots.is_empty() {
+        require_eq!(total_rewards, 0);
+        require_eq!(total_usdc_payout, 0);
+    }
+
     let pool_overview = &mut ctx.accounts.pool_overview;
     let reward_record = &mut ctx.accounts.reward_record;
 

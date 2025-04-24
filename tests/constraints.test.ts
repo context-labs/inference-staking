@@ -34,7 +34,7 @@ describe("Additional tests for instruction constraints", () => {
         .createPoolOverview()
         .accountsStrict({
           payer: setup.payer,
-          programAdmin: setup.signer1,
+          programAdmin: setup.signer,
           poolOverview: setup.poolOverview,
           rewardTokenAccount: setup.rewardTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
@@ -43,7 +43,7 @@ describe("Additional tests for instruction constraints", () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.payerKp, setup.signer1Kp])
+        .signers([setup.payerKp, setup.signerKp])
         .rpc();
     } catch (err) {
       assertStakingProgramError(err, "invalidUsdcMint");
@@ -55,7 +55,7 @@ describe("Additional tests for instruction constraints", () => {
       .createPoolOverview()
       .accountsStrict({
         payer: setup.payer,
-        programAdmin: setup.signer1,
+        programAdmin: setup.signer,
         poolOverview: setup.poolOverview,
         rewardTokenAccount: setup.rewardTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
@@ -64,7 +64,7 @@ describe("Additional tests for instruction constraints", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.signer1Kp])
+      .signers([setup.payerKp, setup.signerKp])
       .rpc();
 
     await program.methods
@@ -78,10 +78,10 @@ describe("Additional tests for instruction constraints", () => {
         operatorUnstakeDelaySeconds,
       })
       .accountsStrict({
-        programAdmin: setup.signer1,
+        programAdmin: setup.signer,
         poolOverview: setup.poolOverview,
       })
-      .signers([setup.signer1Kp])
+      .signers([setup.signerKp])
       .rpc();
   });
 
@@ -123,10 +123,10 @@ describe("Additional tests for instruction constraints", () => {
           operatorUnstakeDelaySeconds: null,
         })
         .accountsStrict({
-          programAdmin: setup.signer1,
+          programAdmin: setup.signer,
           poolOverview: setup.poolOverview,
         })
-        .signers([setup.signer1Kp])
+        .signers([setup.signerKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -160,39 +160,26 @@ describe("Additional tests for instruction constraints", () => {
   it("Fail to update PoolOverview authorities with more than 5 keys", async () => {
     try {
       await program.methods
-        .updatePoolOverviewAuthorities(
-          {
-            newProgramAdmin: setup.poolOverviewAdminKp.publicKey,
-            newRewardDistributionAuthorities: [
-              setup.poolOverviewAdminKp.publicKey,
-            ],
-            newHaltAuthorities: [
-              PublicKey.unique(),
-              PublicKey.unique(),
-              PublicKey.unique(),
-              PublicKey.unique(),
-              PublicKey.unique(),
-              PublicKey.unique(),
-            ],
-            newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
-          }
-          // setup.poolOverviewAdminKp.publicKey,
-          // [setup.poolOverviewAdminKp.publicKey],
-          // [
-          //   PublicKey.unique(),
-          //   PublicKey.unique(),
-          //   PublicKey.unique(),
-          //   PublicKey.unique(),
-          //   PublicKey.unique(),
-          //   PublicKey.unique(),
-          // ],
-          // [setup.poolOverviewAdminKp.publicKey]
-        )
+        .updatePoolOverviewAuthorities({
+          newProgramAdmin: setup.poolOverviewAdminKp.publicKey,
+          newRewardDistributionAuthorities: [
+            setup.poolOverviewAdminKp.publicKey,
+          ],
+          newHaltAuthorities: [
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+          ],
+          newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
+        })
         .accountsStrict({
-          programAdmin: setup.signer1Kp.publicKey,
+          programAdmin: setup.signerKp.publicKey,
           poolOverview: setup.poolOverview,
         })
-        .signers([setup.signer1Kp])
+        .signers([setup.signerKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -211,9 +198,9 @@ describe("Additional tests for instruction constraints", () => {
         })
         .accountsStrict({
           payer: setup.payer,
-          admin: setup.signer1,
+          admin: setup.pool1.admin,
           operatorPool: setup.pool1.pool,
-          stakingRecord: setup.pool1.signer1Record,
+          stakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
           poolOverview: setup.poolOverview,
@@ -222,7 +209,7 @@ describe("Additional tests for instruction constraints", () => {
           systemProgram: SystemProgram.programId,
           usdcPayoutDestination: setup.pool1.usdcTokenAccount,
         })
-        .signers([setup.payerKp, setup.signer1Kp])
+        .signers([setup.payerKp, setup.pool1.adminKp])
         .rpc();
       assert(false);
     } catch (error) {

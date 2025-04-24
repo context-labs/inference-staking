@@ -1,8 +1,12 @@
+import type { Program } from "@coral-xyz/anchor";
 import type { Connection } from "@solana/web3.js";
 import { assert } from "chai";
 
 import type { InferenceStakingErrors } from "@sdk/src";
+import type { InferenceStaking } from "@sdk/src/idl";
 import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
+
+import type { SetupTestResult } from "@tests/lib/setup";
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -32,4 +36,36 @@ export const confirmTransaction = async (
     lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
     signature,
   });
+};
+
+export const setEpochFinalizationState = async ({
+  setup,
+  program,
+  isEpochFinalizing = true,
+}: {
+  setup: SetupTestResult;
+  program: Program<InferenceStaking>;
+  isEpochFinalizing?: boolean;
+}) => {
+  const poolOverviewPre = await program.account.poolOverview.fetch(
+    setup.poolOverview
+  );
+  assert(poolOverviewPre.isEpochFinalizing === !isEpochFinalizing);
+
+  await program.methods
+    .updatePoolOverview({
+      ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+      isEpochFinalizing,
+    })
+    .accountsStrict({
+      poolOverview: setup.poolOverview,
+      programAdmin: setup.poolOverviewAdminKp.publicKey,
+    })
+    .signers([setup.poolOverviewAdminKp])
+    .rpc();
+
+  const poolOverviewPost = await program.account.poolOverview.fetch(
+    setup.poolOverview
+  );
+  assert(poolOverviewPost.isEpochFinalizing === isEpochFinalizing);
 };
