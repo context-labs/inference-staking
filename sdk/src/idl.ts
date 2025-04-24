@@ -1224,24 +1224,12 @@ const _IDL = {
       ],
       args: [
         {
-          name: "isWithdrawalHalted",
-          type: "bool",
-        },
-        {
-          name: "allowPoolCreation",
-          type: "bool",
-        },
-        {
-          name: "minOperatorShareBps",
-          type: "u16",
-        },
-        {
-          name: "delegatorUnstakeDelaySeconds",
-          type: "u64",
-        },
-        {
-          name: "operatorUnstakeDelaySeconds",
-          type: "u64",
+          name: "args",
+          type: {
+            defined: {
+              name: "updatePoolOverviewArgs",
+            },
+          },
         },
       ],
     },
@@ -1747,6 +1735,13 @@ const _IDL = {
             },
           },
           {
+            name: "isStakingHalted",
+            docs: [
+              "Halts all staking instructions when true. Used as a security backstop.",
+            ],
+            type: "bool",
+          },
+          {
             name: "isWithdrawalHalted",
             docs: [
               "Halts all withdrawal instructions when true. Used as a security backstop.",
@@ -2022,6 +2017,50 @@ const _IDL = {
             docs: ["Auto stake operator fees"],
             type: {
               option: "bool",
+            },
+          },
+        ],
+      },
+    },
+    {
+      name: "updatePoolOverviewArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "isStakingHalted",
+            type: {
+              option: "bool",
+            },
+          },
+          {
+            name: "isWithdrawalHalted",
+            type: {
+              option: "bool",
+            },
+          },
+          {
+            name: "allowPoolCreation",
+            type: {
+              option: "bool",
+            },
+          },
+          {
+            name: "minOperatorShareBps",
+            type: {
+              option: "u16",
+            },
+          },
+          {
+            name: "delegatorUnstakeDelaySeconds",
+            type: {
+              option: "u64",
+            },
+          },
+          {
+            name: "operatorUnstakeDelaySeconds",
+            type: {
+              option: "u64",
             },
           },
         ],

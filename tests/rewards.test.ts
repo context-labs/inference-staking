@@ -31,6 +31,7 @@ describe("Test Reward Creation and Accrual", () => {
   const allowDelegation = true;
   const minOperatorShareBps = 0;
   const allowPoolCreation = true;
+  const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
@@ -74,13 +75,14 @@ describe("Test Reward Creation and Accrual", () => {
       .rpc();
 
     await program.methods
-      .updatePoolOverview(
+      .updatePoolOverview({
+        isStakingHalted,
         isWithdrawalHalted,
         allowPoolCreation,
         minOperatorShareBps,
         delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+        operatorUnstakeDelaySeconds,
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,

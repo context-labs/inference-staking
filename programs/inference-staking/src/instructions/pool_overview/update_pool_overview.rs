@@ -14,23 +14,44 @@ pub struct UpdatePoolOverview<'info> {
     pub pool_overview: Box<Account<'info, PoolOverview>>,
 }
 
-/// Instruction to update settings on PoolOverview.
-pub fn handler(
-    ctx: Context<UpdatePoolOverview>,
-    is_withdrawal_halted: bool,
-    allow_pool_creation: bool,
-    min_operator_share_bps: u16,
-    delegator_unstake_delay_seconds: u64,
-    operator_unstake_delay_seconds: u64,
-) -> Result<()> {
-    require_gte!(10000, min_operator_share_bps);
+#[derive(AnchorDeserialize, AnchorSerialize)]
+pub struct UpdatePoolOverviewArgs {
+    pub is_staking_halted: Option<bool>,
+    pub is_withdrawal_halted: Option<bool>,
+    pub allow_pool_creation: Option<bool>,
+    pub min_operator_share_bps: Option<u16>,
+    pub delegator_unstake_delay_seconds: Option<u64>,
+    pub operator_unstake_delay_seconds: Option<u64>,
+}
 
+/// Instruction to update settings on PoolOverview.
+pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -> Result<()> {
     let pool_overview = &mut ctx.accounts.pool_overview;
-    pool_overview.is_withdrawal_halted = is_withdrawal_halted;
-    pool_overview.allow_pool_creation = allow_pool_creation;
-    pool_overview.min_operator_share_bps = min_operator_share_bps;
-    pool_overview.delegator_unstake_delay_seconds = delegator_unstake_delay_seconds;
-    pool_overview.operator_unstake_delay_seconds = operator_unstake_delay_seconds;
+
+    if let Some(min_operator_share_bps) = args.min_operator_share_bps {
+        require_gte!(10000, min_operator_share_bps);
+        pool_overview.min_operator_share_bps = min_operator_share_bps;
+    }
+
+    if let Some(is_staking_halted) = args.is_staking_halted {
+        pool_overview.is_staking_halted = is_staking_halted;
+    }
+
+    if let Some(is_withdrawal_halted) = args.is_withdrawal_halted {
+        pool_overview.is_withdrawal_halted = is_withdrawal_halted;
+    }
+
+    if let Some(allow_pool_creation) = args.allow_pool_creation {
+        pool_overview.allow_pool_creation = allow_pool_creation;
+    }
+
+    if let Some(delegator_unstake_delay_seconds) = args.delegator_unstake_delay_seconds {
+        pool_overview.delegator_unstake_delay_seconds = delegator_unstake_delay_seconds;
+    }
+
+    if let Some(operator_unstake_delay_seconds) = args.operator_unstake_delay_seconds {
+        pool_overview.operator_unstake_delay_seconds = operator_unstake_delay_seconds;
+    }
 
     Ok(())
 }

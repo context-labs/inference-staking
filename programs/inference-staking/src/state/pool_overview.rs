@@ -24,6 +24,9 @@ pub struct PoolOverview {
     #[max_len(5)]
     pub slashing_authorities: Vec<Pubkey>,
 
+    /// Halts all staking instructions when true. Used as a security backstop.
+    pub is_staking_halted: bool,
+
     /// Halts all withdrawal instructions when true. Used as a security backstop.
     pub is_withdrawal_halted: bool,
 

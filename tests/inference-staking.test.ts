@@ -41,6 +41,7 @@ describe("inference-staking", () => {
   const allowDelegation = true;
   const minOperatorShareBps = 1000;
   const allowPoolCreation = true;
+  const isStakingHalted = false;
   const isWithdrawalHalted = false;
 
   before(async () => {
@@ -111,13 +112,14 @@ describe("inference-staking", () => {
 
   it("Update PoolOverview successfully", async () => {
     await program.methods
-      .updatePoolOverview(
+      .updatePoolOverview({
+        isStakingHalted,
         isWithdrawalHalted,
         allowPoolCreation,
         minOperatorShareBps,
         delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+        operatorUnstakeDelaySeconds,
+      })
       .accountsStrict({
         programAdmin: setup.signer1,
         poolOverview: setup.poolOverview,
@@ -746,13 +748,14 @@ describe("inference-staking", () => {
   it("Fail to unstake if global withdrawal is halted", async () => {
     // Halt withdrawal
     await program.methods
-      .updatePoolOverview(
-        true,
-        allowPoolCreation,
-        minOperatorShareBps,
-        delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+      .updatePoolOverview({
+        isStakingHalted: null,
+        isWithdrawalHalted: true,
+        allowPoolCreation: null,
+        minOperatorShareBps: null,
+        delegatorUnstakeDelaySeconds: null,
+        operatorUnstakeDelaySeconds: null,
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
@@ -779,13 +782,14 @@ describe("inference-staking", () => {
 
     // Revert halt withdrawal
     await program.methods
-      .updatePoolOverview(
-        false,
-        allowPoolCreation,
-        minOperatorShareBps,
-        delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+      .updatePoolOverview({
+        isStakingHalted: null,
+        isWithdrawalHalted: false,
+        allowPoolCreation: null,
+        minOperatorShareBps: null,
+        delegatorUnstakeDelaySeconds: null,
+        operatorUnstakeDelaySeconds: null,
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
@@ -797,13 +801,14 @@ describe("inference-staking", () => {
   it("Fail to unstake for operator if operator falls below min share", async () => {
     // Change min share to 99%
     await program.methods
-      .updatePoolOverview(
-        false,
-        allowPoolCreation,
-        9900,
-        delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+      .updatePoolOverview({
+        isStakingHalted: null,
+        isWithdrawalHalted: null,
+        allowPoolCreation: null,
+        minOperatorShareBps: 9900,
+        delegatorUnstakeDelaySeconds: null,
+        operatorUnstakeDelaySeconds: null,
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
@@ -897,13 +902,14 @@ describe("inference-staking", () => {
 
     // Revert min share to default.
     await program.methods
-      .updatePoolOverview(
-        false,
-        allowPoolCreation,
+      .updatePoolOverview({
+        isStakingHalted: null,
+        isWithdrawalHalted: null,
+        allowPoolCreation: null,
         minOperatorShareBps,
-        delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+        delegatorUnstakeDelaySeconds: null,
+        operatorUnstakeDelaySeconds: null,
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
@@ -1522,13 +1528,14 @@ describe("inference-staking", () => {
   it("Fail to claim unstake if global withdrawal is halted", async () => {
     // Halt withdrawal
     await program.methods
-      .updatePoolOverview(
-        true,
-        allowPoolCreation,
-        minOperatorShareBps,
-        delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+      .updatePoolOverview({
+        isStakingHalted: null,
+        isWithdrawalHalted: true,
+        allowPoolCreation: null,
+        minOperatorShareBps: null,
+        delegatorUnstakeDelaySeconds: null,
+        operatorUnstakeDelaySeconds: null,
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
@@ -1560,13 +1567,14 @@ describe("inference-staking", () => {
 
     // Revert halt withdrawal
     await program.methods
-      .updatePoolOverview(
-        false,
-        allowPoolCreation,
-        minOperatorShareBps,
-        delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+      .updatePoolOverview({
+        isStakingHalted: null,
+        isWithdrawalHalted: false,
+        allowPoolCreation: null,
+        minOperatorShareBps: null,
+        delegatorUnstakeDelaySeconds: null,
+        operatorUnstakeDelaySeconds: null,
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
@@ -1578,13 +1586,14 @@ describe("inference-staking", () => {
   it("Fail to claim unstake for operator if operator falls below min share", async () => {
     // Change min share to 99%
     await program.methods
-      .updatePoolOverview(
-        false,
-        allowPoolCreation,
-        9900,
-        delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+      .updatePoolOverview({
+        isStakingHalted: null,
+        isWithdrawalHalted: null,
+        allowPoolCreation: null,
+        minOperatorShareBps: 9900,
+        delegatorUnstakeDelaySeconds: null,
+        operatorUnstakeDelaySeconds: null,
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
@@ -1616,13 +1625,14 @@ describe("inference-staking", () => {
 
     // Revert min share to default.
     await program.methods
-      .updatePoolOverview(
-        false,
-        allowPoolCreation,
+      .updatePoolOverview({
+        isStakingHalted: null,
+        isWithdrawalHalted: null,
+        allowPoolCreation: null,
         minOperatorShareBps,
-        delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+        delegatorUnstakeDelaySeconds: null,
+        operatorUnstakeDelaySeconds: null,
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
@@ -2091,13 +2101,14 @@ describe("inference-staking", () => {
   it("Fail to withdraw Operator commission if global withdrawal is halted", async () => {
     // Halt withdrawal
     await program.methods
-      .updatePoolOverview(
-        true,
-        allowPoolCreation,
-        minOperatorShareBps,
-        delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+      .updatePoolOverview({
+        isStakingHalted: null,
+        isWithdrawalHalted: true,
+        allowPoolCreation: null,
+        minOperatorShareBps: null,
+        delegatorUnstakeDelaySeconds: null,
+        operatorUnstakeDelaySeconds: null,
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
@@ -2128,13 +2139,14 @@ describe("inference-staking", () => {
 
     // Revert halt withdrawal
     await program.methods
-      .updatePoolOverview(
-        false,
-        allowPoolCreation,
-        minOperatorShareBps,
-        delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+      .updatePoolOverview({
+        isStakingHalted: null,
+        isWithdrawalHalted: false,
+        allowPoolCreation: null,
+        minOperatorShareBps: null,
+        delegatorUnstakeDelaySeconds: null,
+        operatorUnstakeDelaySeconds: null,
+      })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,

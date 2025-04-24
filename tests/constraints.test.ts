@@ -19,6 +19,7 @@ describe("Additional tests for instruction constraints", () => {
   const allowDelegation = true;
   const minOperatorShareBps = 1000;
   const allowPoolCreation = true;
+  const isStakingHalted = false;
   const isWithdrawalHalted = false;
 
   before(async () => {
@@ -66,13 +67,14 @@ describe("Additional tests for instruction constraints", () => {
       .rpc();
 
     await program.methods
-      .updatePoolOverview(
+      .updatePoolOverview({
+        isStakingHalted,
         isWithdrawalHalted,
         allowPoolCreation,
         minOperatorShareBps,
         delegatorUnstakeDelaySeconds,
-        operatorUnstakeDelaySeconds
-      )
+        operatorUnstakeDelaySeconds,
+      })
       .accountsStrict({
         programAdmin: setup.signer1,
         poolOverview: setup.poolOverview,
@@ -84,13 +86,14 @@ describe("Additional tests for instruction constraints", () => {
   it("Fail to update PoolOverview with invalid admin", async () => {
     try {
       await program.methods
-        .updatePoolOverview(
-          isWithdrawalHalted,
-          allowPoolCreation,
-          minOperatorShareBps,
-          delegatorUnstakeDelaySeconds,
-          operatorUnstakeDelaySeconds
-        )
+        .updatePoolOverview({
+          isStakingHalted: true,
+          isWithdrawalHalted: null,
+          allowPoolCreation: null,
+          minOperatorShareBps: null,
+          delegatorUnstakeDelaySeconds: null,
+          operatorUnstakeDelaySeconds: null,
+        })
         .accountsStrict({
           programAdmin: setup.haltAuthority1Kp.publicKey,
           poolOverview: setup.poolOverview,
@@ -107,13 +110,14 @@ describe("Additional tests for instruction constraints", () => {
     try {
       // Expect failure as min operator share cannot exceed 100%
       await program.methods
-        .updatePoolOverview(
-          isWithdrawalHalted,
-          allowPoolCreation,
-          100_01,
-          delegatorUnstakeDelaySeconds,
-          operatorUnstakeDelaySeconds
-        )
+        .updatePoolOverview({
+          isStakingHalted: null,
+          isWithdrawalHalted: null,
+          allowPoolCreation: null,
+          minOperatorShareBps: 100_01,
+          delegatorUnstakeDelaySeconds: null,
+          operatorUnstakeDelaySeconds: null,
+        })
         .accountsStrict({
           programAdmin: setup.signer1,
           poolOverview: setup.poolOverview,

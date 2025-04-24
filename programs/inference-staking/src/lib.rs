@@ -41,20 +41,9 @@ pub mod inference_staking {
 
     pub fn update_pool_overview(
         ctx: Context<UpdatePoolOverview>,
-        is_withdrawal_halted: bool,
-        allow_pool_creation: bool,
-        min_operator_share_bps: u16,
-        delegator_unstake_delay_seconds: u64,
-        operator_unstake_delay_seconds: u64,
+        args: UpdatePoolOverviewArgs,
     ) -> Result<()> {
-        update_pool_overview::handler(
-            ctx,
-            is_withdrawal_halted,
-            allow_pool_creation,
-            min_operator_share_bps,
-            delegator_unstake_delay_seconds,
-            operator_unstake_delay_seconds,
-        )
+        update_pool_overview::handler(ctx, args)
     }
 
     pub fn create_staking_record(ctx: Context<CreateStakingRecord>) -> Result<()> {
