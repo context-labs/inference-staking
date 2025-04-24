@@ -24,6 +24,8 @@ pub enum ErrorCode {
     InvalidProof,
     #[msg("OperatorPool is halted")]
     OperatorPoolHalted,
+    #[msg("Staking is halted")]
+    StakingHalted,
     #[msg("Withdrawals are halted")]
     WithdrawalsHalted,
     #[msg("PoolOverview Authority is not valid")]

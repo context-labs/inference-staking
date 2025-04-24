@@ -9,13 +9,16 @@ use crate::{
 pub struct ChangeOperatorStakingRecord<'info> {
     /// Admin of the OperatorPool
     pub admin: Signer<'info>,
+
     /// Owner of the StakingRecord that will become the new OperatorPool StakingRecord
     pub owner: Signer<'info>,
+
     #[account(
       seeds = [b"PoolOverview".as_ref()],
       bump = pool_overview.bump,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
+
     #[account(
       mut,
       seeds = [
@@ -26,11 +29,13 @@ pub struct ChangeOperatorStakingRecord<'info> {
       has_one = admin,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
+
     #[account(
       address = operator_pool.operator_staking_record,
       has_one = operator_pool,
     )]
     pub operator_staking_record: Account<'info, StakingRecord>,
+
     #[account(
       seeds = [operator_pool.key().as_ref(), owner.key().as_ref(), b"StakingRecord"],
       bump,

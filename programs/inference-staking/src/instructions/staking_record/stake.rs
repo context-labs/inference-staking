@@ -64,6 +64,8 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     let pool_overview = &ctx.accounts.pool_overview;
     let operator_staking_record = &ctx.accounts.operator_staking_record;
 
+    require!(!pool_overview.is_staking_halted, ErrorCode::StakingHalted);
+
     // Check that delegation is enabled or operator is staking.
     let is_operator_staking =
         operator_staking_record.key() == ctx.accounts.owner_staking_record.key();

@@ -8,7 +8,9 @@ use crate::{
 #[derive(Accounts)]
 pub struct CloseOperatorPool<'info> {
     pub admin: Signer<'info>,
+
     pub pool_overview: Box<Account<'info, PoolOverview>>,
+
     #[account(
         mut,
         has_one = admin,

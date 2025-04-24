@@ -141,30 +141,12 @@ const _IDL = {
       ],
       args: [
         {
-          name: "merkleIndex",
-          type: "u8",
-        },
-        {
-          name: "proof",
+          name: "args",
           type: {
-            vec: {
-              array: ["u8", 32],
+            defined: {
+              name: "accrueRewardArgs",
             },
           },
-        },
-        {
-          name: "proofPath",
-          type: {
-            vec: "bool",
-          },
-        },
-        {
-          name: "rewardAmount",
-          type: "u64",
-        },
-        {
-          name: "usdcAmount",
-          type: "u64",
         },
       ],
     },
@@ -229,10 +211,6 @@ const _IDL = {
     },
     {
       name: "changeOperatorStakingRecord",
-      docs: [
-        "OperatorPool admin-only instruction to change the StakingRecord associated with",
-        "the OperatorPool.",
-      ],
       discriminator: [142, 191, 20, 77, 230, 99, 245, 184],
       accounts: [
         {
@@ -468,6 +446,9 @@ const _IDL = {
     },
     {
       name: "createOperatorPool",
+      docs: [
+        "-----------------------------------------------------------------------\n     * OperatorPool Admin Instructions\n     * ------------------------------------------------------------------------",
+      ],
       discriminator: [228, 137, 243, 99, 230, 195, 158, 152],
       accounts: [
         {
@@ -569,21 +550,20 @@ const _IDL = {
       ],
       args: [
         {
-          name: "autoStakeFees",
-          type: "bool",
-        },
-        {
-          name: "commissionRateBps",
-          type: "u16",
-        },
-        {
-          name: "allowDelegation",
-          type: "bool",
+          name: "args",
+          type: {
+            defined: {
+              name: "createOperatorPoolArgs",
+            },
+          },
         },
       ],
     },
     {
       name: "createPoolOverview",
+      docs: [
+        "-----------------------------------------------------------------------\n     * PoolOverview Admin Instructions\n     * ------------------------------------------------------------------------",
+      ],
       discriminator: [5, 155, 100, 76, 127, 68, 142, 10],
       accounts: [
         {
@@ -652,6 +632,9 @@ const _IDL = {
     },
     {
       name: "createRewardRecord",
+      docs: [
+        "-----------------------------------------------------------------------\n     * Reward Distribution Instructions\n     * ------------------------------------------------------------------------",
+      ],
       discriminator: [222, 217, 122, 53, 232, 14, 242, 73],
       accounts: [
         {
@@ -710,25 +693,20 @@ const _IDL = {
       ],
       args: [
         {
-          name: "merkleRoots",
+          name: "args",
           type: {
-            vec: {
-              array: ["u8", 32],
+            defined: {
+              name: "createRewardRecordArgs",
             },
           },
-        },
-        {
-          name: "totalRewards",
-          type: "u64",
-        },
-        {
-          name: "totalUsdcPayout",
-          type: "u64",
         },
       ],
     },
     {
       name: "createStakingRecord",
+      docs: [
+        "-----------------------------------------------------------------------\n     * Staking Instructions\n     * ------------------------------------------------------------------------",
+      ],
       discriminator: [103, 122, 241, 199, 139, 201, 106, 115],
       accounts: [
         {
@@ -789,11 +767,6 @@ const _IDL = {
     },
     {
       name: "modifyRewardRecord",
-      docs: [
-        "Instruction to allow the PoolOverview admin to update the merkle roots on an existing RewardRecord.",
-        "This currently does not allow the update of `total_rewards` to prevent accounting",
-        "complexities when some rewards may have already been accrued to the OperatorPool",
-      ],
       discriminator: [16, 109, 128, 67, 141, 121, 47, 186],
       accounts: [
         {
@@ -845,7 +818,7 @@ const _IDL = {
     {
       name: "setHaltStatus",
       docs: [
-        "PoolOverview admin sets the `is_halted` status of an OperatorPool.",
+        "-----------------------------------------------------------------------\n     * Program Admin Security Instructions\n     * ------------------------------------------------------------------------",
       ],
       discriminator: [39, 9, 170, 100, 62, 112, 229, 71],
       accounts: [
@@ -1155,7 +1128,6 @@ const _IDL = {
     },
     {
       name: "updateOperatorPool",
-      docs: ["Change configurable parameters on the OperatorPool."],
       discriminator: [33, 136, 60, 240, 111, 137, 216, 26],
       accounts: [
         {
@@ -1259,32 +1231,10 @@ const _IDL = {
       ],
       args: [
         {
-          name: "newProgramAdmin",
+          name: "args",
           type: {
-            option: "pubkey",
-          },
-        },
-        {
-          name: "newRewardDistributionAuthorities",
-          type: {
-            option: {
-              vec: "pubkey",
-            },
-          },
-        },
-        {
-          name: "newHaltAuthorities",
-          type: {
-            option: {
-              vec: "pubkey",
-            },
-          },
-        },
-        {
-          name: "newSlashingAuthorities",
-          type: {
-            option: {
-              vec: "pubkey",
+            defined: {
+              name: "updatePoolOverviewAuthoritiesArgs",
             },
           },
         },
@@ -1457,41 +1407,80 @@ const _IDL = {
     },
     {
       code: 6011,
+      name: "stakingHalted",
+      msg: "Staking is halted",
+    },
+    {
+      code: 6012,
       name: "withdrawalsHalted",
       msg: "Withdrawals are halted",
     },
     {
-      code: 6012,
+      code: 6013,
       name: "invalidAuthority",
       msg: "PoolOverview Authority is not valid",
     },
     {
-      code: 6013,
+      code: 6014,
       name: "authoritiesExceeded",
       msg: "Exceeded allowed authorities length",
     },
     {
-      code: 6014,
+      code: 6015,
       name: "accountNotEmpty",
       msg: "Account not empty",
     },
     {
-      code: 6015,
+      code: 6016,
       name: "poolCreationDisabled",
       msg: "Pool creation is disabled",
     },
     {
-      code: 6016,
+      code: 6017,
       name: "invalidUsdcMint",
       msg: "Could not initialize USDC mint",
     },
     {
-      code: 6017,
+      code: 6018,
       name: "invalidUsdcPayoutDestination",
       msg: "Invalid USDC payout destination",
     },
   ],
   types: [
+    {
+      name: "accrueRewardArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "merkleIndex",
+            type: "u8",
+          },
+          {
+            name: "proof",
+            type: {
+              vec: {
+                array: ["u8", 32],
+              },
+            },
+          },
+          {
+            name: "proofPath",
+            type: {
+              vec: "bool",
+            },
+          },
+          {
+            name: "rewardAmount",
+            type: "u64",
+          },
+          {
+            name: "usdcAmount",
+            type: "u64",
+          },
+        ],
+      },
+    },
     {
       name: "claimUnstakeEvent",
       type: {
@@ -1544,6 +1533,50 @@ const _IDL = {
             docs: [
               "Total amount of remaining tokens being unstaked in the pool.",
             ],
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "createOperatorPoolArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "autoStakeFees",
+            type: "bool",
+          },
+          {
+            name: "commissionRateBps",
+            type: "u16",
+          },
+          {
+            name: "allowDelegation",
+            type: "bool",
+          },
+        ],
+      },
+    },
+    {
+      name: "createRewardRecordArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "merkleRoots",
+            type: {
+              vec: {
+                array: ["u8", 32],
+              },
+            },
+          },
+          {
+            name: "totalRewards",
+            type: "u64",
+          },
+          {
+            name: "totalUsdcPayout",
             type: "u64",
           },
         ],
@@ -2061,6 +2094,44 @@ const _IDL = {
             name: "operatorUnstakeDelaySeconds",
             type: {
               option: "u64",
+            },
+          },
+        ],
+      },
+    },
+    {
+      name: "updatePoolOverviewAuthoritiesArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "newProgramAdmin",
+            type: {
+              option: "pubkey",
+            },
+          },
+          {
+            name: "newRewardDistributionAuthorities",
+            type: {
+              option: {
+                vec: "pubkey",
+              },
+            },
+          },
+          {
+            name: "newHaltAuthorities",
+            type: {
+              option: {
+                vec: "pubkey",
+              },
+            },
+          },
+          {
+            name: "newSlashingAuthorities",
+            type: {
+              option: {
+                vec: "pubkey",
+              },
             },
           },
         ],

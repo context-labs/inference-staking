@@ -5,7 +5,9 @@ use crate::state::OperatorPool;
 #[derive(Accounts)]
 pub struct ChangeOperatorAdmin<'info> {
     pub admin: Signer<'info>,
+
     pub new_admin: Signer<'info>,
+
     #[account(
       mut,
       seeds = [
@@ -21,5 +23,6 @@ pub struct ChangeOperatorAdmin<'info> {
 pub fn handler(ctx: Context<ChangeOperatorAdmin>) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
     operator_pool.admin = ctx.accounts.new_admin.key();
+
     Ok(())
 }

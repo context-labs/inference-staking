@@ -10,11 +10,13 @@ use crate::{
 #[derive(Accounts)]
 pub struct WithdrawOperatorCommission<'info> {
     pub admin: Signer<'info>,
+
     #[account(
       seeds = [b"PoolOverview".as_ref()],
       bump = pool_overview.bump,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
+
     #[account(
       seeds = [&operator_pool.pool_id.to_le_bytes(), b"OperatorPool".as_ref()],
       bump = operator_pool.bump,
@@ -22,6 +24,7 @@ pub struct WithdrawOperatorCommission<'info> {
       has_one = admin,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
+
     #[account(
       mut,
       seeds = [operator_pool.key().as_ref(), b"FeeToken".as_ref()],
@@ -29,8 +32,10 @@ pub struct WithdrawOperatorCommission<'info> {
     )]
     pub fee_token_account: Account<'info, TokenAccount>,
     /// Destination for the commission.
+
     #[account(mut)]
     pub destination: Account<'info, TokenAccount>,
+
     pub token_program: Program<'info, Token>,
 }
 

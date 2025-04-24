@@ -12,7 +12,9 @@ use crate::{
 pub struct CreateOperatorPool<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
+
     pub admin: Signer<'info>,
+
     #[account(
         init,
         seeds = [
@@ -24,6 +26,7 @@ pub struct CreateOperatorPool<'info> {
         space = 8 + OperatorPool::INIT_SPACE
     )]
     pub operator_pool: Box<Account<'info, OperatorPool>>,
+
     #[account(
         init,
         seeds = [
@@ -36,6 +39,7 @@ pub struct CreateOperatorPool<'info> {
         space = 8 + StakingRecord::INIT_SPACE
     )]
     pub staking_record: Box<Account<'info, StakingRecord>>,
+
     #[account(
         mut,
         seeds = [b"PoolOverview".as_ref()],
@@ -44,6 +48,7 @@ pub struct CreateOperatorPool<'info> {
         constraint = pool_overview.allow_pool_creation @ ErrorCode::PoolCreationDisabled,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
+
     #[account(
         init,
         seeds = [operator_pool.key().as_ref(), b"StakedToken".as_ref()],
@@ -53,6 +58,7 @@ pub struct CreateOperatorPool<'info> {
         token::authority = operator_pool
     )]
     pub staked_token_account: Box<Account<'info, TokenAccount>>,
+
     #[account(
         init,
         seeds = [operator_pool.key().as_ref(), b"FeeToken".as_ref()],
@@ -62,12 +68,16 @@ pub struct CreateOperatorPool<'info> {
         token::authority = operator_pool
     )]
     pub fee_token_account: Box<Account<'info, TokenAccount>>,
+
     #[account(
         token::mint = constants::USDC_MINT_PUBKEY,
     )]
     pub usdc_payout_destination: Account<'info, TokenAccount>,
+
     pub mint: Box<Account<'info, Mint>>,
+
     pub token_program: Program<'info, Token>,
+
     pub system_program: Program<'info, System>,
 }
 
