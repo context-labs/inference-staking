@@ -68,15 +68,25 @@ pub struct AccrueReward<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct AccrueRewardArgs {
+    pub merkle_index: u8,
+    pub proof: Vec<[u8; 32]>,
+    pub proof_path: Vec<bool>,
+    pub reward_amount: u64,
+    pub usdc_amount: u64,
+}
+
 /// Instruction to accrue reward issued for an OperatorPool.
-pub fn handler(
-    ctx: Context<AccrueReward>,
-    merkle_index: u8,
-    proof: Vec<[u8; 32]>,
-    proof_path: Vec<bool>,
-    reward_amount: u64,
-    usdc_amount: u64,
-) -> Result<()> {
+pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()> {
+    let AccrueRewardArgs {
+        merkle_index,
+        proof,
+        proof_path,
+        reward_amount,
+        usdc_amount,
+    } = args;
+
     let reward_record = &ctx.accounts.reward_record;
     let operator_pool = &mut ctx.accounts.operator_pool;
     let usdc_payout_destination = &ctx.accounts.usdc_payout_destination;

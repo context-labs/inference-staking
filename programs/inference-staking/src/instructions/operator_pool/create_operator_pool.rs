@@ -71,13 +71,21 @@ pub struct CreateOperatorPool<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct CreateOperatorPoolArgs {
+    pub auto_stake_fees: bool,
+    pub commission_rate_bps: u16,
+    pub allow_delegation: bool,
+}
+
 /// Instruction to setup an OperatorPool.
-pub fn handler(
-    ctx: Context<CreateOperatorPool>,
-    auto_stake_fees: bool,
-    commission_rate_bps: u16,
-    allow_delegation: bool,
-) -> Result<()> {
+pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -> Result<()> {
+    let CreateOperatorPoolArgs {
+        auto_stake_fees,
+        commission_rate_bps,
+        allow_delegation,
+    } = args;
+
     require_gte!(10000, commission_rate_bps);
 
     let pool_overview = &mut ctx.accounts.pool_overview;

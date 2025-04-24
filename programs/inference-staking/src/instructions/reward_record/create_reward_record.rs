@@ -41,13 +41,24 @@ pub struct CreateRewardRecord<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct CreateRewardRecordArgs {
+    pub merkle_roots: Vec<[u8; 32]>,
+    pub total_rewards: u64,
+    pub total_usdc_payout: u64,
+}
+
 /// Instruction to setup a RewardRecord.
 pub fn handler(
     ctx: Context<CreateRewardRecord>,
-    merkle_roots: Vec<[u8; 32]>,
-    total_rewards: u64,
-    total_usdc_payout: u64,
+    args: CreateRewardRecordArgs,
 ) -> Result<()> {
+    let CreateRewardRecordArgs {
+        merkle_roots,
+        total_rewards,
+        total_usdc_payout,
+    } = args;
+
     let pool_overview = &mut ctx.accounts.pool_overview;
     let reward_record = &mut ctx.accounts.reward_record;
 

@@ -19,24 +19,12 @@ declare_id!("5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj");
 pub mod inference_staking {
     use super::*;
 
+    /** -----------------------------------------------------------------------
+     * PoolOverview Admin Instructions
+     * ------------------------------------------------------------------------ */
+
     pub fn create_pool_overview(ctx: Context<CreatePoolOverview>) -> Result<()> {
         create_pool_overview::handler(ctx)
-    }
-
-    pub fn update_pool_overview_authorities(
-        ctx: Context<UpdatePoolOverviewAuthorities>,
-        new_program_admin: Option<Pubkey>,
-        new_reward_distribution_authorities: Option<Vec<Pubkey>>,
-        new_halt_authorities: Option<Vec<Pubkey>>,
-        new_slashing_authorities: Option<Vec<Pubkey>>,
-    ) -> Result<()> {
-        update_pool_overview_authorities::handler(
-            ctx,
-            new_program_admin,
-            new_reward_distribution_authorities,
-            new_halt_authorities,
-            new_slashing_authorities,
-        )
     }
 
     pub fn update_pool_overview(
@@ -45,6 +33,17 @@ pub mod inference_staking {
     ) -> Result<()> {
         update_pool_overview::handler(ctx, args)
     }
+
+    pub fn update_pool_overview_authorities(
+        ctx: Context<UpdatePoolOverviewAuthorities>,
+        args: UpdatePoolOverviewAuthoritiesArgs,
+    ) -> Result<()> {
+        update_pool_overview_authorities::handler(ctx, args)
+    }
+
+    /** -----------------------------------------------------------------------
+     * Staking Instructions
+     * ------------------------------------------------------------------------ */
 
     pub fn create_staking_record(ctx: Context<CreateStakingRecord>) -> Result<()> {
         create_staking_record::handler(ctx)
@@ -66,51 +65,21 @@ pub mod inference_staking {
         cancel_unstake::handler(ctx)
     }
 
-    pub fn create_reward_record(
-        ctx: Context<CreateRewardRecord>,
-        merkle_roots: Vec<[u8; 32]>,
-        total_rewards: u64,
-        total_usdc_payout: u64,
-    ) -> Result<()> {
-        create_reward_record::handler(ctx, merkle_roots, total_rewards, total_usdc_payout)
-    }
-
-    pub fn accrue_reward(
-        ctx: Context<AccrueReward>,
-        merkle_index: u8,
-        proof: Vec<[u8; 32]>,
-        proof_path: Vec<bool>,
-        reward_amount: u64,
-        usdc_amount: u64,
-    ) -> Result<()> {
-        accrue_reward::handler(
-            ctx,
-            merkle_index,
-            proof,
-            proof_path,
-            reward_amount,
-            usdc_amount,
-        )
-    }
-
     pub fn close_staking_record(ctx: Context<CloseStakingRecord>) -> Result<()> {
         close_staking_record::handler(ctx)
     }
 
-    /* PoolOverview admin instructions */
+    /** -----------------------------------------------------------------------
+     * Reward Distribution Instructions
+     * ------------------------------------------------------------------------ */
 
-    pub fn slash_stake(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
-        slash_stake::handler(ctx, args)
+    pub fn create_reward_record(
+        ctx: Context<CreateRewardRecord>,
+        args: CreateRewardRecordArgs,
+    ) -> Result<()> {
+        create_reward_record::handler(ctx, args)
     }
 
-    /// PoolOverview admin sets the `is_halted` status of an OperatorPool.
-    pub fn set_halt_status(ctx: Context<SetHaltStatus>, args: SetHaltStatusArgs) -> Result<()> {
-        set_halt_status::handler(ctx, args)
-    }
-
-    /// Instruction to allow the PoolOverview admin to update the merkle roots on an existing RewardRecord.
-    /// This currently does not allow the update of `total_rewards` to prevent accounting
-    /// complexities when some rewards may have already been accrued to the OperatorPool
     pub fn modify_reward_record(
         ctx: Context<ModifyRewardRecord>,
         args: ModifyRewardRecordArgs,
@@ -118,26 +87,25 @@ pub mod inference_staking {
         modify_reward_record::handler(ctx, args)
     }
 
-    /* OperatorPool admin instructions */
+    pub fn accrue_reward(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()> {
+        accrue_reward::handler(ctx, args)
+    }
+
+    /** -----------------------------------------------------------------------
+     * OperatorPool Admin Instructions
+     * ------------------------------------------------------------------------ */
+
     pub fn create_operator_pool(
         ctx: Context<CreateOperatorPool>,
-        auto_stake_fees: bool,
-        commission_rate_bps: u16,
-        allow_delegation: bool,
+        args: CreateOperatorPoolArgs,
     ) -> Result<()> {
-        create_operator_pool::handler(ctx, auto_stake_fees, commission_rate_bps, allow_delegation)
+        create_operator_pool::handler(ctx, args)
     }
 
     pub fn withdraw_operator_commission(ctx: Context<WithdrawOperatorCommission>) -> Result<()> {
         withdraw_operator_commission::handler(ctx)
     }
 
-    pub fn close_operator_pool(ctx: Context<CloseOperatorPool>) -> Result<()> {
-        close_operator_pool::handler(ctx)
-    }
-
-    /// OperatorPool admin-only instruction to change the StakingRecord associated with
-    /// the OperatorPool.
     pub fn change_operator_staking_record(ctx: Context<ChangeOperatorStakingRecord>) -> Result<()> {
         change_operator_staking_record::handler(ctx)
     }
@@ -146,11 +114,26 @@ pub mod inference_staking {
         change_operator_admin::handler(ctx)
     }
 
-    /// Change configurable parameters on the OperatorPool.
     pub fn update_operator_pool(
         ctx: Context<UpdateOperatorPool>,
         args: UpdateOperatorPoolArgs,
     ) -> Result<()> {
         update_operator_pool::handler(ctx, args)
+    }
+
+    pub fn close_operator_pool(ctx: Context<CloseOperatorPool>) -> Result<()> {
+        close_operator_pool::handler(ctx)
+    }
+
+    /** -----------------------------------------------------------------------
+     * Program Admin Security Instructions
+     * ------------------------------------------------------------------------ */
+
+    pub fn set_halt_status(ctx: Context<SetHaltStatus>, args: SetHaltStatusArgs) -> Result<()> {
+        set_halt_status::handler(ctx, args)
+    }
+
+    pub fn slash_stake(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
+        slash_stake::handler(ctx, args)
     }
 }
