@@ -43,7 +43,9 @@ export async function setupTests() {
   const signerKp = new Keypair();
   const tokenHolderKp = new Keypair();
   const poolOverviewAdminKp = new Keypair();
-  const haltAuthority1Kp = new Keypair();
+  const rewardDistributionAuthorityKp = new Keypair();
+  const haltingAuthorityKp = new Keypair();
+  const slashingAuthorityKp = new Keypair();
   const admin1Kp = new Keypair();
   const admin2Kp = new Keypair();
   const admin3Kp = new Keypair();
@@ -78,6 +80,18 @@ export async function setupTests() {
     provider.connection.requestAirdrop(user3Kp.publicKey, LAMPORTS_PER_SOL),
     provider.connection.requestAirdrop(user4Kp.publicKey, LAMPORTS_PER_SOL),
     provider.connection.requestAirdrop(user5Kp.publicKey, LAMPORTS_PER_SOL),
+    provider.connection.requestAirdrop(
+      rewardDistributionAuthorityKp.publicKey,
+      LAMPORTS_PER_SOL
+    ),
+    provider.connection.requestAirdrop(
+      haltingAuthorityKp.publicKey,
+      LAMPORTS_PER_SOL
+    ),
+    provider.connection.requestAirdrop(
+      slashingAuthorityKp.publicKey,
+      LAMPORTS_PER_SOL
+    ),
   ]);
 
   await Promise.all(
@@ -257,11 +271,16 @@ export async function setupTests() {
     payer: payerKp.publicKey,
     poolOverviewAdminKp,
     poolOverviewAdmin: poolOverviewAdminKp.publicKey,
+    rewardDistributionAuthorityKp,
+    rewardDistributionAuthority: rewardDistributionAuthorityKp.publicKey,
+    haltingAuthorityKp,
+    haltingAuthority: haltingAuthorityKp.publicKey,
+    slashingAuthorityKp,
+    slashingAuthority: slashingAuthorityKp.publicKey,
     tokenHolderKp,
     tokenHolder: tokenHolderKp.publicKey,
     signerKp: signerKp,
     signer: signerKp.publicKey,
-    haltAuthority1Kp,
     provider,
     user1Kp,
     user1: user1Kp.publicKey,

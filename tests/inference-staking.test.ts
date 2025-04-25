@@ -184,9 +184,11 @@ describe("inference-staking program tests", () => {
   it("Update PoolOverview authorities successfully", async () => {
     await program.methods
       .updatePoolOverviewAuthorities({
-        newRewardDistributionAuthorities: [setup.poolOverviewAdminKp.publicKey],
-        newHaltAuthorities: [setup.haltAuthority1Kp.publicKey],
-        newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
+        newRewardDistributionAuthorities: [
+          setup.rewardDistributionAuthorityKp.publicKey,
+        ],
+        newHaltAuthorities: [setup.haltingAuthorityKp.publicKey],
+        newSlashingAuthorities: [setup.slashingAuthorityKp.publicKey],
       })
       .accountsStrict({
         newProgramAdmin: null,
@@ -210,7 +212,9 @@ describe("inference-staking program tests", () => {
     );
     assert(poolOverview.haltAuthorities.length === 1);
     assert(
-      poolOverview.haltAuthorities[0]?.equals(setup.haltAuthority1Kp.publicKey)
+      poolOverview.haltAuthorities[0]?.equals(
+        setup.haltingAuthorityKp.publicKey
+      )
     );
     assert(poolOverview.rewardDistributionAuthorities.length === 1);
     assert(
@@ -1761,11 +1765,11 @@ describe("inference-staking program tests", () => {
         isHalted: true,
       })
       .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
+        authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
       })
-      .signers([setup.haltAuthority1Kp])
+      .signers([setup.haltingAuthorityKp])
       .rpc();
 
     try {
@@ -1796,11 +1800,11 @@ describe("inference-staking program tests", () => {
         isHalted: false,
       })
       .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
+        authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
       })
-      .signers([setup.haltAuthority1Kp])
+      .signers([setup.haltingAuthorityKp])
       .rpc();
   });
 
@@ -2020,11 +2024,11 @@ describe("inference-staking program tests", () => {
         isHalted: true,
       })
       .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
+        authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
       })
-      .signers([setup.haltAuthority1Kp])
+      .signers([setup.haltingAuthorityKp])
       .rpc();
 
     const operatorPoolPost = await program.account.operatorPool.fetch(
@@ -2125,11 +2129,11 @@ describe("inference-staking program tests", () => {
         isHalted: false,
       })
       .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
+        authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
       })
-      .signers([setup.haltAuthority1Kp])
+      .signers([setup.haltingAuthorityKp])
       .rpc();
 
     const operatorPool = await program.account.operatorPool.fetch(

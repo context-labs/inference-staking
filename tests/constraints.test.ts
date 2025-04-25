@@ -95,10 +95,10 @@ describe("Additional tests for instruction constraints", () => {
           operatorUnstakeDelaySeconds: null,
         })
         .accountsStrict({
-          programAdmin: setup.haltAuthority1Kp.publicKey,
+          programAdmin: setup.haltingAuthorityKp.publicKey,
           poolOverview: setup.poolOverview,
         })
-        .signers([setup.haltAuthority1Kp])
+        .signers([setup.haltingAuthorityKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -210,10 +210,10 @@ describe("Additional tests for instruction constraints", () => {
       await program.methods
         .updatePoolOverviewAuthorities({
           newRewardDistributionAuthorities: [
-            setup.poolOverviewAdminKp.publicKey,
+            setup.rewardDistributionAuthorityKp.publicKey,
           ],
-          newHaltAuthorities: [setup.haltAuthority1Kp.publicKey],
-          newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
+          newHaltAuthorities: [setup.haltingAuthorityKp.publicKey],
+          newSlashingAuthorities: [setup.slashingAuthorityKp.publicKey],
         })
         .accountsStrict({
           newProgramAdmin: null,
@@ -285,6 +285,24 @@ describe("Additional tests for instruction constraints", () => {
       assert(false);
     } catch (error) {
       assertError(error, "RequireGteViolated");
+    }
+  });
+
+  it("Fail to update epoch is finalizing state with invalid authority", async () => {
+    try {
+      await program.methods
+        .updateIsEpochFinalizing({
+          isEpochFinalizing: true,
+        })
+        .accountsStrict({
+          poolOverview: setup.poolOverview,
+          authority: setup.poolOverviewAdminKp.publicKey,
+        })
+        .signers([setup.poolOverviewAdminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "invalidAuthority");
     }
   });
 });
