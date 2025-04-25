@@ -87,12 +87,8 @@ describe("Additional tests for instruction constraints", () => {
     try {
       await program.methods
         .updatePoolOverview({
+          ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
           isStakingHalted: true,
-          isWithdrawalHalted: null,
-          allowPoolCreation: null,
-          minOperatorShareBps: null,
-          delegatorUnstakeDelaySeconds: null,
-          operatorUnstakeDelaySeconds: null,
         })
         .accountsStrict({
           programAdmin: setup.haltingAuthorityKp.publicKey,
@@ -186,12 +182,8 @@ describe("Additional tests for instruction constraints", () => {
       // Expect failure as min operator share cannot exceed 100%
       await program.methods
         .updatePoolOverview({
-          isStakingHalted: null,
-          isWithdrawalHalted: null,
-          allowPoolCreation: null,
+          ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
           minOperatorShareBps: 100_01,
-          delegatorUnstakeDelaySeconds: null,
-          operatorUnstakeDelaySeconds: null,
         })
         .accountsStrict({
           programAdmin: setup.signer,
