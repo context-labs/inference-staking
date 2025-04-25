@@ -115,8 +115,8 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     // the edge case where an operator joins during reward finalization for an epoch,
     // and is not included in the reward distribution. This would leave them "stranded"
     // in the epoch they joined, which is why we bump their epoch to the next one here
-    // if the epoch is currently finalizing. This requires us to always initiate the
-    // epoch finalization process first, before calculating the reward distribution.
+    // if the epoch is currently finalizing. For this to work, we must always initiate
+    // the epoch finalization process first, before calculating the reward distribution.
     match pool_overview.is_epoch_finalizing {
         true => {
             operator_pool.reward_last_claimed_epoch =
