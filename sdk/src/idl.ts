@@ -1448,7 +1448,7 @@ const _IDL = {
     {
       code: 6019,
       name: "epochMustBeFinalizing",
-      msg: "Epoch must be finalizing when creating reward record",
+      msg: "Epoch must be finalizing when calling CreateRewardRecord",
     },
   ],
   types: [
