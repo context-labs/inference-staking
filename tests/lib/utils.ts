@@ -95,3 +95,35 @@ export const setEpochFinalizationState = async ({
   );
   assert(poolOverviewPost.isEpochFinalizing === isEpochFinalizing);
 };
+
+export const setStakingHalted = async ({
+  setup,
+  program,
+  isStakingHalted = true,
+}: {
+  setup: SetupTestResult;
+  program: Program<InferenceStaking>;
+  isStakingHalted?: boolean;
+}) => {
+  const poolOverviewPre = await program.account.poolOverview.fetch(
+    setup.poolOverview
+  );
+  assert(poolOverviewPre.isStakingHalted === !isStakingHalted);
+
+  await program.methods
+    .updatePoolOverview({
+      ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+      isStakingHalted,
+    })
+    .accountsStrict({
+      poolOverview: setup.poolOverview,
+      programAdmin: setup.poolOverviewAdminKp.publicKey,
+    })
+    .signers([setup.poolOverviewAdminKp])
+    .rpc();
+
+  const poolOverviewPost = await program.account.poolOverview.fetch(
+    setup.poolOverview
+  );
+  assert(poolOverviewPost.isStakingHalted === isStakingHalted);
+};
