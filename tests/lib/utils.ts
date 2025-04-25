@@ -1,5 +1,7 @@
+import type * as anchor from "@coral-xyz/anchor";
 import type { Program } from "@coral-xyz/anchor";
-import type { Connection } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import type { Connection, Keypair } from "@solana/web3.js";
 import { assert } from "chai";
 
 import type { InferenceStakingErrors } from "@sdk/src";
@@ -39,6 +41,17 @@ export function assertError(error: unknown, code: string) {
     );
   }
 }
+
+export const airdrop = async (
+  provider: anchor.Provider,
+  recipient: Keypair
+) => {
+  const tx = await provider.connection.requestAirdrop(
+    recipient.publicKey,
+    LAMPORTS_PER_SOL
+  );
+  await confirmTransaction(provider.connection, tx);
+};
 
 export const confirmTransaction = async (
   connection: Connection,

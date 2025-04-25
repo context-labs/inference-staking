@@ -8,5 +8,7 @@ test-ledger
 dist
 .npmrc
 
+Anchor.toml.bak
+
 x.ts
 x-program.rs
