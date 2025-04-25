@@ -4,13 +4,14 @@ use crate::{error::ErrorCode, PoolOverview};
 
 #[derive(Accounts)]
 pub struct UpdateIsEpochFinalizing<'info> {
-    pub program_admin: Signer<'info>,
+    pub authority: Signer<'info>,
 
     #[account(
         mut,
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
-        has_one = program_admin @ ErrorCode::InvalidAuthority
+        constraint = pool_overview.reward_distribution_authorities.contains(authority.key)
+            @ ErrorCode::InvalidAuthority,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
 }

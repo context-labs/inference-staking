@@ -72,7 +72,7 @@ export const setEpochFinalizationState = async ({
     })
     .accountsStrict({
       poolOverview: setup.poolOverview,
-      programAdmin: setup.poolOverviewAdminKp.publicKey,
+      authority: setup.poolOverviewAdminKp.publicKey,
     })
     .signers([setup.poolOverviewAdminKp])
     .rpc();

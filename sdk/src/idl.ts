@@ -1131,9 +1131,8 @@ const _IDL = {
       discriminator: [57, 35, 17, 239, 103, 135, 109, 125],
       accounts: [
         {
-          name: "programAdmin",
+          name: "authority",
           signer: true,
-          relations: ["poolOverview"],
         },
         {
           name: "poolOverview",
