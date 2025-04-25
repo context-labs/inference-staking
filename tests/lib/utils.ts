@@ -72,9 +72,9 @@ export const setEpochFinalizationState = async ({
     })
     .accountsStrict({
       poolOverview: setup.poolOverview,
-      authority: setup.poolOverviewAdminKp.publicKey,
+      authority: setup.rewardDistributionAuthority,
     })
-    .signers([setup.poolOverviewAdminKp])
+    .signers([setup.rewardDistributionAuthorityKp])
     .rpc();
 
   const poolOverviewPost = await program.account.poolOverview.fetch(
