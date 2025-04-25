@@ -1127,6 +1127,41 @@ const _IDL = {
       ],
     },
     {
+      name: "updateIsEpochFinalizing",
+      discriminator: [57, 35, 17, 239, 103, 135, 109, 125],
+      accounts: [
+        {
+          name: "programAdmin",
+          signer: true,
+          relations: ["poolOverview"],
+        },
+        {
+          name: "poolOverview",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+      ],
+      args: [
+        {
+          name: "args",
+          type: {
+            defined: {
+              name: "updateIsEpochFinalizingArgs",
+            },
+          },
+        },
+      ],
+    },
+    {
       name: "updateOperatorPool",
       discriminator: [33, 136, 60, 240, 111, 137, 216, 26],
       accounts: [
@@ -2040,6 +2075,18 @@ const _IDL = {
       },
     },
     {
+      name: "updateIsEpochFinalizingArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "isEpochFinalizing",
+            type: "bool",
+          },
+        ],
+      },
+    },
+    {
       name: "updateOperatorPoolArgs",
       type: {
         kind: "struct",
@@ -2075,12 +2122,6 @@ const _IDL = {
       type: {
         kind: "struct",
         fields: [
-          {
-            name: "isEpochFinalizing",
-            type: {
-              option: "bool",
-            },
-          },
           {
             name: "isStakingHalted",
             type: {

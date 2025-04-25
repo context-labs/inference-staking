@@ -15,7 +15,6 @@ describe("Additional tests for instruction constraints", () => {
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
-  const isEpochFinalizing = false;
   const autoStakeFees = false;
   const allowDelegation = true;
   const minOperatorShareBps = 1000;
@@ -69,7 +68,6 @@ describe("Additional tests for instruction constraints", () => {
 
     await program.methods
       .updatePoolOverview({
-        isEpochFinalizing,
         isStakingHalted,
         isWithdrawalHalted,
         allowPoolCreation,
@@ -89,7 +87,6 @@ describe("Additional tests for instruction constraints", () => {
     try {
       await program.methods
         .updatePoolOverview({
-          isEpochFinalizing,
           isStakingHalted: true,
           isWithdrawalHalted: null,
           allowPoolCreation: null,
@@ -189,7 +186,6 @@ describe("Additional tests for instruction constraints", () => {
       // Expect failure as min operator share cannot exceed 100%
       await program.methods
         .updatePoolOverview({
-          isEpochFinalizing,
           isStakingHalted: null,
           isWithdrawalHalted: null,
           allowPoolCreation: null,

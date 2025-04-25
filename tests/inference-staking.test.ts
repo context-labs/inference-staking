@@ -37,7 +37,6 @@ describe("inference-staking program tests", () => {
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
-  const isEpochFinalizing = false;
   const autoStakeFees = false;
   const commissionRateBps = 1500;
   const allowDelegation = true;
@@ -119,7 +118,6 @@ describe("inference-staking program tests", () => {
   it("Update PoolOverview successfully", async () => {
     await program.methods
       .updatePoolOverview({
-        isEpochFinalizing,
         isStakingHalted,
         isWithdrawalHalted,
         allowPoolCreation,

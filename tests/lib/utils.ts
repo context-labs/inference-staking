@@ -67,8 +67,7 @@ export const setEpochFinalizationState = async ({
   assert(poolOverviewPre.isEpochFinalizing === !isEpochFinalizing);
 
   await program.methods
-    .updatePoolOverview({
-      ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+    .updateIsEpochFinalizing({
       isEpochFinalizing,
     })
     .accountsStrict({
