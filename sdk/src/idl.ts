@@ -1228,6 +1228,11 @@ const _IDL = {
             ],
           },
         },
+        {
+          name: "newProgramAdmin",
+          signer: true,
+          optional: true,
+        },
       ],
       args: [
         {
@@ -2120,12 +2125,6 @@ const _IDL = {
       type: {
         kind: "struct",
         fields: [
-          {
-            name: "newProgramAdmin",
-            type: {
-              option: "pubkey",
-            },
-          },
           {
             name: "newRewardDistributionAuthorities",
             type: {

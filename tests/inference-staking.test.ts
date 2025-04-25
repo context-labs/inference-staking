@@ -161,12 +161,12 @@ describe("inference-staking program tests", () => {
     // Update only halt authorities
     await program.methods
       .updatePoolOverviewAuthorities({
-        newProgramAdmin: null,
         newRewardDistributionAuthorities: null,
         newHaltAuthorities: [setup.user1],
         newSlashingAuthorities: null,
       })
       .accountsStrict({
+        newProgramAdmin: null,
         programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
       })
@@ -186,12 +186,12 @@ describe("inference-staking program tests", () => {
   it("Update PoolOverview authorities successfully", async () => {
     await program.methods
       .updatePoolOverviewAuthorities({
-        newProgramAdmin: setup.poolOverviewAdminKp.publicKey,
         newRewardDistributionAuthorities: [setup.poolOverviewAdminKp.publicKey],
         newHaltAuthorities: [setup.haltAuthority1Kp.publicKey],
         newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
       })
       .accountsStrict({
+        newProgramAdmin: null,
         programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
       })

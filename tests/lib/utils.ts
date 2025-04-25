@@ -22,8 +22,22 @@ export function assertStakingProgramError(
 }
 
 export function assertError(error: unknown, code: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  assert.equal((error as any).error.errorCode.code, code);
+  try {
+    assert.equal(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (error as any).error.errorCode.code,
+      code,
+      `Expected error code to be ${code}`
+    );
+  } catch {
+    // Fallback to generic error matching if the above fails.
+    const msg = (error as Error).message;
+    assert.equal(
+      msg.includes(code),
+      true,
+      `Expected error message to include ${code}`
+    );
+  }
 }
 
 export const confirmTransaction = async (

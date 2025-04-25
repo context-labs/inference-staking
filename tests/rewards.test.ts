@@ -67,12 +67,12 @@ describe("Reward creation and accrual tests", () => {
 
     await program.methods
       .updatePoolOverviewAuthorities({
-        newProgramAdmin: setup.poolOverviewAdminKp.publicKey,
         newRewardDistributionAuthorities: [setup.poolOverviewAdminKp.publicKey],
         newHaltAuthorities: [setup.haltAuthority1Kp.publicKey],
         newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
       })
       .accountsStrict({
+        newProgramAdmin: null,
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
       })
