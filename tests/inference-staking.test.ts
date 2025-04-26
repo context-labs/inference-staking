@@ -28,6 +28,7 @@ import {
   assertStakingProgramError,
   sleep,
   setEpochFinalizationState,
+  setStakingHalted,
 } from "@tests/lib/utils";
 
 describe("inference-staking program tests", () => {
@@ -37,7 +38,6 @@ describe("inference-staking program tests", () => {
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
-  const isEpochFinalizing = false;
   const autoStakeFees = false;
   const commissionRateBps = 1500;
   const allowDelegation = true;
@@ -119,7 +119,6 @@ describe("inference-staking program tests", () => {
   it("Update PoolOverview successfully", async () => {
     await program.methods
       .updatePoolOverview({
-        isEpochFinalizing,
         isStakingHalted,
         isWithdrawalHalted,
         allowPoolCreation,
@@ -161,12 +160,12 @@ describe("inference-staking program tests", () => {
     // Update only halt authorities
     await program.methods
       .updatePoolOverviewAuthorities({
-        newProgramAdmin: null,
         newRewardDistributionAuthorities: null,
         newHaltAuthorities: [setup.user1],
         newSlashingAuthorities: null,
       })
       .accountsStrict({
+        newProgramAdmin: null,
         programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
       })
@@ -186,12 +185,14 @@ describe("inference-staking program tests", () => {
   it("Update PoolOverview authorities successfully", async () => {
     await program.methods
       .updatePoolOverviewAuthorities({
-        newProgramAdmin: setup.poolOverviewAdminKp.publicKey,
-        newRewardDistributionAuthorities: [setup.poolOverviewAdminKp.publicKey],
-        newHaltAuthorities: [setup.haltAuthority1Kp.publicKey],
-        newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
+        newRewardDistributionAuthorities: [
+          setup.rewardDistributionAuthorityKp.publicKey,
+        ],
+        newHaltAuthorities: [setup.haltingAuthorityKp.publicKey],
+        newSlashingAuthorities: [setup.slashingAuthorityKp.publicKey],
       })
       .accountsStrict({
+        newProgramAdmin: null,
         programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
       })
@@ -206,18 +207,14 @@ describe("inference-staking program tests", () => {
     );
     assert(poolOverview.slashingAuthorities.length === 1);
     assert(
-      poolOverview.slashingAuthorities[0]?.equals(
-        setup.poolOverviewAdminKp.publicKey
-      )
+      poolOverview.slashingAuthorities[0]?.equals(setup.slashingAuthority)
     );
     assert(poolOverview.haltAuthorities.length === 1);
-    assert(
-      poolOverview.haltAuthorities[0]?.equals(setup.haltAuthority1Kp.publicKey)
-    );
+    assert(poolOverview.haltAuthorities[0]?.equals(setup.haltingAuthority));
     assert(poolOverview.rewardDistributionAuthorities.length === 1);
     assert(
       poolOverview.rewardDistributionAuthorities[0]?.equals(
-        setup.poolOverviewAdminKp.publicKey
+        setup.rewardDistributionAuthority
       )
     );
   });
@@ -262,14 +259,14 @@ describe("inference-staking program tests", () => {
       })
       .accountsStrict({
         payer: setup.payer,
-        authority: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.rewardDistributionAuthority,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[1],
         rewardTokenAccount: setup.rewardTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.poolOverviewAdminKp])
+      .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
       .rpc();
 
     const poolOverviewPost = await program.account.poolOverview.fetch(
@@ -288,14 +285,14 @@ describe("inference-staking program tests", () => {
         })
         .accountsStrict({
           payer: setup.payer,
-          authority: setup.poolOverviewAdminKp.publicKey,
+          authority: setup.rewardDistributionAuthority,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           rewardTokenAccount: setup.rewardTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.payerKp, setup.poolOverviewAdminKp])
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
         .rpc();
     } catch (error) {
       assertStakingProgramError(error, "epochMustBeFinalizing");
@@ -597,6 +594,46 @@ describe("inference-staking program tests", () => {
     }
   });
 
+  it("Fail to stake when global staking setting is disabled", async () => {
+    const ownerTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.pool1.admin
+    );
+    const stakeAmount = new anchor.BN(150_000);
+
+    await setStakingHalted({
+      setup,
+      program,
+      isStakingHalted: true,
+    });
+
+    try {
+      await program.methods
+        .stake(stakeAmount)
+        .accountsStrict({
+          owner: setup.pool1.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.stakingRecord,
+          operatorStakingRecord: setup.pool1.stakingRecord,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount,
+        })
+        .signers([setup.pool1.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "stakingHalted");
+    } finally {
+      await setStakingHalted({
+        setup,
+        program,
+        isStakingHalted: false,
+      });
+    }
+  });
+
   it("Stake for operator successfully", async () => {
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
@@ -818,6 +855,41 @@ describe("inference-staking program tests", () => {
       assert(false);
     } catch (error) {
       assertError(error, "AccountNotEmpty");
+    }
+  });
+
+  it("Fail to unstake when global staking setting is disabled", async () => {
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.user
+    );
+
+    await setStakingHalted({
+      setup,
+      program,
+      isStakingHalted: true,
+    });
+
+    try {
+      await program.methods
+        .unstake(stakingRecord.shares)
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user,
+          operatorStakingRecord: setup.pool1.stakingRecord,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "stakingHalted");
+    } finally {
+      await setStakingHalted({
+        setup,
+        program,
+        isStakingHalted: false,
+      });
     }
   });
 
@@ -1249,14 +1321,14 @@ describe("inference-staking program tests", () => {
       })
       .accountsStrict({
         payer: setup.payer,
-        authority: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.rewardDistributionAuthority,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
         rewardTokenAccount: setup.rewardTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.poolOverviewAdminKp])
+      .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
       .rpc();
 
     const rewardRecord = await program.account.rewardRecord.fetch(
@@ -1326,11 +1398,11 @@ describe("inference-staking program tests", () => {
         merkleRoots,
       })
       .accountsStrict({
-        authority: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.rewardDistributionAuthority,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
       })
-      .signers([setup.poolOverviewAdminKp])
+      .signers([setup.rewardDistributionAuthorityKp])
       .rpc();
 
     epoch1RewardRecord = await program.account.rewardRecord.fetch(
@@ -1344,11 +1416,11 @@ describe("inference-staking program tests", () => {
         merkleRoots: prevMerkleRoots,
       })
       .accountsStrict({
-        authority: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.rewardDistributionAuthority,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
       })
-      .signers([setup.poolOverviewAdminKp])
+      .signers([setup.rewardDistributionAuthorityKp])
       .rpc();
     epoch1RewardRecord = await program.account.rewardRecord.fetch(
       setup.rewardRecords[2]
@@ -1763,11 +1835,11 @@ describe("inference-staking program tests", () => {
         isHalted: true,
       })
       .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
+        authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
       })
-      .signers([setup.haltAuthority1Kp])
+      .signers([setup.haltingAuthorityKp])
       .rpc();
 
     try {
@@ -1798,11 +1870,11 @@ describe("inference-staking program tests", () => {
         isHalted: false,
       })
       .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
+        authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
       })
-      .signers([setup.haltAuthority1Kp])
+      .signers([setup.haltingAuthorityKp])
       .rpc();
   });
 
@@ -1923,7 +1995,7 @@ describe("inference-staking program tests", () => {
     await program.methods
       .slashStake({ sharesAmount: sharesToSlash })
       .accountsStrict({
-        authority: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.slashingAuthority,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
         operatorStakingRecord: setup.pool1.stakingRecord,
@@ -1931,7 +2003,7 @@ describe("inference-staking program tests", () => {
         destination: destinationTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
-      .signers([setup.poolOverviewAdminKp])
+      .signers([setup.slashingAuthorityKp])
       .rpc();
 
     const event = await eventPromise;
@@ -2022,11 +2094,11 @@ describe("inference-staking program tests", () => {
         isHalted: true,
       })
       .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
+        authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
       })
-      .signers([setup.haltAuthority1Kp])
+      .signers([setup.haltingAuthorityKp])
       .rpc();
 
     const operatorPoolPost = await program.account.operatorPool.fetch(
@@ -2127,11 +2199,11 @@ describe("inference-staking program tests", () => {
         isHalted: false,
       })
       .accountsStrict({
-        authority: setup.haltAuthority1Kp.publicKey,
+        authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
       })
-      .signers([setup.haltAuthority1Kp])
+      .signers([setup.haltingAuthorityKp])
       .rpc();
 
     const operatorPool = await program.account.operatorPool.fetch(

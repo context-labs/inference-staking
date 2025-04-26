@@ -240,7 +240,6 @@ export class InferenceStakingProgramSDK {
       typeof this.program.methods.updatePoolOverview
     >[0];
     const empty: EmptyUpdateFields = {
-      isEpochFinalizing: null,
       isStakingHalted: null,
       isWithdrawalHalted: null,
       allowPoolCreation: null,

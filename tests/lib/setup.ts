@@ -4,11 +4,11 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from "@solana/spl-token";
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 
 import { InferenceStakingProgramSDK } from "@sdk/src";
 
-import { confirmTransaction } from "@tests/lib/utils";
+import { airdrop, confirmTransaction } from "@tests/lib/utils";
 
 const { BN, getProvider } = anchor;
 
@@ -43,7 +43,9 @@ export async function setupTests() {
   const signerKp = new Keypair();
   const tokenHolderKp = new Keypair();
   const poolOverviewAdminKp = new Keypair();
-  const haltAuthority1Kp = new Keypair();
+  const rewardDistributionAuthorityKp = new Keypair();
+  const haltingAuthorityKp = new Keypair();
+  const slashingAuthorityKp = new Keypair();
   const admin1Kp = new Keypair();
   const admin2Kp = new Keypair();
   const admin3Kp = new Keypair();
@@ -61,27 +63,21 @@ export async function setupTests() {
     programId: TEST_PROGRAM_ID,
   });
 
-  const txs = await Promise.all([
-    provider.connection.requestAirdrop(payerKp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(
-      tokenHolderKp.publicKey,
-      LAMPORTS_PER_SOL
-    ),
-    provider.connection.requestAirdrop(signerKp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(admin1Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(admin2Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(admin3Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(admin4Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(admin5Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(user1Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(user2Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(user3Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(user4Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(user5Kp.publicKey, LAMPORTS_PER_SOL),
-  ]);
-
   await Promise.all(
-    txs.map((signature) => confirmTransaction(provider.connection, signature))
+    [
+      payerKp,
+      signerKp,
+      admin1Kp,
+      admin2Kp,
+      admin3Kp,
+      admin4Kp,
+      admin5Kp,
+      user1Kp,
+      user2Kp,
+      user3Kp,
+      user4Kp,
+      user5Kp,
+    ].map((recipient) => airdrop(provider, recipient))
   );
 
   const tokenMint = await createMint(
@@ -257,11 +253,16 @@ export async function setupTests() {
     payer: payerKp.publicKey,
     poolOverviewAdminKp,
     poolOverviewAdmin: poolOverviewAdminKp.publicKey,
+    rewardDistributionAuthorityKp,
+    rewardDistributionAuthority: rewardDistributionAuthorityKp.publicKey,
+    haltingAuthorityKp,
+    haltingAuthority: haltingAuthorityKp.publicKey,
+    slashingAuthorityKp,
+    slashingAuthority: slashingAuthorityKp.publicKey,
     tokenHolderKp,
     tokenHolder: tokenHolderKp.publicKey,
     signerKp: signerKp,
     signer: signerKp.publicKey,
-    haltAuthority1Kp,
     provider,
     user1Kp,
     user1: user1Kp.publicKey,

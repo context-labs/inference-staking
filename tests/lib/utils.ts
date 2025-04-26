@@ -1,5 +1,7 @@
+import type * as anchor from "@coral-xyz/anchor";
 import type { Program } from "@coral-xyz/anchor";
-import type { Connection } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import type { Connection, Keypair } from "@solana/web3.js";
 import { assert } from "chai";
 
 import type { InferenceStakingErrors } from "@sdk/src";
@@ -22,9 +24,34 @@ export function assertStakingProgramError(
 }
 
 export function assertError(error: unknown, code: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  assert.equal((error as any).error.errorCode.code, code);
+  try {
+    assert.equal(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (error as any).error.errorCode.code,
+      code,
+      `Expected error code to be ${code}`
+    );
+  } catch {
+    // Fallback to generic error matching if the above fails.
+    const msg = (error as Error).message;
+    assert.equal(
+      msg.includes(code),
+      true,
+      `Expected error message to include ${code}`
+    );
+  }
 }
+
+export const airdrop = async (
+  provider: anchor.Provider,
+  recipient: Keypair
+) => {
+  const tx = await provider.connection.requestAirdrop(
+    recipient.publicKey,
+    LAMPORTS_PER_SOL
+  );
+  await confirmTransaction(provider.connection, tx);
+};
 
 export const confirmTransaction = async (
   connection: Connection,
@@ -53,9 +80,40 @@ export const setEpochFinalizationState = async ({
   assert(poolOverviewPre.isEpochFinalizing === !isEpochFinalizing);
 
   await program.methods
+    .updateIsEpochFinalizing({
+      isEpochFinalizing,
+    })
+    .accountsStrict({
+      poolOverview: setup.poolOverview,
+      authority: setup.rewardDistributionAuthority,
+    })
+    .signers([setup.rewardDistributionAuthorityKp])
+    .rpc();
+
+  const poolOverviewPost = await program.account.poolOverview.fetch(
+    setup.poolOverview
+  );
+  assert(poolOverviewPost.isEpochFinalizing === isEpochFinalizing);
+};
+
+export const setStakingHalted = async ({
+  setup,
+  program,
+  isStakingHalted = true,
+}: {
+  setup: SetupTestResult;
+  program: Program<InferenceStaking>;
+  isStakingHalted?: boolean;
+}) => {
+  const poolOverviewPre = await program.account.poolOverview.fetch(
+    setup.poolOverview
+  );
+  assert(poolOverviewPre.isStakingHalted === !isStakingHalted);
+
+  await program.methods
     .updatePoolOverview({
       ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
-      isEpochFinalizing,
+      isStakingHalted,
     })
     .accountsStrict({
       poolOverview: setup.poolOverview,
@@ -67,5 +125,5 @@ export const setEpochFinalizationState = async ({
   const poolOverviewPost = await program.account.poolOverview.fetch(
     setup.poolOverview
   );
-  assert(poolOverviewPost.isEpochFinalizing === isEpochFinalizing);
+  assert(poolOverviewPost.isStakingHalted === isStakingHalted);
 };

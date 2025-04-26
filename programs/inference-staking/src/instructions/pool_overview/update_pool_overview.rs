@@ -17,7 +17,6 @@ pub struct UpdatePoolOverview<'info> {
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
 pub struct UpdatePoolOverviewArgs {
-    pub is_epoch_finalizing: Option<bool>,
     pub is_staking_halted: Option<bool>,
     pub is_withdrawal_halted: Option<bool>,
     pub allow_pool_creation: Option<bool>,
@@ -29,7 +28,6 @@ pub struct UpdatePoolOverviewArgs {
 /// Instruction to update settings on PoolOverview.
 pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -> Result<()> {
     let UpdatePoolOverviewArgs {
-        is_epoch_finalizing,
         is_staking_halted,
         is_withdrawal_halted,
         allow_pool_creation,
@@ -39,10 +37,6 @@ pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -
     } = args;
 
     let pool_overview = &mut ctx.accounts.pool_overview;
-
-    if let Some(is_epoch_finalizing) = is_epoch_finalizing {
-        pool_overview.is_epoch_finalizing = is_epoch_finalizing;
-    }
 
     if let Some(min_operator_share_bps) = min_operator_share_bps {
         require_gte!(10000, min_operator_share_bps);

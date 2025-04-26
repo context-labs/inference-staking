@@ -13,11 +13,14 @@ pub struct UpdatePoolOverviewAuthorities<'info> {
         has_one = program_admin @ ErrorCode::InvalidAuthority
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
+
+    // Optional new admin that must be a signer if provided
+    #[account(signer)]
+    pub new_program_admin: Option<AccountInfo<'info>>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct UpdatePoolOverviewAuthoritiesArgs {
-    pub new_program_admin: Option<Pubkey>,
     pub new_reward_distribution_authorities: Option<Vec<Pubkey>>,
     pub new_halt_authorities: Option<Vec<Pubkey>>,
     pub new_slashing_authorities: Option<Vec<Pubkey>>,
@@ -29,7 +32,6 @@ pub fn handler(
     args: UpdatePoolOverviewAuthoritiesArgs,
 ) -> Result<()> {
     let UpdatePoolOverviewAuthoritiesArgs {
-        new_program_admin,
         new_reward_distribution_authorities,
         new_halt_authorities,
         new_slashing_authorities,
@@ -37,8 +39,8 @@ pub fn handler(
 
     let pool_overview = &mut ctx.accounts.pool_overview;
 
-    if let Some(new_admin) = new_program_admin {
-        pool_overview.program_admin = new_admin;
+    if let Some(new_program_admin_info) = &ctx.accounts.new_program_admin {
+        pool_overview.program_admin = new_program_admin_info.key();
     }
 
     if let Some(authorities) = new_reward_distribution_authorities {
