@@ -96,7 +96,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
         allow_delegation,
     } = args;
 
-    require_gte!(10000, commission_rate_bps);
+    require_gte!(10_000, commission_rate_bps);
 
     let pool_overview = &mut ctx.accounts.pool_overview;
     pool_overview.total_pools = pool_overview.total_pools.checked_add(1).unwrap();

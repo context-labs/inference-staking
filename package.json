@@ -14,7 +14,7 @@
     "test": "anchor test -- --features test",
     "test-all": "./scripts/test-all.sh",
     "build": "anchor build && bun run scripts/generateIDL.ts && bun run format:fix",
-    "check": "bun run format && bun run lint && bun run tsc && bun run build"
+    "check": "bun run build && bun run format && bun run lint && bun run tsc"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.31.0",

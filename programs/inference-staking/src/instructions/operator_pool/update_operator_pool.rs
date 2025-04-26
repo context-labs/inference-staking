@@ -37,7 +37,7 @@ pub struct UpdateOperatorPoolArgs {
 
 pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -> Result<()> {
     if let Some(rate) = args.new_commission_rate_bps {
-        require_gte!(10000, rate);
+        require_gte!(10_000, rate);
     }
 
     let operator_pool = &mut ctx.accounts.operator_pool;

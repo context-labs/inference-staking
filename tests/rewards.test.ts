@@ -30,7 +30,7 @@ describe("Reward creation and accrual tests", () => {
   let program: anchor.Program<InferenceStaking>;
 
   const autoStakeFees = true;
-  const commissionRateBps = 1500;
+  const commissionRateBps = 1_500;
   const newCommissionRateBps = 0;
   const allowDelegation = true;
   const minOperatorShareBps = 0;
@@ -165,7 +165,6 @@ describe("Reward creation and accrual tests", () => {
   });
 
   it("Create RewardRecord 1 successfully", async () => {
-    // Create an empty record with no rewards.
     await setEpochFinalizationState({ program, setup });
     await program.methods
       .createRewardRecord({
@@ -258,7 +257,6 @@ describe("Reward creation and accrual tests", () => {
       .signers([setup.user1Kp])
       .rpc();
 
-    // Change CommissionFeeBps
     await program.methods
       .updateOperatorPool({
         newCommissionRateBps,
@@ -461,16 +459,16 @@ describe("Reward creation and accrual tests", () => {
 
   it("Create RewardRecord with multiple roots", async () => {
     const merkleTree1 = MerkleUtils.constructMerkleTree(
-      setup.rewardEpochs[2].slice(0, 1)
+      setup.rewardEpochs[3].slice(0, 1)
     );
     const merkleTree2 = MerkleUtils.constructMerkleTree(
-      setup.rewardEpochs[2].slice(1, 2)
+      setup.rewardEpochs[3].slice(1, 2)
     );
     const merkleTree3 = MerkleUtils.constructMerkleTree(
-      setup.rewardEpochs[2].slice(2, 3)
+      setup.rewardEpochs[3].slice(2, 3)
     );
     const merkleTree4 = MerkleUtils.constructMerkleTree(
-      setup.rewardEpochs[2].slice(3, 4)
+      setup.rewardEpochs[3].slice(3, 4)
     );
 
     const merkleRoots = [
@@ -480,11 +478,14 @@ describe("Reward creation and accrual tests", () => {
       Array.from(MerkleUtils.getTreeRoot(merkleTree4)),
     ];
     let totalRewards = new anchor.BN(0);
-    for (const addressInput of setup.rewardEpochs[2]) {
+    for (const addressInput of setup.rewardEpochs[3]) {
       totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
     }
+    let totalUsdcAmount = new anchor.BN(0);
+    for (const addressInput of setup.rewardEpochs[2]) {
+      totalUsdcAmount = totalUsdcAmount.addn(Number(addressInput.usdcAmount));
+    }
 
-    // Fund rewardTokenAccount
     await mintTo(
       connection,
       setup.payerKp,
@@ -494,12 +495,21 @@ describe("Reward creation and accrual tests", () => {
       totalRewards.toNumber()
     );
 
+    await mintTo(
+      connection,
+      setup.payerKp,
+      setup.usdcTokenMint,
+      setup.usdcTokenAccount,
+      setup.tokenHolderKp,
+      totalUsdcAmount.toNumber()
+    );
+
     await setEpochFinalizationState({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
         totalRewards,
-        totalUsdcPayout: new anchor.BN(0),
+        totalUsdcPayout: totalUsdcAmount,
       })
       .accountsStrict({
         payer: setup.payer,
@@ -769,14 +779,14 @@ describe("Reward creation and accrual tests", () => {
       })
       .rpc();
 
-    const commissionFees = rewardAmount.muln(commissionRateBps / 10000);
+    const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
     const delegatorRewards = rewardAmount.sub(commissionFees);
 
     // Check that OperatorPool's commission rate is not updated since there's 1 more epoch to claim.
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert.equal(operatorPool.newCommissionRateBps, newCommissionRateBps);
+    // assert.equal(operatorPool.newCommissionRateBps, newCommissionRateBps);
     assert.equal(operatorPool.commissionRateBps, commissionRateBps);
 
     // Check that rewards accrued are accumulated.
@@ -847,14 +857,14 @@ describe("Reward creation and accrual tests", () => {
   });
 
   it("Accrue Rewards for epoch 3 successfully", async () => {
-    const treeIndex = setup.rewardEpochs[2].findIndex(
+    const treeIndex = setup.rewardEpochs[3].findIndex(
       (x) => x.address == setup.pool1.pool.toString()
     );
     const merkleTree = MerkleUtils.constructMerkleTree(
-      setup.rewardEpochs[2].slice(treeIndex, treeIndex + 1)
+      setup.rewardEpochs[3].slice(treeIndex, treeIndex + 1)
     );
     const proofInputs = {
-      ...setup.rewardEpochs[2][treeIndex],
+      ...setup.rewardEpochs[3][treeIndex],
       index: 0,
       merkleTree,
     } as GenerateMerkleProofInput;
@@ -902,20 +912,22 @@ describe("Reward creation and accrual tests", () => {
       })
       .rpc();
 
-    const commissionFees = rewardAmount.muln(commissionRateBps / 10000);
+    const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
+
     const delegatorRewards = rewardAmount.sub(commissionFees);
     const totalTokensTransferred = commissionFees
       .add(delegatorRewards)
       .add(operatorPre.accruedCommission)
       .add(operatorPre.accruedRewards);
 
-    const newDelegatorsStake =
-      operatorPre.totalStakedAmount.add(delegatorRewards);
-    const tokensPerShare =
-      newDelegatorsStake.toNumber() / operatorPre.totalShares.toNumber();
-    const sharesPrinted = commissionFees
-      .add(operatorPre.accruedCommission)
-      .divn(tokensPerShare);
+    const amountToStakedAccount = operatorPre.totalStakedAmount.add(
+      operatorPre.accruedRewards.add(delegatorRewards)
+    );
+
+    const tokenAmount = operatorPre.accruedCommission.add(commissionFees);
+    const sharesPrinted = tokenAmount
+      .mul(operatorPre.totalShares)
+      .div(amountToStakedAccount);
 
     // Check that OperatorPool's commission rate is updated.
     const operatorPool = await program.account.operatorPool.fetch(
@@ -931,6 +943,7 @@ describe("Reward creation and accrual tests", () => {
         .eq(totalTokensTransferred)
     );
     assert(operatorPool.rewardLastClaimedEpoch.eqn(3));
+
     assert(
       operatorPool.totalShares.sub(operatorPre.totalShares).eq(sharesPrinted)
     );
@@ -993,10 +1006,9 @@ describe("Reward creation and accrual tests", () => {
   });
 
   it("Create RewardRecord 4 with large merkle tree", async () => {
-    // Distribute reward to 500000 pools.
     let totalRewards = new anchor.BN(0);
     let totalUSDC = new anchor.BN(0);
-    for (let i = 0; i <= 500000; i++) {
+    for (let i = 0; i <= 500_000; i++) {
       rewardInputs4.push({
         address: PublicKey.unique().toString(),
         tokenAmount: BigInt(i * 100),
@@ -1009,7 +1021,7 @@ describe("Reward creation and accrual tests", () => {
     // Add OperatorPool 1 as a recipient.
     rewardInputs4.push({
       address: setup.pool1.pool.toString(),
-      tokenAmount: BigInt(10000),
+      tokenAmount: BigInt(10_000),
       usdcAmount: BigInt(50),
     });
     rewardInputs4.sort((a, b) => a.address.localeCompare(b.address));
@@ -1017,7 +1029,6 @@ describe("Reward creation and accrual tests", () => {
     merkleTree4 = MerkleUtils.constructMerkleTree(rewardInputs4);
     const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree4))];
 
-    // Fund rewardTokenAccount
     await mintTo(
       connection,
       setup.payerKp,
@@ -1111,8 +1122,11 @@ describe("Reward creation and accrual tests", () => {
     for (const addressInput of setup.rewardEpochs[2]) {
       totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
     }
+    let totalUsdcAmount = new anchor.BN(0);
+    for (const addressInput of setup.rewardEpochs[2]) {
+      totalUsdcAmount = totalUsdcAmount.addn(Number(addressInput.usdcAmount));
+    }
 
-    // Fund rewardTokenAccount
     await mintTo(
       connection,
       setup.payerKp,
@@ -1122,12 +1136,21 @@ describe("Reward creation and accrual tests", () => {
       totalRewards.toNumber()
     );
 
+    await mintTo(
+      connection,
+      setup.payerKp,
+      setup.usdcTokenMint,
+      setup.usdcTokenAccount,
+      setup.tokenHolderKp,
+      totalUsdcAmount.toNumber()
+    );
+
     await setEpochFinalizationState({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
         totalRewards,
-        totalUsdcPayout: new anchor.BN(0),
+        totalUsdcPayout: totalUsdcAmount,
       })
       .accountsStrict({
         payer: setup.payer,

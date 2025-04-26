@@ -1753,7 +1753,7 @@ const _IDL = {
           {
             name: "accruedCommission",
             docs: [
-              "Commission that have been calculated in `accrueRewards` , that are yet to be physically transferred to fee account.",
+              "Commission that have been calculated in `accrueRewards`, that are yet to be physically transferred to fee account.",
               "Used to optimize compute.",
             ],
             type: "u64",

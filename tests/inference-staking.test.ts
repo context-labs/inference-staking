@@ -39,9 +39,9 @@ describe("inference-staking program tests", () => {
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
   const autoStakeFees = false;
-  const commissionRateBps = 1500;
+  const commissionRateBps = 1_500;
   const allowDelegation = true;
-  const minOperatorShareBps = 1000;
+  const minOperatorShareBps = 1_000;
   const allowPoolCreation = true;
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
@@ -488,7 +488,7 @@ describe("inference-staking program tests", () => {
   });
 
   it("Should update OperatorPool successfully", async () => {
-    const newCommissionRateBps = 1500;
+    const newCommissionRateBps = 1_500;
     await program.methods
       .updateOperatorPool({
         newCommissionRateBps,
@@ -1052,7 +1052,7 @@ describe("inference-staking program tests", () => {
     assert(stakingRecordPre.shares.sub(stakingRecord.shares).eq(unstakeAmount));
     assert(stakingRecord.tokensUnstakeAmount.eq(unstakeAmount));
 
-    const currentTimestamp = Date.now() / 1000;
+    const currentTimestamp = Date.now() / 1_000;
     assert.approximately(
       stakingRecord.unstakeAtTimestamp.toNumber(),
       currentTimestamp + delegatorUnstakeDelaySeconds.toNumber(),
@@ -1120,7 +1120,7 @@ describe("inference-staking program tests", () => {
     assert(stakingRecordPre.shares.sub(stakingRecord.shares).eq(unstakeAmount));
     assert(stakingRecord.tokensUnstakeAmount.eq(unstakeAmount));
 
-    const currentTimestamp = Date.now() / 1000;
+    const currentTimestamp = Date.now() / 1_000;
     assert.approximately(
       stakingRecord.unstakeAtTimestamp.toNumber(),
       currentTimestamp + operatorUnstakeDelaySeconds.toNumber(),
@@ -1494,7 +1494,7 @@ describe("inference-staking program tests", () => {
   it("Fail to claim unstake before rewards are claimed", async () => {
     try {
       // Sleep till delay duration has elapsed.
-      await sleep(delegatorUnstakeDelaySeconds.toNumber() * 1000);
+      await sleep(delegatorUnstakeDelaySeconds.toNumber() * 1_000);
       const ownerTokenAccount = getAssociatedTokenAddressSync(
         setup.tokenMint,
         setup.user1
@@ -1551,7 +1551,7 @@ describe("inference-staking program tests", () => {
     );
 
     const rewardAmount = new anchor.BN(Number(proofInputs.tokenAmount));
-    const usdcAmount = new anchor.BN(Number(proofInputs.tokenAmount));
+    const usdcAmount = new anchor.BN(Number(proofInputs.usdcAmount));
 
     const eventPromise = new Promise<CompleteAccrueRewardEvent>((resolve) => {
       const listenerId = program.addEventListener(
@@ -1603,7 +1603,7 @@ describe("inference-staking program tests", () => {
         .eq(rewardAmount)
     );
 
-    const commissionFees = rewardAmount.muln(commissionRateBps / 10000);
+    const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
     const delegatorRewards = rewardAmount.sub(commissionFees);
 
     // Verify that claimed delegator rewards are added to OperatorPool
@@ -2529,7 +2529,7 @@ describe("inference-staking program tests", () => {
 
   it("Claim unstake for operator below min. share is successful when pool is closed.", async () => {
     // Sleep till delay duration has elapsed.
-    await sleep((operatorUnstakeDelaySeconds.toNumber() + 2) * 1000);
+    await sleep((operatorUnstakeDelaySeconds.toNumber() + 2) * 1_000);
 
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,

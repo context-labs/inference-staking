@@ -8,7 +8,12 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 
 import { InferenceStakingProgramSDK } from "@sdk/src";
 
-import { airdrop, confirmTransaction, range } from "@tests/lib/utils";
+import {
+  airdrop,
+  confirmTransaction,
+  generateRewardsForEpoch,
+  range,
+} from "@tests/lib/utils";
 
 const { BN, getProvider } = anchor;
 
@@ -29,6 +34,7 @@ const TEST_PROGRAM_ID = new PublicKey(
   "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
 );
 
+// usdEkK5GbzC22bd2gKMFpt6sY2YETm2eaCiu7bBheZV
 const TEST_USDC_MINT_KEYPAIR = Keypair.fromSecretKey(
   new Uint8Array([
     179, 226, 235, 137, 212, 133, 83, 227, 197, 150, 39, 172, 72, 134, 146, 231,
@@ -166,7 +172,7 @@ export async function setupTests() {
     operatorPool: PublicKey;
     userKeypair: Keypair;
   }): Promise<SetupPoolType> => {
-    const signerUsdcTokenAccount = await getOrCreateAssociatedTokenAccount(
+    const adminUsdcTokenAccount = await getOrCreateAssociatedTokenAccount(
       provider.connection,
       payerKp,
       usdcTokenMint,
@@ -179,7 +185,7 @@ export async function setupTests() {
       pool: operatorPool,
       stakedTokenAccount: sdk.stakedTokenPda(operatorPool),
       stakingRecord: sdk.stakingRecordPda(operatorPool, adminKeypair.publicKey),
-      usdcTokenAccount: signerUsdcTokenAccount.address,
+      usdcTokenAccount: adminUsdcTokenAccount.address,
       user: sdk.stakingRecordPda(operatorPool, userKeypair.publicKey),
     };
   };
@@ -234,55 +240,16 @@ export async function setupTests() {
     5: sdk.rewardRecordPda(new BN(5)),
   };
 
-  const rewards2 = [
-    {
-      address: operatorPool1.toString(),
-      tokenAmount: 100n,
-      usdcAmount: 100n,
-    },
-    {
-      address: operatorPool2.toString(),
-      tokenAmount: 200n,
-      usdcAmount: 200n,
-    },
-    {
-      address: operatorPool3.toString(),
-      tokenAmount: 300n,
-      usdcAmount: 300n,
-    },
-    {
-      address: operatorPool4.toString(),
-      tokenAmount: 400n,
-      usdcAmount: 400n,
-    },
-  ].sort((a, b) => a.address.localeCompare(b.address));
-
-  const rewards3 = [
-    {
-      address: operatorPool1.toString(),
-      tokenAmount: 1_000_000n,
-      usdcAmount: 1_000n,
-    },
-    {
-      address: operatorPool2.toString(),
-      tokenAmount: 2_000_000n,
-      usdcAmount: 2_000n,
-    },
-    {
-      address: operatorPool3.toString(),
-      tokenAmount: 3_000_000n,
-      usdcAmount: 3_000n,
-    },
-    {
-      address: operatorPool4.toString(),
-      tokenAmount: 4_000_000n,
-      usdcAmount: 4_000n,
-    },
-  ].sort((a, b) => a.address.localeCompare(b.address));
+  const fixedPoolIds = [
+    operatorPool1,
+    operatorPool2,
+    operatorPool3,
+    operatorPool4,
+  ];
 
   const rewardEpochs = {
-    2: rewards2.slice(),
-    3: rewards3.slice(),
+    2: generateRewardsForEpoch(fixedPoolIds),
+    3: generateRewardsForEpoch(fixedPoolIds),
   };
 
   return {
