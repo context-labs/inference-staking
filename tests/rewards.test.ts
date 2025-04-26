@@ -32,7 +32,6 @@ describe("Reward creation and accrual tests", () => {
   const autoStakeFees = true;
   const commissionRateBps = 1500;
   const newCommissionRateBps = 0;
-  const isEpochFinalizing = false;
   const allowDelegation = true;
   const minOperatorShareBps = 0;
   const allowPoolCreation = true;
@@ -67,9 +66,11 @@ describe("Reward creation and accrual tests", () => {
 
     await program.methods
       .updatePoolOverviewAuthorities({
-        newRewardDistributionAuthorities: [setup.poolOverviewAdminKp.publicKey],
-        newHaltAuthorities: [setup.haltAuthority1Kp.publicKey],
-        newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
+        newRewardDistributionAuthorities: [
+          setup.rewardDistributionAuthorityKp.publicKey,
+        ],
+        newHaltAuthorities: [setup.haltingAuthorityKp.publicKey],
+        newSlashingAuthorities: [setup.slashingAuthorityKp.publicKey],
       })
       .accountsStrict({
         newProgramAdmin: null,
@@ -81,7 +82,6 @@ describe("Reward creation and accrual tests", () => {
 
     await program.methods
       .updatePoolOverview({
-        isEpochFinalizing,
         isStakingHalted,
         isWithdrawalHalted,
         allowPoolCreation,
@@ -111,14 +111,14 @@ describe("Reward creation and accrual tests", () => {
         })
         .accountsStrict({
           payer: setup.payer,
-          authority: setup.poolOverviewAdminKp.publicKey,
+          authority: setup.rewardDistributionAuthorityKp.publicKey,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           rewardTokenAccount: setup.rewardTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.payerKp, setup.poolOverviewAdminKp])
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -143,14 +143,14 @@ describe("Reward creation and accrual tests", () => {
         })
         .accountsStrict({
           payer: setup.payer,
-          authority: setup.poolOverviewAdminKp.publicKey,
+          authority: setup.rewardDistributionAuthority,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[1],
           rewardTokenAccount: setup.rewardTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.payerKp, setup.poolOverviewAdminKp])
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -175,14 +175,14 @@ describe("Reward creation and accrual tests", () => {
       })
       .accountsStrict({
         payer: setup.payer,
-        authority: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.rewardDistributionAuthority,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[1],
         rewardTokenAccount: setup.rewardTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.poolOverviewAdminKp])
+      .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
       .rpc();
   });
 
@@ -288,14 +288,14 @@ describe("Reward creation and accrual tests", () => {
         })
         .accountsStrict({
           payer: setup.payer,
-          authority: setup.poolOverviewAdminKp.publicKey,
+          authority: setup.rewardDistributionAuthority,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[1],
           rewardTokenAccount: setup.rewardTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.payerKp, setup.poolOverviewAdminKp])
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -323,14 +323,14 @@ describe("Reward creation and accrual tests", () => {
         })
         .accountsStrict({
           payer: setup.payer,
-          authority: setup.poolOverviewAdminKp.publicKey,
+          authority: setup.rewardDistributionAuthority,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           rewardTokenAccount: setup.rewardTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.payerKp, setup.poolOverviewAdminKp])
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -368,14 +368,14 @@ describe("Reward creation and accrual tests", () => {
         })
         .accountsStrict({
           payer: setup.payer,
-          authority: setup.poolOverviewAdminKp.publicKey,
+          authority: setup.rewardDistributionAuthority,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           rewardTokenAccount: setup.rewardTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.payerKp, setup.poolOverviewAdminKp])
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -408,14 +408,14 @@ describe("Reward creation and accrual tests", () => {
         })
         .accountsStrict({
           payer: setup.payer,
-          authority: setup.poolOverviewAdminKp.publicKey,
+          authority: setup.rewardDistributionAuthority,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[2],
           rewardTokenAccount: setup.rewardTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.payerKp, setup.poolOverviewAdminKp])
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -448,14 +448,14 @@ describe("Reward creation and accrual tests", () => {
       })
       .accountsStrict({
         payer: setup.payer,
-        authority: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.rewardDistributionAuthority,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[2],
         rewardTokenAccount: setup.rewardTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.poolOverviewAdminKp])
+      .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
       .rpc();
   });
 
@@ -503,14 +503,14 @@ describe("Reward creation and accrual tests", () => {
       })
       .accountsStrict({
         payer: setup.payer,
-        authority: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.rewardDistributionAuthority,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[3],
         rewardTokenAccount: setup.rewardTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.poolOverviewAdminKp])
+      .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
       .rpc();
 
     const rewardRecord = await program.account.rewardRecord.fetch(
@@ -1045,14 +1045,14 @@ describe("Reward creation and accrual tests", () => {
       })
       .accountsStrict({
         payer: setup.payer,
-        authority: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.rewardDistributionAuthority,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[4],
         rewardTokenAccount: setup.rewardTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.poolOverviewAdminKp])
+      .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
       .rpc();
   });
 
@@ -1131,14 +1131,14 @@ describe("Reward creation and accrual tests", () => {
       })
       .accountsStrict({
         payer: setup.payer,
-        authority: setup.poolOverviewAdminKp.publicKey,
+        authority: setup.rewardDistributionAuthority,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[5],
         rewardTokenAccount: setup.rewardTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.poolOverviewAdminKp])
+      .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
       .rpc();
   });
 
