@@ -231,30 +231,30 @@ describe("Reward creation and accrual tests", () => {
       .createStakingRecord()
       .accountsStrict({
         payer: setup.payer,
-        owner: setup.user1,
+        owner: setup.delegator1,
         operatorPool: setup.pool1.pool,
-        stakingRecord: setup.pool1.user,
+        stakingRecord: setup.pool1.delegatorStakingRecord,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.user1Kp])
+      .signers([setup.payerKp, setup.delegator1Kp])
       .rpc();
 
     await program.methods
       .stake(new anchor.BN(400_000))
       .accountsStrict({
-        owner: setup.user1,
+        owner: setup.delegator1,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
-        ownerStakingRecord: setup.pool1.user,
+        ownerStakingRecord: setup.pool1.delegatorStakingRecord,
         operatorStakingRecord: setup.pool1.stakingRecord,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
         ownerTokenAccount: getAssociatedTokenAddressSync(
           setup.tokenMint,
-          setup.user1
+          setup.delegator1
         ),
       })
-      .signers([setup.user1Kp])
+      .signers([setup.delegator1Kp])
       .rpc();
 
     await program.methods

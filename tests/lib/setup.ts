@@ -27,7 +27,7 @@ type SetupPoolType = {
   stakedTokenAccount: PublicKey;
   stakingRecord: PublicKey;
   usdcTokenAccount: PublicKey;
-  user: PublicKey;
+  delegatorStakingRecord: PublicKey;
 };
 
 const TEST_PROGRAM_ID = new PublicKey(
@@ -57,11 +57,11 @@ export async function setupTests() {
   const admin3Kp = new Keypair();
   const admin4Kp = new Keypair();
   const admin5Kp = new Keypair();
-  const user1Kp = new Keypair();
-  const user2Kp = new Keypair();
-  const user3Kp = new Keypair();
-  const user4Kp = new Keypair();
-  const user5Kp = new Keypair();
+  const delegator1Kp = new Keypair();
+  const delegator2Kp = new Keypair();
+  const delegator3Kp = new Keypair();
+  const delegator4Kp = new Keypair();
+  const delegator5Kp = new Keypair();
 
   const provider = getProvider();
   const sdk = new InferenceStakingProgramSDK({
@@ -78,11 +78,11 @@ export async function setupTests() {
       admin3Kp,
       admin4Kp,
       admin5Kp,
-      user1Kp,
-      user2Kp,
-      user3Kp,
-      user4Kp,
-      user5Kp,
+      delegator1Kp,
+      delegator2Kp,
+      delegator3Kp,
+      delegator4Kp,
+      delegator5Kp,
     ].map((recipient) => airdrop(provider, recipient))
   );
 
@@ -118,9 +118,9 @@ export async function setupTests() {
     createAndMintToAta(admin3Kp, tokenMint),
     createAndMintToAta(admin4Kp, tokenMint),
     createAndMintToAta(admin5Kp, tokenMint),
-    createAndMintToAta(user1Kp, tokenMint),
-    createAndMintToAta(user2Kp, tokenMint),
-    createAndMintToAta(user3Kp, tokenMint),
+    createAndMintToAta(delegator1Kp, tokenMint),
+    createAndMintToAta(delegator2Kp, tokenMint),
+    createAndMintToAta(delegator3Kp, tokenMint),
   ]);
   await Promise.all(
     txs2.map((txn) => confirmTransaction(provider.connection, txn))
@@ -166,11 +166,11 @@ export async function setupTests() {
   const getPoolSetup = async ({
     adminKeypair,
     operatorPool,
-    userKeypair,
+    delegatorKeypair,
   }: {
     adminKeypair: Keypair;
     operatorPool: PublicKey;
-    userKeypair: Keypair;
+    delegatorKeypair: Keypair;
   }): Promise<SetupPoolType> => {
     const adminUsdcTokenAccount = await getOrCreateAssociatedTokenAccount(
       provider.connection,
@@ -186,7 +186,10 @@ export async function setupTests() {
       stakedTokenAccount: sdk.stakedTokenPda(operatorPool),
       stakingRecord: sdk.stakingRecordPda(operatorPool, adminKeypair.publicKey),
       usdcTokenAccount: adminUsdcTokenAccount.address,
-      user: sdk.stakingRecordPda(operatorPool, userKeypair.publicKey),
+      delegatorStakingRecord: sdk.stakingRecordPda(
+        operatorPool,
+        delegatorKeypair.publicKey
+      ),
     };
   };
 
@@ -194,27 +197,27 @@ export async function setupTests() {
     getPoolSetup({
       operatorPool: operatorPool1,
       adminKeypair: admin1Kp,
-      userKeypair: user1Kp,
+      delegatorKeypair: delegator1Kp,
     }),
     getPoolSetup({
       operatorPool: operatorPool2,
       adminKeypair: admin2Kp,
-      userKeypair: user2Kp,
+      delegatorKeypair: delegator2Kp,
     }),
     getPoolSetup({
       operatorPool: operatorPool3,
       adminKeypair: admin3Kp,
-      userKeypair: user3Kp,
+      delegatorKeypair: delegator3Kp,
     }),
     getPoolSetup({
       operatorPool: operatorPool4,
       adminKeypair: admin4Kp,
-      userKeypair: user4Kp,
+      delegatorKeypair: delegator4Kp,
     }),
     getPoolSetup({
       operatorPool: operatorPool5,
       adminKeypair: admin5Kp,
-      userKeypair: user5Kp,
+      delegatorKeypair: delegator5Kp,
     }),
   ]);
 
@@ -227,7 +230,7 @@ export async function setupTests() {
       return getPoolSetup({
         operatorPool: poolId,
         adminKeypair: admin1Kp,
-        userKeypair: user1Kp,
+        delegatorKeypair: delegator1Kp,
       });
     })
   );
@@ -269,12 +272,12 @@ export async function setupTests() {
     signerKp: signerKp,
     signer: signerKp.publicKey,
     provider,
-    user1Kp,
-    user1: user1Kp.publicKey,
-    user2Kp,
-    user2: user2Kp.publicKey,
-    user3Kp,
-    user3: user3Kp.publicKey,
+    delegator1Kp: delegator1Kp,
+    delegator1: delegator1Kp.publicKey,
+    delegator2Kp: delegator2Kp,
+    delegator2: delegator2Kp.publicKey,
+    delegator3Kp: delegator3Kp,
+    delegator3: delegator3Kp.publicKey,
     tokenMint,
     poolOverview,
     pool1,

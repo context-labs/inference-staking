@@ -161,7 +161,7 @@ describe("inference-staking program tests", () => {
     await program.methods
       .updatePoolOverviewAuthorities({
         newRewardDistributionAuthorities: null,
-        newHaltAuthorities: [setup.user1],
+        newHaltAuthorities: [setup.delegator1],
         newSlashingAuthorities: null,
       })
       .accountsStrict({
@@ -178,7 +178,7 @@ describe("inference-staking program tests", () => {
     assert(poolOverview.programAdmin.equals(setup.poolOverviewAdmin));
     assert(poolOverview.slashingAuthorities.length === 0);
     assert(poolOverview.haltAuthorities.length === 1);
-    assert(poolOverview.haltAuthorities[0]?.equals(setup.user1));
+    assert(poolOverview.haltAuthorities[0]?.equals(setup.delegator1));
     assert(poolOverview.rewardDistributionAuthorities.length === 0);
   });
 
@@ -550,43 +550,43 @@ describe("inference-staking program tests", () => {
       .createStakingRecord()
       .accountsStrict({
         payer: setup.payer,
-        owner: setup.user1,
+        owner: setup.delegator1,
         operatorPool: setup.pool1.pool,
-        stakingRecord: setup.pool1.user,
+        stakingRecord: setup.pool1.delegatorStakingRecord,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.user1Kp])
+      .signers([setup.payerKp, setup.delegator1Kp])
       .rpc();
 
     const stakingRecord = await program.account.stakingRecord.fetch(
-      setup.pool1.user
+      setup.pool1.delegatorStakingRecord
     );
-    assert(stakingRecord.owner.equals(setup.user1));
+    assert(stakingRecord.owner.equals(setup.delegator1));
     assert(stakingRecord.operatorPool.equals(setup.pool1.pool));
     assert(stakingRecord.shares.isZero());
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
-  it("Fail to stake for user when min. operator shares is not met", async () => {
+  it("Fail to stake for delegator when min. operator shares is not met", async () => {
     try {
       const ownerTokenAccount = getAssociatedTokenAddressSync(
         setup.tokenMint,
-        setup.user1
+        setup.delegator1
       );
       await program.methods
         .stake(new anchor.BN(400_000))
         .accountsStrict({
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount,
         })
-        .signers([setup.user1Kp])
+        .signers([setup.delegator1Kp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -692,18 +692,18 @@ describe("inference-staking program tests", () => {
 
   it("Fail to change operator staking record with insufficient share", async () => {
     try {
-      // Expect to fail since user 1 hasn't staked yet.
+      // Expect to fail since delegator1 hasn't staked yet.
       await program.methods
         .changeOperatorStakingRecord()
         .accountsStrict({
           admin: setup.pool1.admin,
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
           operatorStakingRecord: setup.pool1.stakingRecord,
-          newStakingRecord: setup.pool1.user,
+          newStakingRecord: setup.pool1.delegatorStakingRecord,
         })
-        .signers([setup.pool1.adminKp, setup.user1Kp])
+        .signers([setup.pool1.adminKp, setup.delegator1Kp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -734,19 +734,19 @@ describe("inference-staking program tests", () => {
       await program.methods
         .stake(new anchor.BN(400_000))
         .accountsStrict({
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount: getAssociatedTokenAddressSync(
             setup.tokenMint,
-            setup.user1
+            setup.delegator1
           ),
         })
-        .signers([setup.user1Kp])
+        .signers([setup.delegator1Kp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -790,10 +790,10 @@ describe("inference-staking program tests", () => {
   });
 
   // TODO should verify the token amount was transferred correctly?
-  it("Stake for user successfully", async () => {
+  it("Stake for delegator successfully", async () => {
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
-      setup.user1
+      setup.delegator1
     );
     const stakeAmount = new anchor.BN(400_000);
     const operatorPoolPre = await program.account.operatorPool.fetch(
@@ -803,16 +803,16 @@ describe("inference-staking program tests", () => {
     await program.methods
       .stake(stakeAmount)
       .accountsStrict({
-        owner: setup.user1,
+        owner: setup.delegator1,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
-        ownerStakingRecord: setup.pool1.user,
+        ownerStakingRecord: setup.pool1.delegatorStakingRecord,
         operatorStakingRecord: setup.pool1.stakingRecord,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
         ownerTokenAccount,
       })
-      .signers([setup.user1Kp])
+      .signers([setup.delegator1Kp])
       .rpc();
 
     const operatorPool = await program.account.operatorPool.fetch(
@@ -829,12 +829,12 @@ describe("inference-staking program tests", () => {
     assert(operatorPool.totalUnstaking.isZero());
 
     const stakingRecord = await program.account.stakingRecord.fetch(
-      setup.pool1.user
+      setup.pool1.delegatorStakingRecord
     );
     assert(stakingRecord.shares.eq(stakeAmount));
 
     // Verify remaining fields are unchanged.
-    assert(stakingRecord.owner.equals(setup.user1));
+    assert(stakingRecord.owner.equals(setup.delegator1));
     assert(stakingRecord.operatorPool.equals(setup.pool1.pool));
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
@@ -846,11 +846,11 @@ describe("inference-staking program tests", () => {
         .closeStakingRecord()
         .accountsStrict({
           receiver: setup.payer,
-          owner: setup.user1,
-          stakingRecord: setup.pool1.user,
+          owner: setup.delegator1,
+          stakingRecord: setup.pool1.delegatorStakingRecord,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.user1Kp])
+        .signers([setup.delegator1Kp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -860,7 +860,7 @@ describe("inference-staking program tests", () => {
 
   it("Fail to unstake when global staking setting is disabled", async () => {
     const stakingRecord = await program.account.stakingRecord.fetch(
-      setup.pool1.user
+      setup.pool1.delegatorStakingRecord
     );
 
     await setStakingHalted({
@@ -873,13 +873,13 @@ describe("inference-staking program tests", () => {
       await program.methods
         .unstake(stakingRecord.shares)
         .accountsStrict({
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
         })
-        .signers([setup.user1Kp])
+        .signers([setup.delegator1Kp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -895,20 +895,20 @@ describe("inference-staking program tests", () => {
 
   it("Fail to unstake more shares than in StakingRecord", async () => {
     const stakingRecord = await program.account.stakingRecord.fetch(
-      setup.pool1.user
+      setup.pool1.delegatorStakingRecord
     );
 
     try {
       await program.methods
         .unstake(stakingRecord.shares.addn(1))
         .accountsStrict({
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
         })
-        .signers([setup.user1Kp])
+        .signers([setup.delegator1Kp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -934,13 +934,13 @@ describe("inference-staking program tests", () => {
       await program.methods
         .unstake(new anchor.BN(1))
         .accountsStrict({
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
         })
-        .signers([setup.user1Kp])
+        .signers([setup.delegator1Kp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -993,13 +993,13 @@ describe("inference-staking program tests", () => {
     }
   });
 
-  it("Unstake for user successfully", async () => {
+  it("Unstake for delegator successfully", async () => {
     const unstakeAmount = new anchor.BN(10_000);
     const operatorPoolPre = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
     const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.user
+      setup.pool1.delegatorStakingRecord
     );
 
     // Expect unstaking to be successful even when operator falls below min. share.
@@ -1013,13 +1013,13 @@ describe("inference-staking program tests", () => {
     await program.methods
       .unstake(unstakeAmount)
       .accountsStrict({
-        owner: setup.user1,
+        owner: setup.delegator1,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
-        ownerStakingRecord: setup.pool1.user,
+        ownerStakingRecord: setup.pool1.delegatorStakingRecord,
         operatorStakingRecord: setup.pool1.stakingRecord,
       })
-      .signers([setup.user1Kp])
+      .signers([setup.delegator1Kp])
       .rpc();
 
     const event = await eventPromise;
@@ -1027,7 +1027,7 @@ describe("inference-staking program tests", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(event.stakingRecord.equals(setup.pool1.user));
+    assert(event.stakingRecord.equals(setup.pool1.delegatorStakingRecord));
     assert(event.operatorPool.equals(setup.pool1.pool));
     assert(event.unstakeAmount.eq(unstakeAmount));
     assert(event.totalStakedAmount.eq(operatorPool.totalStakedAmount));
@@ -1047,7 +1047,7 @@ describe("inference-staking program tests", () => {
     assert(operatorPool.totalUnstaking.eq(unstakeAmount));
 
     const stakingRecord = await program.account.stakingRecord.fetch(
-      setup.pool1.user
+      setup.pool1.delegatorStakingRecord
     );
     assert(stakingRecordPre.shares.sub(stakingRecord.shares).eq(unstakeAmount));
     assert(stakingRecord.tokensUnstakeAmount.eq(unstakeAmount));
@@ -1200,15 +1200,15 @@ describe("inference-staking program tests", () => {
     try {
       const ownerTokenAccount = getAssociatedTokenAddressSync(
         setup.tokenMint,
-        setup.user1
+        setup.delegator1
       );
       await program.methods
         .claimUnstake()
         .accountsStrict({
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
           ownerTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
@@ -1432,21 +1432,21 @@ describe("inference-staking program tests", () => {
     try {
       const ownerTokenAccount = getAssociatedTokenAddressSync(
         setup.tokenMint,
-        setup.user1
+        setup.delegator1
       );
       await program.methods
         .stake(new anchor.BN(400_000))
         .accountsStrict({
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount,
         })
-        .signers([setup.user1Kp])
+        .signers([setup.delegator1Kp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -1497,15 +1497,15 @@ describe("inference-staking program tests", () => {
       await sleep(delegatorUnstakeDelaySeconds.toNumber() * 1_000);
       const ownerTokenAccount = getAssociatedTokenAddressSync(
         setup.tokenMint,
-        setup.user1
+        setup.delegator1
       );
       await program.methods
         .claimUnstake()
         .accountsStrict({
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
           ownerTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
@@ -1673,14 +1673,14 @@ describe("inference-staking program tests", () => {
       await program.methods
         .claimUnstake()
         .accountsStrict({
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
           ownerTokenAccount: getAssociatedTokenAddressSync(
             setup.tokenMint,
-            setup.user1
+            setup.delegator1
           ),
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -1755,10 +1755,10 @@ describe("inference-staking program tests", () => {
       .rpc();
   });
 
-  it("Claim unstake for user successfully", async () => {
+  it("Claim unstake for delegator successfully", async () => {
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
-      setup.user1
+      setup.delegator1
     );
     const tokenBalancePre = await connection.getTokenAccountBalance(
       ownerTokenAccount
@@ -1768,7 +1768,7 @@ describe("inference-staking program tests", () => {
     );
 
     const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.user
+      setup.pool1.delegatorStakingRecord
     );
 
     const eventPromise = new Promise<ClaimUnstakeEvent>((resolve) => {
@@ -1785,10 +1785,10 @@ describe("inference-staking program tests", () => {
     await program.methods
       .claimUnstake()
       .accountsStrict({
-        owner: setup.user1,
+        owner: setup.delegator1,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
-        ownerStakingRecord: setup.pool1.user,
+        ownerStakingRecord: setup.pool1.delegatorStakingRecord,
         operatorStakingRecord: setup.pool1.stakingRecord,
         ownerTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
@@ -1801,7 +1801,7 @@ describe("inference-staking program tests", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(event.stakingRecord.equals(setup.pool1.user));
+    assert(event.stakingRecord.equals(setup.pool1.delegatorStakingRecord));
     assert(event.operatorPool.equals(setup.pool1.pool));
     assert(event.unstakeAmount.eq(stakingRecordPre.tokensUnstakeAmount));
     assert(event.totalStakedAmount.eq(operatorPool.totalStakedAmount));
@@ -1814,7 +1814,7 @@ describe("inference-staking program tests", () => {
     );
 
     const stakingRecord = await program.account.stakingRecord.fetch(
-      setup.pool1.user
+      setup.pool1.delegatorStakingRecord
     );
     const tokenBalancePost = await connection.getTokenAccountBalance(
       ownerTokenAccount
@@ -2131,21 +2131,21 @@ describe("inference-staking program tests", () => {
     try {
       const ownerTokenAccount = getAssociatedTokenAddressSync(
         setup.tokenMint,
-        setup.user1
+        setup.delegator1
       );
       await program.methods
         .stake(new anchor.BN(400_000))
         .accountsStrict({
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount,
         })
-        .signers([setup.user1Kp])
+        .signers([setup.delegator1Kp])
         .rpc();
 
       assert(false);
@@ -2305,18 +2305,18 @@ describe("inference-staking program tests", () => {
   });
 
   it("OperatorPool admin should update StakingRecord successfully", async () => {
-    // Set StakingRecord to user1's, then changes it back.
+    // Set StakingRecord to delegator1's, then changes it back.
     await program.methods
       .changeOperatorStakingRecord()
       .accountsStrict({
         admin: setup.pool1.admin,
-        owner: setup.user1,
+        owner: setup.delegator1,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
         operatorStakingRecord: setup.pool1.stakingRecord,
-        newStakingRecord: setup.pool1.user,
+        newStakingRecord: setup.pool1.delegatorStakingRecord,
       })
-      .signers([setup.pool1.adminKp, setup.user1Kp])
+      .signers([setup.pool1.adminKp, setup.delegator1Kp])
       .rpc();
 
     let operatorPoolPost = await program.account.operatorPool.fetch(
@@ -2324,8 +2324,10 @@ describe("inference-staking program tests", () => {
     );
 
     assert(
-      operatorPoolPost.operatorStakingRecord.equals(setup.pool1.user),
-      "OperatorPool1 should use user1 StakingRecord"
+      operatorPoolPost.operatorStakingRecord.equals(
+        setup.pool1.delegatorStakingRecord
+      ),
+      "OperatorPool1 should use delegator1 StakingRecord"
     );
 
     await program.methods
@@ -2335,7 +2337,7 @@ describe("inference-staking program tests", () => {
         owner: setup.pool1.admin,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
-        operatorStakingRecord: setup.pool1.user,
+        operatorStakingRecord: setup.pool1.delegatorStakingRecord,
         newStakingRecord: setup.pool1.stakingRecord,
       })
       .signers([setup.pool1.adminKp])
@@ -2351,24 +2353,24 @@ describe("inference-staking program tests", () => {
   });
 
   it("Fail to close StakingRecord with unstaking tokens", async () => {
-    // Unstake all remaining tokens for user 1
+    // Unstake all remaining tokens for delegator 1
     const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.user
+      setup.pool1.delegatorStakingRecord
     );
     await program.methods
       .unstake(stakingRecordPre.shares)
       .accountsStrict({
-        owner: setup.user1,
+        owner: setup.delegator1,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
-        ownerStakingRecord: setup.pool1.user,
+        ownerStakingRecord: setup.pool1.delegatorStakingRecord,
         operatorStakingRecord: setup.pool1.stakingRecord,
       })
-      .signers([setup.user1Kp])
+      .signers([setup.delegator1Kp])
       .rpc();
 
     const stakingRecordPost = await program.account.stakingRecord.fetch(
-      setup.pool1.user
+      setup.pool1.delegatorStakingRecord
     );
     assert(stakingRecordPost.shares.isZero());
     assert(!stakingRecordPost.tokensUnstakeAmount.isZero());
@@ -2379,11 +2381,11 @@ describe("inference-staking program tests", () => {
         .closeStakingRecord()
         .accountsStrict({
           receiver: setup.payer,
-          owner: setup.user1,
-          stakingRecord: setup.pool1.user,
+          owner: setup.delegator1,
+          stakingRecord: setup.pool1.delegatorStakingRecord,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.user1Kp])
+        .signers([setup.delegator1Kp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -2392,38 +2394,40 @@ describe("inference-staking program tests", () => {
   });
 
   it("Should close StakingRecord successfully", async () => {
-    const user2Record = setup.sdk.stakingRecordPda(
+    const delegator2StakingRecord = setup.sdk.stakingRecordPda(
       setup.pool1.pool,
-      setup.user2
+      setup.delegator2
     );
     await program.methods
       .createStakingRecord()
       .accountsStrict({
         payer: setup.payer,
-        owner: setup.user2,
+        owner: setup.delegator2,
         operatorPool: setup.pool1.pool,
-        stakingRecord: user2Record,
+        stakingRecord: delegator2StakingRecord,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.user2Kp])
+      .signers([setup.payerKp, setup.delegator2Kp])
       .rpc();
 
     const stakingRecord = await program.account.stakingRecord.fetch(
-      user2Record
+      delegator2StakingRecord
     );
     assert.isNotNull(stakingRecord);
     await program.methods
       .closeStakingRecord()
       .accountsStrict({
         receiver: setup.payer,
-        owner: setup.user2,
-        stakingRecord: user2Record,
+        owner: setup.delegator2,
+        stakingRecord: delegator2StakingRecord,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.user2Kp])
+      .signers([setup.delegator2Kp])
       .rpc();
     const closedStakingRecord =
-      await program.account.stakingRecord.fetchNullable(user2Record);
+      await program.account.stakingRecord.fetchNullable(
+        delegator2StakingRecord
+      );
     assert.isNull(closedStakingRecord, "StakingRecord should have closed");
   });
 
@@ -2468,21 +2472,21 @@ describe("inference-staking program tests", () => {
     try {
       const ownerTokenAccount = getAssociatedTokenAddressSync(
         setup.tokenMint,
-        setup.user1
+        setup.delegator1
       );
       await program.methods
         .stake(new anchor.BN(400_000))
         .accountsStrict({
-          owner: setup.user1,
+          owner: setup.delegator1,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.user,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount,
         })
-        .signers([setup.user1Kp])
+        .signers([setup.delegator1Kp])
         .rpc();
 
       assert(false);
