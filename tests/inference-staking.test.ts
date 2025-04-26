@@ -789,7 +789,6 @@ describe("inference-staking program tests", () => {
       .rpc();
   });
 
-  // TODO should verify the token amount was transferred correctly?
   it("Stake for delegator successfully", async () => {
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
@@ -799,6 +798,13 @@ describe("inference-staking program tests", () => {
     const operatorPoolPre = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
+
+    const ownerTokenAccountBalancePre = await connection.getTokenAccountBalance(
+      ownerTokenAccount
+    );
+
+    const programTokenAccountBalancePre =
+      await connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount);
 
     await program.methods
       .stake(stakeAmount)
@@ -833,11 +839,28 @@ describe("inference-staking program tests", () => {
     );
     assert(stakingRecord.shares.eq(stakeAmount));
 
-    // Verify remaining fields are unchanged.
     assert(stakingRecord.owner.equals(setup.delegator1));
     assert(stakingRecord.operatorPool.equals(setup.pool1.pool));
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
+
+    const ownerTokenAccountBalancePost =
+      await connection.getTokenAccountBalance(ownerTokenAccount);
+
+    const programTokenAccountBalancePost =
+      await connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount);
+
+    assert(
+      new anchor.BN(ownerTokenAccountBalancePre.value.amount)
+        .sub(stakeAmount)
+        .eq(new anchor.BN(ownerTokenAccountBalancePost.value.amount))
+    );
+
+    assert(
+      new anchor.BN(programTokenAccountBalancePre.value.amount)
+        .add(stakeAmount)
+        .eq(new anchor.BN(programTokenAccountBalancePost.value.amount))
+    );
   });
 
   it("Fail to close StakingRecord with staked tokens", async () => {
@@ -917,7 +940,6 @@ describe("inference-staking program tests", () => {
   });
 
   it("Fail to unstake if global withdrawal is halted", async () => {
-    // Halt withdrawal
     await program.methods
       .updatePoolOverview({
         ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
@@ -947,7 +969,6 @@ describe("inference-staking program tests", () => {
       assertStakingProgramError(error, "withdrawalsHalted");
     }
 
-    // Revert halt withdrawal
     await program.methods
       .updatePoolOverview({
         ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
@@ -962,11 +983,10 @@ describe("inference-staking program tests", () => {
   });
 
   it("Fail to unstake for operator if operator falls below min share", async () => {
-    // Change min share to 99%
     await program.methods
       .updatePoolOverview({
         ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
-        minOperatorShareBps: 9900,
+        minOperatorShareBps: 99_00,
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
