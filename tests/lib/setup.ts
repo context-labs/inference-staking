@@ -4,15 +4,26 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from "@solana/spl-token";
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 
 import { InferenceStakingProgramSDK } from "@sdk/src";
 
-import { confirmTransaction } from "@tests/lib/utils";
+import { airdrop, confirmTransaction } from "@tests/lib/utils";
 
 const { BN, getProvider } = anchor;
 
 export type SetupTestResult = Awaited<ReturnType<typeof setupTests>>;
+
+type SetupPoolType = {
+  admin: PublicKey;
+  adminKp: Keypair;
+  feeTokenAccount: PublicKey;
+  pool: PublicKey;
+  stakedTokenAccount: PublicKey;
+  stakingRecord: PublicKey;
+  usdcTokenAccount: PublicKey;
+  user: PublicKey;
+};
 
 const TEST_PROGRAM_ID = new PublicKey(
   "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
@@ -29,14 +40,22 @@ const TEST_USDC_MINT_KEYPAIR = Keypair.fromSecretKey(
 
 export async function setupTests() {
   const payerKp = new Keypair();
+  const signerKp = new Keypair();
+  const tokenHolderKp = new Keypair();
   const poolOverviewAdminKp = new Keypair();
-  const signer1Kp = new Keypair();
-  const signer2Kp = new Keypair();
-  const signer3Kp = new Keypair();
+  const rewardDistributionAuthorityKp = new Keypair();
+  const haltingAuthorityKp = new Keypair();
+  const slashingAuthorityKp = new Keypair();
+  const admin1Kp = new Keypair();
+  const admin2Kp = new Keypair();
+  const admin3Kp = new Keypair();
+  const admin4Kp = new Keypair();
+  const admin5Kp = new Keypair();
   const user1Kp = new Keypair();
   const user2Kp = new Keypair();
   const user3Kp = new Keypair();
-  const haltAuthority1Kp = new Keypair();
+  const user4Kp = new Keypair();
+  const user5Kp = new Keypair();
 
   const provider = getProvider();
   const sdk = new InferenceStakingProgramSDK({
@@ -44,25 +63,28 @@ export async function setupTests() {
     programId: TEST_PROGRAM_ID,
   });
 
-  const txs = await Promise.all([
-    provider.connection.requestAirdrop(payerKp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(signer1Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(signer2Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(signer3Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(user1Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(user2Kp.publicKey, LAMPORTS_PER_SOL),
-    provider.connection.requestAirdrop(user3Kp.publicKey, LAMPORTS_PER_SOL),
-  ]);
-
   await Promise.all(
-    txs.map((signature) => confirmTransaction(provider.connection, signature))
+    [
+      payerKp,
+      signerKp,
+      admin1Kp,
+      admin2Kp,
+      admin3Kp,
+      admin4Kp,
+      admin5Kp,
+      user1Kp,
+      user2Kp,
+      user3Kp,
+      user4Kp,
+      user5Kp,
+    ].map((recipient) => airdrop(provider, recipient))
   );
 
   const tokenMint = await createMint(
     provider.connection,
     payerKp,
-    signer1Kp.publicKey,
-    signer1Kp.publicKey,
+    tokenHolderKp.publicKey,
+    tokenHolderKp.publicKey,
     9
   );
 
@@ -78,28 +100,31 @@ export async function setupTests() {
       payerKp,
       tokenMint,
       ata.address,
-      signer1Kp,
+      tokenHolderKp,
       10 ** 10
     );
   };
 
-  const txns2 = await Promise.all([
-    createAndMintToAta(signer1Kp, tokenMint),
-    createAndMintToAta(signer2Kp, tokenMint),
-    createAndMintToAta(signer3Kp, tokenMint),
+  const txs2 = await Promise.all([
+    createAndMintToAta(signerKp, tokenMint),
+    createAndMintToAta(admin1Kp, tokenMint),
+    createAndMintToAta(admin2Kp, tokenMint),
+    createAndMintToAta(admin3Kp, tokenMint),
+    createAndMintToAta(admin4Kp, tokenMint),
+    createAndMintToAta(admin5Kp, tokenMint),
     createAndMintToAta(user1Kp, tokenMint),
     createAndMintToAta(user2Kp, tokenMint),
     createAndMintToAta(user3Kp, tokenMint),
   ]);
   await Promise.all(
-    txns2.map((txn) => confirmTransaction(provider.connection, txn))
+    txs2.map((txn) => confirmTransaction(provider.connection, txn))
   );
 
   const usdcTokenMint = await createMint(
     provider.connection,
     payerKp,
-    signer1Kp.publicKey,
-    signer1Kp.publicKey,
+    tokenHolderKp.publicKey,
+    tokenHolderKp.publicKey,
     6,
     TEST_USDC_MINT_KEYPAIR
   );
@@ -112,8 +137,8 @@ export async function setupTests() {
   const invalidUsdcTokenMint = await createMint(
     provider.connection,
     payerKp,
-    signer1Kp.publicKey,
-    signer1Kp.publicKey,
+    tokenHolderKp.publicKey,
+    tokenHolderKp.publicKey,
     6,
     Keypair.generate()
   );
@@ -130,35 +155,62 @@ export async function setupTests() {
   const operatorPool2 = sdk.operatorPoolPda(new BN(2));
   const operatorPool3 = sdk.operatorPoolPda(new BN(3));
   const operatorPool4 = sdk.operatorPoolPda(new BN(4));
+  const operatorPool5 = sdk.operatorPoolPda(new BN(5));
 
-  const signer1UsdcTokenAccount = await getOrCreateAssociatedTokenAccount(
-    provider.connection,
-    payerKp,
-    usdcTokenMint,
-    signer1Kp.publicKey
-  );
+  const getPoolSetup = async ({
+    adminKeypair,
+    operatorPool,
+    userKeypair,
+  }: {
+    adminKeypair: Keypair;
+    operatorPool: PublicKey;
+    userKeypair: Keypair;
+  }): Promise<SetupPoolType> => {
+    const signerUsdcTokenAccount = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      payerKp,
+      usdcTokenMint,
+      adminKeypair.publicKey
+    );
+    return {
+      admin: adminKeypair.publicKey,
+      adminKp: adminKeypair,
+      feeTokenAccount: sdk.feeTokenPda(operatorPool),
+      pool: operatorPool,
+      stakedTokenAccount: sdk.stakedTokenPda(operatorPool),
+      stakingRecord: sdk.stakingRecordPda(operatorPool, adminKeypair.publicKey),
+      usdcTokenAccount: signerUsdcTokenAccount.address,
+      user: sdk.stakingRecordPda(operatorPool, userKeypair.publicKey),
+    };
+  };
 
-  const pool1 = {
-    pool: operatorPool1,
-    stakedTokenAccount: sdk.stakedTokenPda(operatorPool1),
-    feeTokenAccount: sdk.feeTokenPda(operatorPool1),
-    signer1Record: sdk.stakingRecordPda(operatorPool1, signer1Kp.publicKey),
-    user1Record: sdk.stakingRecordPda(operatorPool1, user1Kp.publicKey),
-    usdcTokenAccount: signer1UsdcTokenAccount.address,
-  };
-  const pool2 = {
-    pool: operatorPool2,
-    stakedTokenAccount: sdk.stakedTokenPda(operatorPool2),
-    feeTokenAccount: sdk.feeTokenPda(operatorPool2),
-    signer2Record: sdk.stakingRecordPda(operatorPool2, signer2Kp.publicKey),
-    usdcTokenAccount: signer1UsdcTokenAccount.address,
-  };
-  const pool3 = {
-    pool: operatorPool3,
-  };
-  const pool4 = {
-    pool: operatorPool4,
-  };
+  const [pool1, pool2, pool3, pool4, pool5] = await Promise.all([
+    getPoolSetup({
+      operatorPool: operatorPool1,
+      adminKeypair: admin1Kp,
+      userKeypair: user1Kp,
+    }),
+    getPoolSetup({
+      operatorPool: operatorPool2,
+      adminKeypair: admin2Kp,
+      userKeypair: user2Kp,
+    }),
+    getPoolSetup({
+      operatorPool: operatorPool3,
+      adminKeypair: admin3Kp,
+      userKeypair: user3Kp,
+    }),
+    getPoolSetup({
+      operatorPool: operatorPool4,
+      adminKeypair: admin4Kp,
+      userKeypair: user4Kp,
+    }),
+    getPoolSetup({
+      operatorPool: operatorPool5,
+      adminKeypair: admin5Kp,
+      userKeypair: user5Kp,
+    }),
+  ]);
 
   const rewardRecords = {
     1: sdk.rewardRecordPda(new BN(1)),
@@ -168,29 +220,31 @@ export async function setupTests() {
     5: sdk.rewardRecordPda(new BN(5)),
   };
 
+  const rewards = [
+    {
+      address: operatorPool1.toString(),
+      tokenAmount: 100n,
+      usdcAmount: 100n,
+    },
+    {
+      address: operatorPool2.toString(),
+      tokenAmount: 200n,
+      usdcAmount: 200n,
+    },
+    {
+      address: operatorPool3.toString(),
+      tokenAmount: 300n,
+      usdcAmount: 300n,
+    },
+    {
+      address: operatorPool4.toString(),
+      tokenAmount: 400n,
+      usdcAmount: 400n,
+    },
+  ].sort((a, b) => a.address.localeCompare(b.address));
   const rewardEpochs = {
-    2: [
-      {
-        address: operatorPool1.toString(),
-        tokenAmount: 100n,
-        usdcAmount: 100n,
-      },
-      {
-        address: operatorPool2.toString(),
-        tokenAmount: 200n,
-        usdcAmount: 200n,
-      },
-      {
-        address: operatorPool3.toString(),
-        tokenAmount: 300n,
-        usdcAmount: 300n,
-      },
-      {
-        address: operatorPool4.toString(),
-        tokenAmount: 400n,
-        usdcAmount: 400n,
-      },
-    ].sort((a, b) => a.address.localeCompare(b.address)),
+    2: rewards.slice(),
+    3: rewards.slice(),
   };
 
   return {
@@ -198,13 +252,17 @@ export async function setupTests() {
     payerKp,
     payer: payerKp.publicKey,
     poolOverviewAdminKp,
-    signer1Kp,
-    signer1: signer1Kp.publicKey,
-    signer2Kp,
-    signer2: signer2Kp.publicKey,
-    signer3Kp,
-    signer3: signer3Kp.publicKey,
-    haltAuthority1Kp,
+    poolOverviewAdmin: poolOverviewAdminKp.publicKey,
+    rewardDistributionAuthorityKp,
+    rewardDistributionAuthority: rewardDistributionAuthorityKp.publicKey,
+    haltingAuthorityKp,
+    haltingAuthority: haltingAuthorityKp.publicKey,
+    slashingAuthorityKp,
+    slashingAuthority: slashingAuthorityKp.publicKey,
+    tokenHolderKp,
+    tokenHolder: tokenHolderKp.publicKey,
+    signerKp: signerKp,
+    signer: signerKp.publicKey,
     provider,
     user1Kp,
     user1: user1Kp.publicKey,
@@ -218,6 +276,7 @@ export async function setupTests() {
     pool2,
     pool3,
     pool4,
+    pool5,
     rewardTokenAccount,
     rewardRecords,
     rewardEpochs,

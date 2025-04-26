@@ -12,6 +12,7 @@ pub struct Stake<'info> {
     #[account(
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
+        constraint = !pool_overview.is_staking_halted @ ErrorCode::StakingHalted,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
 
@@ -63,8 +64,6 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
     let pool_overview = &ctx.accounts.pool_overview;
     let operator_staking_record = &ctx.accounts.operator_staking_record;
-
-    require!(!pool_overview.is_staking_halted, ErrorCode::StakingHalted);
 
     // Check that delegation is enabled or operator is staking.
     let is_operator_staking =

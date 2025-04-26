@@ -235,6 +235,21 @@ export class InferenceStakingProgramSDK {
     return new BN(tokenAccountInfo.value.amount);
   }
 
+  getEmptyPoolOverviewFieldsForUpdateInstruction() {
+    type EmptyUpdateFields = Parameters<
+      typeof this.program.methods.updatePoolOverview
+    >[0];
+    const empty: EmptyUpdateFields = {
+      isStakingHalted: null,
+      isWithdrawalHalted: null,
+      allowPoolCreation: null,
+      minOperatorShareBps: null,
+      delegatorUnstakeDelaySeconds: null,
+      operatorUnstakeDelaySeconds: null,
+    };
+    return empty;
+  }
+
   static getErrorNameFromTransactionLogs(
     logs: string[]
   ): InferenceStakingErrors | undefined {

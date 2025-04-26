@@ -74,10 +74,18 @@ function validateInputs(addresses: ConstructMerkleTreeInput[]) {
       throw new Error(`${address} is not a valid wallet pubkey`);
     }
     if (typeof tokenAmount !== "bigint") {
-      throw new Error(`tokenAmount ${String(tokenAmount)} is not a BigInt`);
+      throw new Error(
+        `tokenAmount ${String(
+          tokenAmount
+        )} is not of type BigInt (all amount input values must be integers)`
+      );
     }
     if (typeof usdcAmount !== "bigint") {
-      throw new Error(`usdcAmount ${String(usdcAmount)} is not a BigInt`);
+      throw new Error(
+        `usdcAmount ${String(
+          usdcAmount
+        )} is not of type BigInt (all amount input values must be integers)`
+      );
     }
   }
 
@@ -207,6 +215,9 @@ function generateMerkleProof({
   // This allows us to construct deliberately invalid proofs for testing purposes.
   skipChecksForTests = false,
 }: GenerateMerkleProofInput): GenerateMerkleProofOutput {
+  if (index < 0) {
+    throw new Error(`Index is negative, received: ${index}`);
+  }
   const encoder = new TextEncoder();
   const data = encoder.encode(formatLeaf({ address, tokenAmount, usdcAmount }));
   const hash = sha256(data);

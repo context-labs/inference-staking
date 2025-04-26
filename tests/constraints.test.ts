@@ -33,7 +33,7 @@ describe("Additional tests for instruction constraints", () => {
         .createPoolOverview()
         .accountsStrict({
           payer: setup.payer,
-          programAdmin: setup.signer1,
+          programAdmin: setup.signer,
           poolOverview: setup.poolOverview,
           rewardTokenAccount: setup.rewardTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
@@ -42,7 +42,7 @@ describe("Additional tests for instruction constraints", () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([setup.payerKp, setup.signer1Kp])
+        .signers([setup.payerKp, setup.signerKp])
         .rpc();
     } catch (err) {
       assertStakingProgramError(err, "invalidUsdcMint");
@@ -54,7 +54,7 @@ describe("Additional tests for instruction constraints", () => {
       .createPoolOverview()
       .accountsStrict({
         payer: setup.payer,
-        programAdmin: setup.signer1,
+        programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
         rewardTokenAccount: setup.rewardTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
@@ -63,7 +63,7 @@ describe("Additional tests for instruction constraints", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
-      .signers([setup.payerKp, setup.signer1Kp])
+      .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
 
     await program.methods
@@ -76,10 +76,10 @@ describe("Additional tests for instruction constraints", () => {
         operatorUnstakeDelaySeconds,
       })
       .accountsStrict({
-        programAdmin: setup.signer1,
+        programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
       })
-      .signers([setup.signer1Kp])
+      .signers([setup.poolOverviewAdminKp])
       .rpc();
   });
 
@@ -87,18 +87,14 @@ describe("Additional tests for instruction constraints", () => {
     try {
       await program.methods
         .updatePoolOverview({
+          ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
           isStakingHalted: true,
-          isWithdrawalHalted: null,
-          allowPoolCreation: null,
-          minOperatorShareBps: null,
-          delegatorUnstakeDelaySeconds: null,
-          operatorUnstakeDelaySeconds: null,
         })
         .accountsStrict({
-          programAdmin: setup.haltAuthority1Kp.publicKey,
+          programAdmin: setup.haltingAuthorityKp.publicKey,
           poolOverview: setup.poolOverview,
         })
-        .signers([setup.haltAuthority1Kp])
+        .signers([setup.haltingAuthorityKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -106,23 +102,94 @@ describe("Additional tests for instruction constraints", () => {
     }
   });
 
+  it("Updating PoolOverview new program admin requires the current and new program admin to sign", async () => {
+    const poolOverviewPre = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+
+    assert(poolOverviewPre.programAdmin.equals(setup.poolOverviewAdmin));
+
+    try {
+      await program.methods
+        .updatePoolOverviewAuthorities({
+          newRewardDistributionAuthorities: null,
+          newHaltAuthorities: null,
+          newSlashingAuthorities: null,
+        })
+        .accountsStrict({
+          newProgramAdmin: setup.signerKp.publicKey,
+          programAdmin: setup.poolOverviewAdmin,
+          poolOverview: setup.poolOverview,
+        })
+        .signers([setup.poolOverviewAdminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertError(error, "Signature verification failed");
+    }
+
+    try {
+      await program.methods
+        .updatePoolOverviewAuthorities({
+          newRewardDistributionAuthorities: null,
+          newHaltAuthorities: null,
+          newSlashingAuthorities: null,
+        })
+        .accountsStrict({
+          newProgramAdmin: setup.signerKp.publicKey,
+          programAdmin: setup.poolOverviewAdmin,
+          poolOverview: setup.poolOverview,
+        })
+        .signers([setup.signerKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertError(error, "Signature verification failed");
+    }
+
+    const poolOverviewAfterFailedUpdates =
+      await program.account.poolOverview.fetch(setup.poolOverview);
+
+    assert(
+      poolOverviewAfterFailedUpdates.programAdmin.equals(
+        setup.poolOverviewAdmin
+      )
+    );
+
+    await program.methods
+      .updatePoolOverviewAuthorities({
+        newRewardDistributionAuthorities: null,
+        newHaltAuthorities: null,
+        newSlashingAuthorities: null,
+      })
+      .accountsStrict({
+        newProgramAdmin: setup.signerKp.publicKey,
+        programAdmin: setup.poolOverviewAdmin,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp, setup.signerKp])
+      .rpc();
+
+    const poolOverviewPost = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+
+    assert(poolOverviewPost.programAdmin.equals(setup.signerKp.publicKey));
+  });
+
   it("Fail to update PoolOverview with with invalid min operator share", async () => {
     try {
       // Expect failure as min operator share cannot exceed 100%
       await program.methods
         .updatePoolOverview({
-          isStakingHalted: null,
-          isWithdrawalHalted: null,
-          allowPoolCreation: null,
+          ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
           minOperatorShareBps: 100_01,
-          delegatorUnstakeDelaySeconds: null,
-          operatorUnstakeDelaySeconds: null,
         })
         .accountsStrict({
-          programAdmin: setup.signer1,
+          programAdmin: setup.signer,
           poolOverview: setup.poolOverview,
         })
-        .signers([setup.signer1Kp])
+        .signers([setup.signerKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -134,14 +201,14 @@ describe("Additional tests for instruction constraints", () => {
     try {
       await program.methods
         .updatePoolOverviewAuthorities({
-          newProgramAdmin: setup.poolOverviewAdminKp.publicKey,
           newRewardDistributionAuthorities: [
-            setup.poolOverviewAdminKp.publicKey,
+            setup.rewardDistributionAuthorityKp.publicKey,
           ],
-          newHaltAuthorities: [setup.haltAuthority1Kp.publicKey],
-          newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
+          newHaltAuthorities: [setup.haltingAuthorityKp.publicKey],
+          newSlashingAuthorities: [setup.slashingAuthorityKp.publicKey],
         })
         .accountsStrict({
+          newProgramAdmin: null,
           programAdmin: setup.poolOverviewAdminKp.publicKey,
           poolOverview: setup.poolOverview,
         })
@@ -156,39 +223,26 @@ describe("Additional tests for instruction constraints", () => {
   it("Fail to update PoolOverview authorities with more than 5 keys", async () => {
     try {
       await program.methods
-        .updatePoolOverviewAuthorities(
-          {
-            newProgramAdmin: setup.poolOverviewAdminKp.publicKey,
-            newRewardDistributionAuthorities: [
-              setup.poolOverviewAdminKp.publicKey,
-            ],
-            newHaltAuthorities: [
-              PublicKey.unique(),
-              PublicKey.unique(),
-              PublicKey.unique(),
-              PublicKey.unique(),
-              PublicKey.unique(),
-              PublicKey.unique(),
-            ],
-            newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
-          }
-          // setup.poolOverviewAdminKp.publicKey,
-          // [setup.poolOverviewAdminKp.publicKey],
-          // [
-          //   PublicKey.unique(),
-          //   PublicKey.unique(),
-          //   PublicKey.unique(),
-          //   PublicKey.unique(),
-          //   PublicKey.unique(),
-          //   PublicKey.unique(),
-          // ],
-          // [setup.poolOverviewAdminKp.publicKey]
-        )
+        .updatePoolOverviewAuthorities({
+          newRewardDistributionAuthorities: [
+            setup.poolOverviewAdminKp.publicKey,
+          ],
+          newHaltAuthorities: [
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+            PublicKey.unique(),
+          ],
+          newSlashingAuthorities: [setup.poolOverviewAdminKp.publicKey],
+        })
         .accountsStrict({
-          programAdmin: setup.signer1Kp.publicKey,
+          newProgramAdmin: null,
+          programAdmin: setup.signerKp.publicKey,
           poolOverview: setup.poolOverview,
         })
-        .signers([setup.signer1Kp])
+        .signers([setup.signerKp])
         .rpc();
       assert(false);
     } catch (error) {
@@ -207,9 +261,9 @@ describe("Additional tests for instruction constraints", () => {
         })
         .accountsStrict({
           payer: setup.payer,
-          admin: setup.signer1,
+          admin: setup.pool1.admin,
           operatorPool: setup.pool1.pool,
-          stakingRecord: setup.pool1.signer1Record,
+          stakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
           poolOverview: setup.poolOverview,
@@ -218,11 +272,29 @@ describe("Additional tests for instruction constraints", () => {
           systemProgram: SystemProgram.programId,
           usdcPayoutDestination: setup.pool1.usdcTokenAccount,
         })
-        .signers([setup.payerKp, setup.signer1Kp])
+        .signers([setup.payerKp, setup.pool1.adminKp])
         .rpc();
       assert(false);
     } catch (error) {
       assertError(error, "RequireGteViolated");
+    }
+  });
+
+  it("Fail to update epoch is finalizing state with invalid authority", async () => {
+    try {
+      await program.methods
+        .updateIsEpochFinalizing({
+          isEpochFinalizing: true,
+        })
+        .accountsStrict({
+          poolOverview: setup.poolOverview,
+          authority: setup.poolOverviewAdminKp.publicKey,
+        })
+        .signers([setup.poolOverviewAdminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "invalidAuthority");
     }
   });
 });

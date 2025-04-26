@@ -40,4 +40,6 @@ pub enum ErrorCode {
     InvalidUsdcMint,
     #[msg("Invalid USDC payout destination")]
     InvalidUsdcPayoutDestination,
+    #[msg("Epoch must be finalizing when calling CreateRewardRecord")]
+    EpochMustBeFinalizing,
 }

@@ -12,6 +12,7 @@
     "lint:fix": "eslint --fix",
     "tsc": "tsc --noEmit",
     "test": "anchor test -- --features test",
+    "test-all": "./scripts/test-all.sh",
     "build": "anchor build && bun run scripts/generateIDL.ts && bun run format:fix",
     "check": "bun run format && bun run lint && bun run tsc && bun run build"
   },

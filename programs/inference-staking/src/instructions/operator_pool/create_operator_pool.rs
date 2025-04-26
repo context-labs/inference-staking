@@ -19,7 +19,7 @@ pub struct CreateOperatorPool<'info> {
         init,
         seeds = [
             b"OperatorPool".as_ref(),
-          &(pool_overview.total_pools + 1).to_le_bytes()
+            &(pool_overview.total_pools + 1).to_le_bytes()
         ],
         bump,
         payer = payer,
@@ -31,8 +31,8 @@ pub struct CreateOperatorPool<'info> {
         init,
         seeds = [
             b"StakingRecord".as_ref(),
-          operator_pool.key().as_ref(),
-          admin.key().as_ref()
+            operator_pool.key().as_ref(),
+            admin.key().as_ref()
         ],
         bump,
         payer = payer,
@@ -111,9 +111,21 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.allow_delegation = allow_delegation;
     operator_pool.usdc_payout_destination = ctx.accounts.usdc_payout_destination.key();
 
-    // Pool starts earning rewards from next full epoch.
-    operator_pool.reward_last_claimed_epoch =
-        pool_overview.completed_reward_epoch.checked_add(1).unwrap();
+    // The reward_last_claimed_epoch is initialized conditionally like this to avoid
+    // the edge case where an operator joins during reward finalization for an epoch,
+    // and is not included in the reward distribution. This would leave them "stranded"
+    // in the epoch they joined, which is why we bump their epoch to the next one here
+    // if the epoch is currently finalizing. For this to work, we must always initiate
+    // the epoch finalization process first, before calculating the reward distribution.
+    match pool_overview.is_epoch_finalizing {
+        true => {
+            operator_pool.reward_last_claimed_epoch =
+                pool_overview.completed_reward_epoch.checked_add(1).unwrap();
+        }
+        false => {
+            operator_pool.reward_last_claimed_epoch = pool_overview.completed_reward_epoch;
+        }
+    }
 
     let staking_record = &mut ctx.accounts.staking_record;
     staking_record.owner = ctx.accounts.admin.key();
