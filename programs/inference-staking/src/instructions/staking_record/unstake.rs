@@ -11,6 +11,7 @@ pub struct Unstake<'info> {
     #[account(
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
+        constraint = !pool_overview.is_staking_halted @ ErrorCode::StakingHalted,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
 

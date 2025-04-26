@@ -28,6 +28,7 @@ import {
   assertStakingProgramError,
   sleep,
   setEpochFinalizationState,
+  setStakingHalted,
 } from "@tests/lib/utils";
 
 describe("inference-staking program tests", () => {
@@ -593,6 +594,46 @@ describe("inference-staking program tests", () => {
     }
   });
 
+  it("Fail to stake when global staking setting is disabled", async () => {
+    const ownerTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.pool1.admin
+    );
+    const stakeAmount = new anchor.BN(150_000);
+
+    await setStakingHalted({
+      setup,
+      program,
+      isStakingHalted: true,
+    });
+
+    try {
+      await program.methods
+        .stake(stakeAmount)
+        .accountsStrict({
+          owner: setup.pool1.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.stakingRecord,
+          operatorStakingRecord: setup.pool1.stakingRecord,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount,
+        })
+        .signers([setup.pool1.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "stakingHalted");
+    } finally {
+      await setStakingHalted({
+        setup,
+        program,
+        isStakingHalted: false,
+      });
+    }
+  });
+
   it("Stake for operator successfully", async () => {
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
@@ -814,6 +855,41 @@ describe("inference-staking program tests", () => {
       assert(false);
     } catch (error) {
       assertError(error, "AccountNotEmpty");
+    }
+  });
+
+  it("Fail to unstake when global staking setting is disabled", async () => {
+    const stakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.user
+    );
+
+    await setStakingHalted({
+      setup,
+      program,
+      isStakingHalted: true,
+    });
+
+    try {
+      await program.methods
+        .unstake(stakingRecord.shares)
+        .accountsStrict({
+          owner: setup.user1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.user,
+          operatorStakingRecord: setup.pool1.stakingRecord,
+        })
+        .signers([setup.user1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "stakingHalted");
+    } finally {
+      await setStakingHalted({
+        setup,
+        program,
+        isStakingHalted: false,
+      });
     }
   });
 
