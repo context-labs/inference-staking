@@ -1,18 +1,50 @@
 import type * as anchor from "@coral-xyz/anchor";
 import type { Program } from "@coral-xyz/anchor";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import type { Connection, Keypair } from "@solana/web3.js";
+import type { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { assert } from "chai";
 
 import type { InferenceStakingErrors } from "@sdk/src";
 import type { InferenceStaking } from "@sdk/src/idl";
 import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
 
+import type { ConstructMerkleTreeInput } from "@tests/lib/merkle";
+import { MerkleUtils } from "@tests/lib/merkle";
 import type { SetupTestResult } from "@tests/lib/setup";
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export const sum = (arr: bigint[]): bigint => {
+  return arr.reduce((acc, curr) => acc + curr, BigInt(0));
+};
+
+export const range = (len: number): number[] => {
+  return [...new Array(len).keys()];
+};
+
+export const shuffleArray = <T>(arr: T[]): T[] => {
+  return arr.sort(() => Math.random() - 0.5);
+};
+
+export const randomIntInRange = (min: number, max: number): number => {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+export const generateRewardsForEpoch = (
+  publicKeys: PublicKey[]
+): ConstructMerkleTreeInput[] => {
+  const input: ConstructMerkleTreeInput[] = [];
+  for (const publicKey of publicKeys) {
+    input.push({
+      address: publicKey.toString(),
+      tokenAmount: BigInt(randomIntInRange(1, 1_000_000)),
+      usdcAmount: BigInt(randomIntInRange(1, 1_000)),
+    });
+  }
+  return MerkleUtils.sortAddressList(input);
+};
 
 export function assertStakingProgramError(
   error: unknown,

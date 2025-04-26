@@ -8,7 +8,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 
 import { InferenceStakingProgramSDK } from "@sdk/src";
 
-import { airdrop, confirmTransaction } from "@tests/lib/utils";
+import { airdrop, confirmTransaction, range } from "@tests/lib/utils";
 
 const { BN, getProvider } = anchor;
 
@@ -212,6 +212,20 @@ export async function setupTests() {
     }),
   ]);
 
+  const POOL_SIZE = 10;
+  const poolIds = range(POOL_SIZE).map((i) =>
+    sdk.operatorPoolPda(new BN(i + 1))
+  );
+  const pools = await Promise.all(
+    poolIds.map(async (poolId) => {
+      return getPoolSetup({
+        operatorPool: poolId,
+        adminKeypair: admin1Kp,
+        userKeypair: user1Kp,
+      });
+    })
+  );
+
   const rewardRecords = {
     1: sdk.rewardRecordPda(new BN(1)),
     2: sdk.rewardRecordPda(new BN(2)),
@@ -220,7 +234,7 @@ export async function setupTests() {
     5: sdk.rewardRecordPda(new BN(5)),
   };
 
-  const rewards = [
+  const rewards2 = [
     {
       address: operatorPool1.toString(),
       tokenAmount: 100n,
@@ -242,9 +256,33 @@ export async function setupTests() {
       usdcAmount: 400n,
     },
   ].sort((a, b) => a.address.localeCompare(b.address));
+
+  const rewards3 = [
+    {
+      address: operatorPool1.toString(),
+      tokenAmount: 1_000_000n,
+      usdcAmount: 1_000n,
+    },
+    {
+      address: operatorPool2.toString(),
+      tokenAmount: 2_000_000n,
+      usdcAmount: 2_000n,
+    },
+    {
+      address: operatorPool3.toString(),
+      tokenAmount: 3_000_000n,
+      usdcAmount: 3_000n,
+    },
+    {
+      address: operatorPool4.toString(),
+      tokenAmount: 4_000_000n,
+      usdcAmount: 4_000n,
+    },
+  ].sort((a, b) => a.address.localeCompare(b.address));
+
   const rewardEpochs = {
-    2: rewards.slice(),
-    3: rewards.slice(),
+    2: rewards2.slice(),
+    3: rewards3.slice(),
   };
 
   return {
@@ -277,6 +315,7 @@ export async function setupTests() {
     pool3,
     pool4,
     pool5,
+    pools,
     rewardTokenAccount,
     rewardRecords,
     rewardEpochs,
