@@ -30,6 +30,8 @@ type SetupPoolType = {
   delegatorStakingRecord: PublicKey;
 };
 
+const OPERATOR_POOL_SIZE = 10;
+
 const TEST_PROGRAM_ID = new PublicKey(
   "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
 );
@@ -221,8 +223,7 @@ export async function setupTests() {
     }),
   ]);
 
-  const POOL_SIZE = 10;
-  const poolIds = range(POOL_SIZE).map((i) =>
+  const poolIds = range(OPERATOR_POOL_SIZE).map((i) =>
     sdk.operatorPoolPda(new BN(i + 1))
   );
   const pools = await Promise.all(
