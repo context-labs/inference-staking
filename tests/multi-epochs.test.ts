@@ -218,7 +218,9 @@ describe("multi-epoch lifecycle tests", () => {
       `\nPerforming admin stake instructions for ${setup.pools.length} operator pools`
     );
     for (const pool of setup.pools) {
-      const stakeAmount = new anchor.BN(randomIntInRange(100_000, 1_000_000));
+      const stakeAmount = new anchor.BN(
+        randomIntInRange(1_000_000, 10_000_000)
+      );
 
       const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
         connection,
@@ -269,8 +271,9 @@ describe("multi-epoch lifecycle tests", () => {
         stakeAmount,
       });
 
+      const stakeAmountString = formatBN(stakeAmount);
       debug(
-        `- Staked ${stakeAmount.toString()} tokens for Operator Pool ${pool.pool.toString()}`
+        `- Staked ${stakeAmountString} tokens for Operator Pool ${pool.pool.toString()}`
       );
     }
   });
@@ -313,9 +316,7 @@ describe("multi-epoch lifecycle tests", () => {
       assert(stakingRecordPre.tokensUnstakeAmount.isZero());
       assert(stakingRecordPre.unstakeAtTimestamp.isZero());
 
-      const stakeAmount = new anchor.BN(
-        Math.floor(randomIntInRange(10_000, 100_000))
-      );
+      const stakeAmount = new anchor.BN(Math.floor(randomIntInRange(1, 1_000)));
 
       const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
         connection,
@@ -361,8 +362,9 @@ describe("multi-epoch lifecycle tests", () => {
         stakeAmount,
       });
 
+      const stakeAmountString = formatBN(stakeAmount);
       debug(
-        `- Staked ${stakeAmount.toString()} tokens for delegator ${delegatorKp.publicKey.toString()}`
+        `- Staked ${stakeAmountString} tokens for delegator ${delegatorKp.publicKey.toString()}`
       );
     }
   });
@@ -413,7 +415,7 @@ describe("multi-epoch lifecycle tests", () => {
       const tokens = formatBN(totalRewards);
       const usdc = formatBN(totalUsdcAmount);
       debug(
-        `Creating RewardRecord for epoch ${i} - total token reward = ${tokens} - total USDC payout = ${usdc}`
+        `- Creating RewardRecord for epoch ${i} - total token reward = ${tokens} - total USDC payout = ${usdc}`
       );
 
       await program.methods

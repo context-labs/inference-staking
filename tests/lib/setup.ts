@@ -243,8 +243,8 @@ export async function setupTests() {
     poolIds.map(async (poolId) => {
       return getPoolSetup({
         operatorPool: poolId,
-        adminKeypair: admin1Kp,
-        delegatorKeypair: delegator1Kp,
+        adminKeypair: Keypair.generate(),
+        delegatorKeypair: Keypair.generate(),
       });
     })
   );
