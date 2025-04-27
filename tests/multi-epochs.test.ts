@@ -588,7 +588,7 @@ describe("multi-epoch lifecycle tests", () => {
       const stakeAmountString = formatBN(stakeAmount);
       const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
       debug(
-        `- [${tracker}] Staked ${stakeAmountString} tokens for delegator ${delegatorKp.publicKey.toString()}`
+        `- [${tracker}] Staked ${stakeAmountString} tokens for delegator ${delegatorKp.publicKey.toString()} to pool ${pool.pool.toString()}`
       );
       counter++;
     }
