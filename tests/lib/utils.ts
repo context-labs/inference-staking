@@ -4,7 +4,11 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import type { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { assert } from "chai";
 
-import type { InferenceStakingErrors } from "@sdk/src";
+import type {
+  InferenceStakingErrors,
+  OperatorPoolAccountStruct,
+  StakingRecordAccountStruct,
+} from "@sdk/src";
 import type { InferenceStaking } from "@sdk/src/idl";
 import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
 
@@ -168,4 +172,40 @@ export const setStakingHalted = async ({
     setup.poolOverview
   );
   assert(poolOverviewPost.isStakingHalted === isStakingHalted);
+};
+
+export const assertStakingRecordCreatedState = ({
+  poolPost,
+  poolPre,
+  stakingRecordPost,
+  stakingRecordPre,
+  stakeAmount,
+}: {
+  poolPost: OperatorPoolAccountStruct;
+  poolPre: OperatorPoolAccountStruct;
+  stakingRecordPost: StakingRecordAccountStruct;
+  stakingRecordPre: StakingRecordAccountStruct;
+  stakeAmount: anchor.BN;
+}) => {
+  // 1:1 share↔token ratio means both totals rise by stakeAmount
+  assert(
+    poolPost.totalStakedAmount.sub(poolPre.totalStakedAmount).eq(stakeAmount),
+    "totalStakedAmount must increase by stakeAmount"
+  );
+  assert(
+    poolPost.totalShares.sub(poolPre.totalShares).eq(stakeAmount),
+    "totalShares must increase by stakeAmount"
+  );
+
+  // Delegator’s record should reflect the new shares
+  assert(
+    stakingRecordPost.shares.sub(stakingRecordPre.shares).eq(stakeAmount),
+    "StakingRecord.shares must increase by stakeAmount"
+  );
+  assert(
+    stakingRecordPost.tokensUnstakeAmount.eq(
+      stakingRecordPre.tokensUnstakeAmount
+    ),
+    "No tokens should be in unstake queue immediately after staking"
+  );
 };

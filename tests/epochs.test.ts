@@ -1,6 +1,10 @@
 import * as anchor from "@coral-xyz/anchor";
 import type { Program } from "@coral-xyz/anchor";
-import { mintTo, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  getOrCreateAssociatedTokenAccount,
+  mintTo,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 import type { Connection } from "@solana/web3.js";
 import { SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
@@ -15,15 +19,17 @@ import { MerkleUtils } from "@tests/lib/merkle";
 import type { SetupTestResult } from "@tests/lib/setup";
 import { setupTests } from "@tests/lib/setup";
 import {
+  assertStakingRecordCreatedState,
   debug,
   formatBN,
   generateRewardsForEpoch,
+  randomIntInRange,
   setEpochFinalizationState,
 } from "@tests/lib/utils";
 
 const NUMBER_OF_EPOCHS = 3;
 
-describe("inference-staking program tests", () => {
+describe("multi-epoch lifecycle tests", () => {
   let setup: SetupTestResult;
   let connection: Connection;
   let program: Program<InferenceStaking>;
@@ -209,7 +215,162 @@ describe("inference-staking program tests", () => {
     }
   });
 
+  it("Stake operator pool admins", async () => {
+    debug(
+      `\nPerforming admin stake instructions for ${setup.pools.length} operator pools`
+    );
+    for (const pool of setup.pools) {
+      const stakeAmount = new anchor.BN(randomIntInRange(100_000, 1_000_000));
+
+      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        pool.admin
+      );
+
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        ownerTokenAccount.address,
+        setup.tokenHolderKp,
+        stakeAmount.toNumber()
+      );
+
+      const poolPre = await program.account.operatorPool.fetch(pool.pool);
+      const stakingRecordPre = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+
+      await program.methods
+        .stake(stakeAmount)
+        .accountsStrict({
+          owner: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          ownerStakingRecord: pool.stakingRecord,
+          operatorStakingRecord: pool.stakingRecord,
+          stakedTokenAccount: pool.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount: ownerTokenAccount.address,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const poolPost = await program.account.operatorPool.fetch(pool.pool);
+      const stakingRecordPost = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+
+      assertStakingRecordCreatedState({
+        poolPost,
+        poolPre,
+        stakingRecordPost,
+        stakingRecordPre,
+        stakeAmount,
+      });
+
+      debug(
+        `- Staked ${stakeAmount.toString()} tokens for Operator Pool ${pool.pool.toString()}`
+      );
+    }
+  });
+
+  it("Stake random amounts for every delegator", async () => {
+    debug(
+      `\nPerforming delegator stake instructions for ${setup.delegatorKeypairs.length} delegators`
+    );
+    for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
+      const delegatorKp = setup.delegatorKeypairs[i];
+      assert(delegatorKp != null);
+      const pool = setup.pools[i % setup.pools.length];
+      assert(pool != null);
+
+      const stakingRecord = setup.sdk.stakingRecordPda(
+        pool.pool,
+        delegatorKp.publicKey
+      );
+
+      await program.methods
+        .createStakingRecord()
+        .accountsStrict({
+          payer: setup.payer,
+          owner: delegatorKp.publicKey,
+          operatorPool: pool.pool,
+          stakingRecord,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.payerKp, delegatorKp])
+        .rpc();
+
+      const poolPre = await program.account.operatorPool.fetch(pool.pool);
+      const stakingRecordPre = await program.account.stakingRecord.fetch(
+        stakingRecord
+      );
+
+      assert(stakingRecordPre.owner.equals(delegatorKp.publicKey));
+      assert(stakingRecordPre.operatorPool.equals(pool.pool));
+      assert(stakingRecordPre.shares.isZero());
+      assert(stakingRecordPre.tokensUnstakeAmount.isZero());
+      assert(stakingRecordPre.unstakeAtTimestamp.isZero());
+
+      const stakeAmount = new anchor.BN(
+        Math.floor(randomIntInRange(10_000, 100_000))
+      );
+
+      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        delegatorKp.publicKey
+      );
+
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        ownerTokenAccount.address,
+        setup.tokenHolderKp,
+        stakeAmount.toNumber()
+      );
+
+      await program.methods
+        .stake(stakeAmount)
+        .accountsStrict({
+          owner: delegatorKp.publicKey,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          ownerStakingRecord: stakingRecord,
+          operatorStakingRecord: pool.stakingRecord,
+          stakedTokenAccount: pool.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount: ownerTokenAccount.address,
+        })
+        .signers([delegatorKp])
+        .rpc();
+
+      const poolPost = await program.account.operatorPool.fetch(pool.pool);
+      const stakingRecordPost = await program.account.stakingRecord.fetch(
+        stakingRecord
+      );
+
+      assertStakingRecordCreatedState({
+        poolPost,
+        poolPre,
+        stakingRecordPost,
+        stakingRecordPre,
+        stakeAmount,
+      });
+
+      debug(
+        `- Staked ${stakeAmount.toString()} tokens for delegator ${delegatorKp.publicKey.toString()}`
+      );
+    }
+  });
+
   it("Create reward records", async () => {
+    debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
     for (let i = 1; i <= NUMBER_OF_EPOCHS; i++) {
       const rewards = generateRewardsForEpoch(
         setup.pools.map((pool) => pool.pool)
@@ -289,7 +450,7 @@ describe("inference-staking program tests", () => {
     }
   });
 
-  it("Accrue Rewards successfully", async () => {
+  it(`Accrue Rewards successfully for ${NUMBER_OF_EPOCHS} epochs`, async () => {
     const commissionFeeMap = new Map<string, anchor.BN>();
 
     for (let i = 1; i <= NUMBER_OF_EPOCHS; i++) {
