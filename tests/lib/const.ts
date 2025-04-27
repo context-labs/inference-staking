@@ -16,4 +16,4 @@ export const NUMBER_OF_EPOCHS = process.env.NUMBER_OF_EPOCHS
 
 export const EPOCH_CLAIM_FREQUENCY = process.env.EPOCH_CLAIM_FREQUENCY
   ? parseInt(process.env.EPOCH_CLAIM_FREQUENCY)
-  : 5;
+  : 2;

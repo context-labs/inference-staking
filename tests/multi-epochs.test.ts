@@ -42,37 +42,46 @@ async function handleAccrueRewardForEpochs({
   commissionRateBps: number;
 }) {
   const commissionFeeMap = new Map<string, anchor.BN>();
+  const poolOverview = await program.account.poolOverview.fetch(
+    setup.poolOverview
+  );
+  const currentCompletedEpoch = poolOverview.completedRewardEpoch.toNumber();
 
-  for (let i = 1; i <= NUMBER_OF_EPOCHS; i++) {
-    debug(`\nAccruing rewards for Epoch ${i}`);
+  for (const pool of setup.pools) {
+    const operatorPool = await program.account.operatorPool.fetch(pool.pool);
+    const lastClaimedEpoch = operatorPool.rewardLastClaimedEpoch.toNumber();
 
-    let counter = 1;
-    for (const pool of setup.pools) {
-      const isFinalEpochClaim = i === NUMBER_OF_EPOCHS;
+    if (!commissionFeeMap.has(pool.pool.toString())) {
+      commissionFeeMap.set(pool.pool.toString(), new anchor.BN(0));
+    }
+
+    for (let i = lastClaimedEpoch + 1; i <= currentCompletedEpoch; i++) {
+      if (i > epochRewards.length) {
+        debug(`Epoch ${i} reward data not available yet, skipping`);
+        continue;
+      }
+
+      const isFinalEpochClaim = i === currentCompletedEpoch;
       const epochReward = epochRewards[i - 1];
-      assert(epochReward != null);
+      assert(epochReward != null, `No reward data found for epoch ${i}`);
+
       const merkleTree = MerkleUtils.constructMerkleTree(epochReward);
       const nodeIndex = epochReward.findIndex(
         (x) => x.address == pool.pool.toString()
       );
+
+      if (nodeIndex === -1) {
+        debug(
+          `No rewards for pool ${pool.pool.toString()} in epoch ${i}, skipping`
+        );
+        continue;
+      }
+
       const proofInputs = {
         ...epochReward[nodeIndex],
         index: nodeIndex,
         merkleTree,
       } as GenerateMerkleProofInput;
-      const epochRewardsForPool = epochRewards
-        .flatMap((epochReward) =>
-          epochReward.find((x) => x.address == pool.pool.toString())
-        )
-        .filter((x) => x != null);
-      const totalRewardsForPool = epochRewardsForPool.reduce(
-        (acc, curr) => acc.add(new anchor.BN(Number(curr.tokenAmount))),
-        new anchor.BN(0)
-      );
-
-      console.log(
-        `epoch = ${i} completedRewardEpoch = ${NUMBER_OF_EPOCHS} - totalRewardsForPool = ${totalRewardsForPool.toString()}`
-      );
 
       const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
       const poolOverviewPre = await program.account.poolOverview.fetch(
@@ -95,11 +104,11 @@ async function handleAccrueRewardForEpochs({
       const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(i));
       const tokens = formatBN(rewardAmount);
       const usdc = formatBN(usdcAmount);
-      const tracker = `${counter}/${setup.pools.length}`;
+
       debug(
-        `- [${tracker}] Calling AccrueReward for Operator Pool ${pool.pool.toString()} - rewardAmount = ${tokens} - usdcAmount = ${usdc}`
+        `- Claiming Epoch ${i} rewards for Operator Pool ${pool.pool.toString()} - rewardAmount = ${tokens} - usdcAmount = ${usdc}`
       );
-      counter++;
+
       await program.methods
         .accrueReward({
           merkleIndex: 0,
@@ -121,16 +130,7 @@ async function handleAccrueRewardForEpochs({
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
-      const operatorPool = await program.account.operatorPool.fetch(pool.pool);
-      assert(operatorPool.rewardLastClaimedEpoch.eqn(i));
-      assert(operatorPool.totalShares.eq(operatorPre.totalShares));
-      assert(operatorPool.totalUnstaking.eq(operatorPre.totalUnstaking));
-      assert.isNull(operatorPool.newCommissionRateBps);
-      // Verify that operator's shares remain unchanged with auto-stake disabled.
-      const operatorStakingRecord = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
-      assert(operatorStakingRecordPre.shares.eq(operatorStakingRecord.shares));
+
       const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
       const currentCommissionFeesForPool =
         commissionFeeMap.get(pool.pool.toString()) ?? new anchor.BN(0);
@@ -138,17 +138,57 @@ async function handleAccrueRewardForEpochs({
         pool.pool.toString(),
         currentCommissionFeesForPool.add(commissionFees)
       );
+
+      const operatorPool = await program.account.operatorPool.fetch(pool.pool);
+      assert(
+        operatorPool.rewardLastClaimedEpoch.eqn(i),
+        `Pool reward last claimed epoch should be ${i}`
+      );
+      assert(
+        operatorPool.totalShares.eq(operatorPre.totalShares),
+        "Total shares should remain unchanged"
+      );
+      assert(
+        operatorPool.totalUnstaking.eq(operatorPre.totalUnstaking),
+        "Total unstaking should remain unchanged"
+      );
+      assert.isNull(
+        operatorPool.newCommissionRateBps,
+        "New commission rate should be null"
+      );
+
+      // Verify that operator's shares remain unchanged with auto-stake disabled.
+      const operatorStakingRecord = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+      assert(
+        operatorStakingRecordPre.shares.eq(operatorStakingRecord.shares),
+        "Operator staking record shares should remain unchanged"
+      );
+
       if (isFinalEpochClaim) {
-        // Verify that unclaimedRewards on PoolOverview is updated.
+        const claimedEpochsRewardsForPool = epochRewards
+          .slice(lastClaimedEpoch, i)
+          .flatMap((epochReward) =>
+            epochReward.find((x) => x.address == pool.pool.toString())
+          )
+          .filter((x) => x != null);
+
+        const totalClaimedRewardsForPool = claimedEpochsRewardsForPool.reduce(
+          (acc, curr) => acc.add(new anchor.BN(Number(curr.tokenAmount))),
+          new anchor.BN(0)
+        );
+
         const poolOverview = await program.account.poolOverview.fetch(
           setup.poolOverview
         );
         assert(
           poolOverviewPre.unclaimedRewards
             .sub(poolOverview.unclaimedRewards)
-            .eq(totalRewardsForPool)
+            .eq(totalClaimedRewardsForPool),
+          "Unclaimed rewards should be reduced by the total claimed amount"
         );
-        // Verify that token balance changes are correct.
+
         const rewardBalance = await connection.getTokenAccountBalance(
           setup.rewardTokenAccount
         );
@@ -158,34 +198,48 @@ async function handleAccrueRewardForEpochs({
         const feeBalance = await connection.getTokenAccountBalance(
           pool.feeTokenAccount
         );
+
         assert(
-          totalRewardsForPool.eqn(
+          totalClaimedRewardsForPool.eqn(
             Number(rewardBalancePre.value.amount) -
               Number(rewardBalance.value.amount)
-          )
+          ),
+          "Reward token account balance should be reduced by claimed amount"
         );
+
         const commissionFees = commissionFeeMap.get(pool.pool.toString());
-        assert(commissionFees != null);
-        const delegatorRewards = totalRewardsForPool.sub(commissionFees);
+        assert(commissionFees != null, "Commission fees should be tracked");
+        const delegatorRewards = totalClaimedRewardsForPool.sub(commissionFees);
+
         // Verify that claimed delegator rewards are added to OperatorPool
-        // and rewardLastClaimedEpoch is updated.
         assert(
           operatorPool.totalStakedAmount
             .sub(operatorPre.totalStakedAmount)
-            .eq(delegatorRewards)
+            .eq(delegatorRewards),
+          "Total staked amount should increase by delegator rewards"
         );
-        assert(operatorPool.accruedRewards.isZero());
-        assert(operatorPool.accruedCommission.isZero());
+        assert(
+          operatorPool.accruedRewards.isZero(),
+          "Accrued rewards should be zero"
+        );
+        assert(
+          operatorPool.accruedCommission.isZero(),
+          "Accrued commission should be zero"
+        );
+
+        // Verify token balances
         assert(
           commissionFees.eqn(
             Number(feeBalance.value.amount) - Number(feeBalancePre.value.amount)
-          )
+          ),
+          "Fee token account balance should increase by commission fees"
         );
         assert(
           delegatorRewards.eqn(
             Number(stakedBalance.value.amount) -
               Number(stakedBalancePre.value.amount)
-          )
+          ),
+          "Staked token account balance should increase by delegator rewards"
         );
       }
     }
@@ -624,7 +678,7 @@ describe("multi-epoch lifecycle tests", () => {
 
       if (i % EPOCH_CLAIM_FREQUENCY === 0) {
         debug(
-          `\n Start reward claims for all existing rewards up to epoch ${i}`
+          `\nStart reward claims for all existing rewards up to epoch ${i}`
         );
         await handleAccrueRewardForEpochs({
           epochRewards,
