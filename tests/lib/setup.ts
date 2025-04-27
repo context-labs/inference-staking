@@ -5,6 +5,7 @@ import {
   mintTo,
 } from "@solana/spl-token";
 import { Keypair, PublicKey } from "@solana/web3.js";
+import dotenv from "dotenv";
 
 import { InferenceStakingProgramSDK } from "@sdk/src";
 
@@ -14,6 +15,8 @@ import {
   generateRewardsForEpoch,
   range,
 } from "@tests/lib/utils";
+
+dotenv.config();
 
 const { BN, getProvider } = anchor;
 
@@ -30,7 +33,8 @@ type SetupPoolType = {
   delegatorStakingRecord: PublicKey;
 };
 
-const OPERATOR_POOL_SIZE = 10;
+const OPERATOR_POOL_SIZE = 3;
+const DELEGATOR_COUNT = 3;
 
 const TEST_PROGRAM_ID = new PublicKey(
   "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
@@ -64,6 +68,7 @@ export async function setupTests() {
   const delegator3Kp = new Keypair();
   const delegator4Kp = new Keypair();
   const delegator5Kp = new Keypair();
+  const delegatorKeypairs = range(DELEGATOR_COUNT).map(() => new Keypair());
 
   const provider = getProvider();
   const sdk = new InferenceStakingProgramSDK({
@@ -85,6 +90,7 @@ export async function setupTests() {
       delegator3Kp,
       delegator4Kp,
       delegator5Kp,
+      ...delegatorKeypairs,
     ].map((recipient) => airdrop(provider, recipient))
   );
 
@@ -279,6 +285,7 @@ export async function setupTests() {
     delegator2: delegator2Kp.publicKey,
     delegator3Kp: delegator3Kp,
     delegator3: delegator3Kp.publicKey,
+    delegatorKeypairs,
     tokenMint,
     poolOverview,
     pool1,

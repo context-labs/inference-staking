@@ -32,6 +32,16 @@ export const randomIntInRange = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
+export const debug = (msg: string) => {
+  if (process.env.ENABLE_DEBUG_LOGS === "true") {
+    console.debug(msg);
+  }
+};
+
+export const formatBN = (bn: anchor.BN): string => {
+  return bn.toNumber().toLocaleString();
+};
+
 export const generateRewardsForEpoch = (
   publicKeys: PublicKey[]
 ): ConstructMerkleTreeInput[] => {
