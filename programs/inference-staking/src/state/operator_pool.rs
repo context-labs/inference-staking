@@ -52,7 +52,7 @@ pub struct OperatorPool {
     /// Used to optimize compute.
     pub accrued_rewards: u64,
 
-    /// Commission that have been calculated in `accrueRewards` , that are yet to be physically transferred to fee account.
+    /// Commission that have been calculated in `accrueRewards`, that are yet to be physically transferred to fee account.
     /// Used to optimize compute.
     pub accrued_commission: u64,
 
@@ -120,8 +120,8 @@ impl OperatorPool {
 
     /// Updates commission to new rate. Called after accrual of all issued rewards.
     pub fn update_commission_rate(&mut self) {
-        if self.new_commission_rate_bps.is_some() {
-            self.commission_rate_bps = self.new_commission_rate_bps.unwrap();
+        if let Some(new_commission_rate_bps) = self.new_commission_rate_bps {
+            self.commission_rate_bps = new_commission_rate_bps;
             self.new_commission_rate_bps = None;
         }
     }

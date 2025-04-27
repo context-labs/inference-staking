@@ -39,7 +39,7 @@ pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -
     let pool_overview = &mut ctx.accounts.pool_overview;
 
     if let Some(min_operator_share_bps) = min_operator_share_bps {
-        require_gte!(10000, min_operator_share_bps);
+        require_gte!(10_000, min_operator_share_bps);
         pool_overview.min_operator_share_bps = min_operator_share_bps;
     }
 

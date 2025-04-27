@@ -126,7 +126,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         u128::from(reward_amount)
             .checked_mul(operator_pool.commission_rate_bps.into())
             .unwrap()
-            .checked_div(10000)
+            .checked_div(10_000)
             .unwrap(),
     )
     .unwrap();

@@ -13,6 +13,7 @@
         "@types/chai": "^4.3.0",
         "@types/mocha": "^9.0.0",
         "chai": "^4.3.4",
+        "dotenv": "^16.5.0",
         "eslint": "^9.24.0",
         "eslint-plugin-import": "^2.31.0",
         "eslint-plugin-sort-destructure-keys": "^2.0.0",
@@ -1253,6 +1254,13 @@
       "",
       { "dependencies": { "esutils": "^2.0.2" } },
       "sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw=="
+    ],
+
+    "dotenv": [
+      "dotenv@16.5.0",
+      "",
+      {},
+      "sha512-m/C+AwOAr9/W1UOIZUo232ejMNnJAJtYQjUbHoNTBNTJSvqzzDh7vnrei3o3r3m9blf6ZoDkvcw0VmozNRFJxg=="
     ],
 
     "dunder-proto": [
