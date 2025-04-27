@@ -3,8 +3,8 @@ set -e
 set -o pipefail
 
 # Constants
-DEVNET_PROGRAM_ID="infrC4g9ZJMcDyvhjN4zLL6r634RCyzYv5riwk8jp28"
-MAINNET_PROGRAM_ID="5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
+DEVNET_PROGRAM_ID="dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm"
+MAINNET_PROGRAM_ID="dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm"
 
 # Run tests before deployment
 printf "\nRunning tests prior to deployment...\n"

@@ -8,7 +8,7 @@ type Mutable<T> = {
 // Don't edit the finally manually - you can regenerate it by running 'bun run build'
 // at the root level of the project.
 const _IDL = {
-  address: "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj",
+  address: "dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm",
   metadata: {
     name: "inferenceStaking",
     version: "0.1.0",

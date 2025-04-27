@@ -33,7 +33,7 @@ type SetupPoolType = {
 };
 
 const TEST_PROGRAM_ID = new PublicKey(
-  "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
+  "dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm"
 );
 
 // usdEkK5GbzC22bd2gKMFpt6sY2YETm2eaCiu7bBheZV
