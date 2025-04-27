@@ -17,7 +17,7 @@ import type {
 } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
 import type { SetupTestResult } from "@tests/lib/setup";
-import { setupTests } from "@tests/lib/setup";
+import { NUMBER_OF_EPOCHS, setupTests } from "@tests/lib/setup";
 import {
   assertStakingRecordCreatedState,
   debug,
@@ -26,8 +26,6 @@ import {
   randomIntInRange,
   setEpochFinalizationState,
 } from "@tests/lib/utils";
-
-const NUMBER_OF_EPOCHS = 3;
 
 describe("multi-epoch lifecycle tests", () => {
   let setup: SetupTestResult;
@@ -615,6 +613,562 @@ describe("multi-epoch lifecycle tests", () => {
           );
         }
       }
+    }
+  });
+
+  it("Unstake for all delegators successfully", async () => {
+    debug(
+      `\nPerforming unstake instructions for ${setup.delegatorKeypairs.length} delegators`
+    );
+
+    for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
+      const delegatorKp = setup.delegatorKeypairs[i];
+      assert(delegatorKp != null);
+      const pool = setup.pools[i % setup.pools.length];
+      assert(pool != null);
+
+      const stakingRecord = setup.sdk.stakingRecordPda(
+        pool.pool,
+        delegatorKp.publicKey
+      );
+
+      const stakingRecordPre = await program.account.stakingRecord.fetch(
+        stakingRecord
+      );
+      const operatorPoolPre = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+
+      // Unstake all shares for this delegator
+      await program.methods
+        .unstake(stakingRecordPre.shares)
+        .accountsStrict({
+          owner: delegatorKp.publicKey,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          ownerStakingRecord: stakingRecord,
+          operatorStakingRecord: pool.stakingRecord,
+        })
+        .signers([delegatorKp])
+        .rpc();
+
+      const stakingRecordPost = await program.account.stakingRecord.fetch(
+        stakingRecord
+      );
+      const operatorPoolPost = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+
+      // Verify the shares are reduced in the staking record
+      assert(
+        stakingRecordPost.shares.isZero(),
+        "Staking record shares should be zero after unstaking"
+      );
+
+      // Verify tokens unstake amount is set correctly
+      const expectedTokens = stakingRecordPre.shares
+        .mul(operatorPoolPre.totalStakedAmount)
+        .div(operatorPoolPre.totalShares);
+      assert(
+        stakingRecordPost.tokensUnstakeAmount.eq(expectedTokens),
+        "Tokens unstake amount should match expected value"
+      );
+
+      // Verify unstake timestamp is set correctly
+      const currentTimestamp = Date.now() / 1_000;
+      assert.approximately(
+        stakingRecordPost.unstakeAtTimestamp.toNumber(),
+        currentTimestamp + delegatorUnstakeDelaySeconds.toNumber(),
+        3,
+        "Unstake timestamp should be approximately current time plus delay"
+      );
+
+      // Verify operator pool state changes
+      assert(
+        operatorPoolPost.totalShares.eq(
+          operatorPoolPre.totalShares.sub(stakingRecordPre.shares)
+        ),
+        "Operator pool total shares should be reduced by unstaked shares"
+      );
+      assert(
+        operatorPoolPost.totalStakedAmount.eq(
+          operatorPoolPre.totalStakedAmount.sub(expectedTokens)
+        ),
+        "Operator pool total staked amount should be reduced by unstaked tokens"
+      );
+      assert(
+        operatorPoolPost.totalUnstaking.eq(
+          operatorPoolPre.totalUnstaking.add(expectedTokens)
+        ),
+        "Operator pool total unstaking should be increased by unstaked tokens"
+      );
+
+      const sharesString = formatBN(stakingRecordPre.shares);
+      const tokensString = formatBN(expectedTokens);
+      debug(
+        `- Unstaked ${sharesString} shares (${tokensString} tokens) for delegator ${delegatorKp.publicKey.toString()}`
+      );
+    }
+  });
+
+  it("Claim unstake for all delegators successfully", async () => {
+    debug(
+      `\nWaiting for delegator unstake delay (${delegatorUnstakeDelaySeconds.toString()} seconds) to elapse...`
+    );
+    await new Promise((resolve) =>
+      setTimeout(resolve, (delegatorUnstakeDelaySeconds.toNumber() + 2) * 1_000)
+    );
+
+    debug(
+      `\nPerforming claim unstake instructions for ${setup.delegatorKeypairs.length} delegators`
+    );
+
+    for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
+      const delegatorKp = setup.delegatorKeypairs[i];
+      assert(delegatorKp != null);
+      const pool = setup.pools[i % setup.pools.length];
+      assert(pool != null);
+
+      const stakingRecord = setup.sdk.stakingRecordPda(
+        pool.pool,
+        delegatorKp.publicKey
+      );
+
+      const stakingRecordPre = await program.account.stakingRecord.fetch(
+        stakingRecord
+      );
+      const operatorPoolPre = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+
+      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        delegatorKp.publicKey
+      );
+
+      const tokenBalancePre = await connection.getTokenAccountBalance(
+        ownerTokenAccount.address
+      );
+
+      await program.methods
+        .claimUnstake()
+        .accountsStrict({
+          owner: delegatorKp.publicKey,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          ownerStakingRecord: stakingRecord,
+          operatorStakingRecord: pool.stakingRecord,
+          ownerTokenAccount: ownerTokenAccount.address,
+          stakedTokenAccount: pool.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+      const stakingRecordPost = await program.account.stakingRecord.fetch(
+        stakingRecord
+      );
+      const operatorPoolPost = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+      const tokenBalancePost = await connection.getTokenAccountBalance(
+        ownerTokenAccount.address
+      );
+
+      // Verify staking record is properly reset
+      assert(
+        stakingRecordPost.tokensUnstakeAmount.isZero(),
+        "Tokens unstake amount should be zero after claim"
+      );
+      assert(
+        stakingRecordPost.unstakeAtTimestamp.isZero(),
+        "Unstake timestamp should be zero after claim"
+      );
+
+      // Verify operator pool total unstaking is decreased
+      assert(
+        operatorPoolPost.totalUnstaking.eq(
+          operatorPoolPre.totalUnstaking.sub(
+            stakingRecordPre.tokensUnstakeAmount
+          )
+        ),
+        "Operator pool total unstaking should be decreased by claimed amount"
+      );
+
+      // Verify tokens were received in owner's account
+      const amountClaimed = new anchor.BN(
+        Number(tokenBalancePost.value.amount) -
+          Number(tokenBalancePre.value.amount)
+      );
+      assert(
+        amountClaimed.eq(stakingRecordPre.tokensUnstakeAmount),
+        "Amount claimed should match tokens unstake amount"
+      );
+
+      const amountClaimedString = formatBN(amountClaimed);
+      debug(
+        `- Claimed ${amountClaimedString} tokens for delegator ${delegatorKp.publicKey.toString()}`
+      );
+    }
+  });
+
+  it("Close staking records for all delegators successfully", async () => {
+    debug(
+      `\nClosing staking records for ${setup.delegatorKeypairs.length} delegators`
+    );
+
+    for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
+      const delegatorKp = setup.delegatorKeypairs[i];
+      assert(delegatorKp != null);
+      const pool = setup.pools[i % setup.pools.length];
+      assert(pool != null);
+
+      const stakingRecord = setup.sdk.stakingRecordPda(
+        pool.pool,
+        delegatorKp.publicKey
+      );
+
+      await program.methods
+        .closeStakingRecord()
+        .accountsStrict({
+          receiver: setup.payer,
+          owner: delegatorKp.publicKey,
+          stakingRecord: stakingRecord,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([delegatorKp])
+        .rpc();
+
+      const stakingRecordAccount =
+        await program.account.stakingRecord.fetchNullable(stakingRecord);
+      assert.isNull(
+        stakingRecordAccount,
+        "Staking record should be closed after closing"
+      );
+
+      debug(
+        `- Closed staking record for delegator ${delegatorKp.publicKey.toString()}`
+      );
+    }
+  });
+
+  it("Withdraw operator commissions successfully", async () => {
+    debug(`\nWithdrawing commission for ${setup.pools.length} operator pools`);
+
+    for (const pool of setup.pools) {
+      const feeTokenAccountPre = await connection.getTokenAccountBalance(
+        pool.feeTokenAccount
+      );
+
+      if (Number(feeTokenAccountPre.value.amount) === 0) {
+        debug(
+          `- No commission to withdraw for Operator Pool ${pool.pool.toString()}`
+        );
+        continue;
+      }
+
+      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        pool.admin
+      );
+
+      const ownerTokenBalancePre = await connection.getTokenAccountBalance(
+        ownerTokenAccount.address
+      );
+
+      await program.methods
+        .withdrawOperatorCommission()
+        .accountsStrict({
+          admin: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          feeTokenAccount: pool.feeTokenAccount,
+          destination: ownerTokenAccount.address,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const feeTokenAccountPost = await connection.getTokenAccountBalance(
+        pool.feeTokenAccount
+      );
+      const ownerTokenBalancePost = await connection.getTokenAccountBalance(
+        ownerTokenAccount.address
+      );
+
+      // Verify fee token account is emptied
+      assert.equal(
+        feeTokenAccountPost.value.amount,
+        "0",
+        "Fee token account should be empty after withdrawal"
+      );
+
+      // Verify tokens were received in owner's account
+      const amountWithdrawn = new anchor.BN(
+        Number(ownerTokenBalancePost.value.amount) -
+          Number(ownerTokenBalancePre.value.amount)
+      );
+      assert(
+        amountWithdrawn.eq(new anchor.BN(feeTokenAccountPre.value.amount)),
+        "Amount withdrawn should match fee token account balance"
+      );
+
+      const amountWithdrawnString = formatBN(amountWithdrawn);
+      debug(
+        `- Withdrew ${amountWithdrawnString} tokens in commission for Operator Pool ${pool.pool.toString()}`
+      );
+    }
+  });
+
+  it("Unstake for all operator admins successfully", async () => {
+    debug(
+      `\nPerforming unstake instructions for ${setup.pools.length} operator admins`
+    );
+
+    for (const pool of setup.pools) {
+      const stakingRecordPre = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+
+      if (stakingRecordPre.shares.isZero()) {
+        debug(
+          `- No shares to unstake for Operator Pool ${pool.pool.toString()}`
+        );
+        continue;
+      }
+
+      const operatorPoolPre = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+
+      // Unstake all shares for this operator
+      await program.methods
+        .unstake(stakingRecordPre.shares)
+        .accountsStrict({
+          owner: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          ownerStakingRecord: pool.stakingRecord,
+          operatorStakingRecord: pool.stakingRecord,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const stakingRecordPost = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+      const operatorPoolPost = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+
+      // Verify the shares are reduced in the staking record
+      assert(
+        stakingRecordPost.shares.isZero(),
+        "Staking record shares should be zero after unstaking"
+      );
+
+      // Verify tokens unstake amount is set correctly
+      const expectedTokens = stakingRecordPre.shares
+        .mul(operatorPoolPre.totalStakedAmount)
+        .div(operatorPoolPre.totalShares);
+      assert(
+        stakingRecordPost.tokensUnstakeAmount.eq(expectedTokens),
+        "Tokens unstake amount should match expected value"
+      );
+
+      // Verify unstake timestamp is set correctly
+      const currentTimestamp = Date.now() / 1_000;
+      assert.approximately(
+        stakingRecordPost.unstakeAtTimestamp.toNumber(),
+        currentTimestamp + operatorUnstakeDelaySeconds.toNumber(),
+        3,
+        "Unstake timestamp should be approximately current time plus delay"
+      );
+
+      // Verify operator pool state changes
+      assert(
+        operatorPoolPost.totalShares.isZero(),
+        "Operator pool total shares should be zero after operator unstakes all"
+      );
+      assert(
+        operatorPoolPost.totalStakedAmount.isZero(),
+        "Operator pool total staked amount should be zero after operator unstakes all"
+      );
+      assert(
+        operatorPoolPost.totalUnstaking.eq(
+          operatorPoolPre.totalUnstaking.add(expectedTokens)
+        ),
+        "Operator pool total unstaking should be increased by unstaked tokens"
+      );
+
+      const sharesString = formatBN(stakingRecordPre.shares);
+      const tokensString = formatBN(expectedTokens);
+      debug(
+        `- Unstaked ${sharesString} shares (${tokensString} tokens) for operator ${pool.admin.toString()}`
+      );
+    }
+  });
+
+  it("Claim unstake for all operator admins successfully", async () => {
+    debug(
+      `\nWaiting for operator unstake delay (${operatorUnstakeDelaySeconds.toString()} seconds) to elapse...`
+    );
+    await new Promise((resolve) =>
+      setTimeout(resolve, (operatorUnstakeDelaySeconds.toNumber() + 2) * 1_000)
+    );
+
+    debug(
+      `\nPerforming claim unstake instructions for ${setup.pools.length} operator admins`
+    );
+
+    for (const pool of setup.pools) {
+      const stakingRecordPre = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+
+      if (stakingRecordPre.tokensUnstakeAmount.isZero()) {
+        debug(`- No tokens to claim for Operator Pool ${pool.pool.toString()}`);
+        continue;
+      }
+
+      const operatorPoolPre = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+
+      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        pool.admin
+      );
+
+      const tokenBalancePre = await connection.getTokenAccountBalance(
+        ownerTokenAccount.address
+      );
+
+      await program.methods
+        .claimUnstake()
+        .accountsStrict({
+          owner: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          ownerStakingRecord: pool.stakingRecord,
+          operatorStakingRecord: pool.stakingRecord,
+          ownerTokenAccount: ownerTokenAccount.address,
+          stakedTokenAccount: pool.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+      const stakingRecordPost = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+      const operatorPoolPost = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+      const tokenBalancePost = await connection.getTokenAccountBalance(
+        ownerTokenAccount.address
+      );
+
+      // Verify staking record is properly reset
+      assert(
+        stakingRecordPost.tokensUnstakeAmount.isZero(),
+        "Tokens unstake amount should be zero after claim"
+      );
+      assert(
+        stakingRecordPost.unstakeAtTimestamp.isZero(),
+        "Unstake timestamp should be zero after claim"
+      );
+
+      // Verify operator pool total unstaking is decreased
+      assert(
+        operatorPoolPost.totalUnstaking.eq(
+          operatorPoolPre.totalUnstaking.sub(
+            stakingRecordPre.tokensUnstakeAmount
+          )
+        ),
+        "Operator pool total unstaking should be decreased by claimed amount"
+      );
+
+      // Verify operator pool total unstaking is now zero after all claims
+      assert(
+        operatorPoolPost.totalUnstaking.isZero(),
+        "Operator pool total unstaking should be zero after all unstake claims"
+      );
+
+      // Verify tokens were received in owner's account
+      const amountClaimed = new anchor.BN(
+        Number(tokenBalancePost.value.amount) -
+          Number(tokenBalancePre.value.amount)
+      );
+      assert(
+        amountClaimed.eq(stakingRecordPre.tokensUnstakeAmount),
+        "Amount claimed should match tokens unstake amount"
+      );
+
+      const amountClaimedString = formatBN(amountClaimed);
+      debug(
+        `- Claimed ${amountClaimedString} tokens for operator ${pool.admin.toString()}`
+      );
+    }
+  });
+
+  it("Close all operator pools successfully", async () => {
+    debug(`\nClosing ${setup.pools.length} operator pools`);
+
+    for (const pool of setup.pools) {
+      await program.methods
+        .closeOperatorPool()
+        .accountsStrict({
+          admin: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const operatorPool = await program.account.operatorPool.fetch(pool.pool);
+      const poolOverview = await program.account.poolOverview.fetch(
+        setup.poolOverview
+      );
+
+      assert(
+        operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch),
+        "Operator pool closedAt should match the completed reward epoch"
+      );
+
+      debug(`- Closed Operator Pool ${pool.pool.toString()}`);
+    }
+  });
+
+  it("Close all operator staking records successfully", async () => {
+    debug(
+      `\nClosing staking records for ${setup.pools.length} operator admins`
+    );
+
+    for (const pool of setup.pools) {
+      await program.methods
+        .closeStakingRecord()
+        .accountsStrict({
+          receiver: setup.payer,
+          owner: pool.admin,
+          stakingRecord: pool.stakingRecord,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const stakingRecordAccount =
+        await program.account.stakingRecord.fetchNullable(pool.stakingRecord);
+      assert.isNull(
+        stakingRecordAccount,
+        "Operator staking record should be closed after closing"
+      );
+
+      debug(`- Closed staking record for operator ${pool.admin.toString()}`);
     }
   });
 });

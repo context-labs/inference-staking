@@ -33,8 +33,9 @@ type SetupPoolType = {
   delegatorStakingRecord: PublicKey;
 };
 
-const OPERATOR_POOL_SIZE = 3;
-const DELEGATOR_COUNT = 3;
+const OPERATOR_POOL_SIZE = 15;
+const DELEGATOR_COUNT = 15;
+export const NUMBER_OF_EPOCHS = 15;
 
 const TEST_PROGRAM_ID = new PublicKey(
   "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
