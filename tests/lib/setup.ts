@@ -5,18 +5,17 @@ import {
   mintTo,
 } from "@solana/spl-token";
 import { Keypair, PublicKey } from "@solana/web3.js";
-import dotenv from "dotenv";
 
 import { InferenceStakingProgramSDK } from "@sdk/src";
 
+import { DELEGATOR_COUNT, OPERATOR_POOL_SIZE } from "@tests/lib/const";
 import {
   airdrop,
+  batchArray,
   confirmTransaction,
   generateRewardsForEpoch,
   range,
 } from "@tests/lib/utils";
-
-dotenv.config();
 
 const { BN, getProvider } = anchor;
 
@@ -32,16 +31,6 @@ type SetupPoolType = {
   usdcTokenAccount: PublicKey;
   delegatorStakingRecord: PublicKey;
 };
-
-const OPERATOR_POOL_SIZE = process.env.OPERATOR_POOL_SIZE
-  ? parseInt(process.env.OPERATOR_POOL_SIZE)
-  : 5;
-const DELEGATOR_COUNT = process.env.DELEGATOR_COUNT
-  ? parseInt(process.env.DELEGATOR_COUNT)
-  : 5;
-export const NUMBER_OF_EPOCHS = process.env.NUMBER_OF_EPOCHS
-  ? parseInt(process.env.NUMBER_OF_EPOCHS)
-  : 5;
 
 const TEST_PROGRAM_ID = new PublicKey(
   "5dBQfWVYj4izDGuZkvceHVNudoJoccX9SUkgRDEv9eoj"
@@ -97,9 +86,12 @@ export async function setupTests() {
       delegator3Kp,
       delegator4Kp,
       delegator5Kp,
-      ...delegatorKeypairs,
     ].map((recipient) => airdrop(provider, recipient))
   );
+
+  for (const batch of batchArray(delegatorKeypairs, 10)) {
+    await Promise.all(batch.map((recipient) => airdrop(provider, recipient)));
+  }
 
   const tokenMint = await createMint(
     provider.connection,

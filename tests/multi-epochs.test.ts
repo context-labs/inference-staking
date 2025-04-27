@@ -11,13 +11,14 @@ import { assert } from "chai";
 
 import type { InferenceStaking } from "@sdk/src/idl";
 
+import { EPOCH_CLAIM_FREQUENCY, NUMBER_OF_EPOCHS } from "@tests/lib/const";
 import type {
   ConstructMerkleTreeInput,
   GenerateMerkleProofInput,
 } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
 import type { SetupTestResult } from "@tests/lib/setup";
-import { NUMBER_OF_EPOCHS, setupTests } from "@tests/lib/setup";
+import { setupTests } from "@tests/lib/setup";
 import {
   assertStakingRecordCreatedState,
   debug,
@@ -26,6 +27,170 @@ import {
   randomIntInRange,
   setEpochFinalizationState,
 } from "@tests/lib/utils";
+
+async function handleAccrueRewardForEpochs({
+  epochRewards,
+  setup,
+  program,
+  connection,
+  commissionRateBps,
+}: {
+  epochRewards: ConstructMerkleTreeInput[][];
+  setup: SetupTestResult;
+  program: Program<InferenceStaking>;
+  connection: Connection;
+  commissionRateBps: number;
+}) {
+  const commissionFeeMap = new Map<string, anchor.BN>();
+
+  for (let i = 1; i <= NUMBER_OF_EPOCHS; i++) {
+    debug(`\nAccruing rewards for Epoch ${i}`);
+
+    let counter = 1;
+    for (const pool of setup.pools) {
+      const isFinalEpochClaim = i === NUMBER_OF_EPOCHS;
+      const epochReward = epochRewards[i - 1];
+      assert(epochReward != null);
+      const merkleTree = MerkleUtils.constructMerkleTree(epochReward);
+      const nodeIndex = epochReward.findIndex(
+        (x) => x.address == pool.pool.toString()
+      );
+      const proofInputs = {
+        ...epochReward[nodeIndex],
+        index: nodeIndex,
+        merkleTree,
+      } as GenerateMerkleProofInput;
+      const epochRewardsForPool = epochRewards
+        .flatMap((epochReward) =>
+          epochReward.find((x) => x.address == pool.pool.toString())
+        )
+        .filter((x) => x != null);
+      const totalRewardsForPool = epochRewardsForPool.reduce(
+        (acc, curr) => acc.add(new anchor.BN(Number(curr.tokenAmount))),
+        new anchor.BN(0)
+      );
+
+      console.log(
+        `epoch = ${i} completedRewardEpoch = ${NUMBER_OF_EPOCHS} - totalRewardsForPool = ${totalRewardsForPool.toString()}`
+      );
+
+      const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+      const poolOverviewPre = await program.account.poolOverview.fetch(
+        setup.poolOverview
+      );
+      const operatorPre = await program.account.operatorPool.fetch(pool.pool);
+      const operatorStakingRecordPre =
+        await program.account.stakingRecord.fetch(pool.stakingRecord);
+      const rewardBalancePre = await connection.getTokenAccountBalance(
+        setup.rewardTokenAccount
+      );
+      const stakedBalancePre = await connection.getTokenAccountBalance(
+        pool.stakedTokenAccount
+      );
+      const feeBalancePre = await connection.getTokenAccountBalance(
+        pool.feeTokenAccount
+      );
+      const rewardAmount = new anchor.BN(Number(proofInputs.tokenAmount));
+      const usdcAmount = new anchor.BN(Number(proofInputs.usdcAmount));
+      const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(i));
+      const tokens = formatBN(rewardAmount);
+      const usdc = formatBN(usdcAmount);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(
+        `- [${tracker}] Calling AccrueReward for Operator Pool ${pool.pool.toString()} - rewardAmount = ${tokens} - usdcAmount = ${usdc}`
+      );
+      counter++;
+      await program.methods
+        .accrueReward({
+          merkleIndex: 0,
+          proof: proof.map((arr) => Array.from(arr)),
+          proofPath,
+          rewardAmount,
+          usdcAmount,
+        })
+        .accountsStrict({
+          poolOverview: setup.poolOverview,
+          rewardRecord,
+          operatorPool: pool.pool,
+          operatorStakingRecord: pool.stakingRecord,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          stakedTokenAccount: pool.stakedTokenAccount,
+          feeTokenAccount: pool.feeTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          usdcPayoutDestination: pool.usdcTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+      const operatorPool = await program.account.operatorPool.fetch(pool.pool);
+      assert(operatorPool.rewardLastClaimedEpoch.eqn(i));
+      assert(operatorPool.totalShares.eq(operatorPre.totalShares));
+      assert(operatorPool.totalUnstaking.eq(operatorPre.totalUnstaking));
+      assert.isNull(operatorPool.newCommissionRateBps);
+      // Verify that operator's shares remain unchanged with auto-stake disabled.
+      const operatorStakingRecord = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+      assert(operatorStakingRecordPre.shares.eq(operatorStakingRecord.shares));
+      const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
+      const currentCommissionFeesForPool =
+        commissionFeeMap.get(pool.pool.toString()) ?? new anchor.BN(0);
+      commissionFeeMap.set(
+        pool.pool.toString(),
+        currentCommissionFeesForPool.add(commissionFees)
+      );
+      if (isFinalEpochClaim) {
+        // Verify that unclaimedRewards on PoolOverview is updated.
+        const poolOverview = await program.account.poolOverview.fetch(
+          setup.poolOverview
+        );
+        assert(
+          poolOverviewPre.unclaimedRewards
+            .sub(poolOverview.unclaimedRewards)
+            .eq(totalRewardsForPool)
+        );
+        // Verify that token balance changes are correct.
+        const rewardBalance = await connection.getTokenAccountBalance(
+          setup.rewardTokenAccount
+        );
+        const stakedBalance = await connection.getTokenAccountBalance(
+          pool.stakedTokenAccount
+        );
+        const feeBalance = await connection.getTokenAccountBalance(
+          pool.feeTokenAccount
+        );
+        assert(
+          totalRewardsForPool.eqn(
+            Number(rewardBalancePre.value.amount) -
+              Number(rewardBalance.value.amount)
+          )
+        );
+        const commissionFees = commissionFeeMap.get(pool.pool.toString());
+        assert(commissionFees != null);
+        const delegatorRewards = totalRewardsForPool.sub(commissionFees);
+        // Verify that claimed delegator rewards are added to OperatorPool
+        // and rewardLastClaimedEpoch is updated.
+        assert(
+          operatorPool.totalStakedAmount
+            .sub(operatorPre.totalStakedAmount)
+            .eq(delegatorRewards)
+        );
+        assert(operatorPool.accruedRewards.isZero());
+        assert(operatorPool.accruedCommission.isZero());
+        assert(
+          commissionFees.eqn(
+            Number(feeBalance.value.amount) - Number(feeBalancePre.value.amount)
+          )
+        );
+        assert(
+          delegatorRewards.eqn(
+            Number(stakedBalance.value.amount) -
+              Number(stakedBalancePre.value.amount)
+          )
+        );
+      }
+    }
+  }
+}
 
 describe("multi-epoch lifecycle tests", () => {
   let setup: SetupTestResult;
@@ -213,10 +378,11 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
-  it("Stake operator pool admins", async () => {
+  it("Stake all operator pool admins", async () => {
     debug(
       `\nPerforming admin stake instructions for ${setup.pools.length} operator pools`
     );
+    let counter = 1;
     for (const pool of setup.pools) {
       const stakeAmount = new anchor.BN(
         randomIntInRange(1_000_000, 10_000_000)
@@ -272,16 +438,19 @@ describe("multi-epoch lifecycle tests", () => {
       });
 
       const stakeAmountString = formatBN(stakeAmount);
+      const tracker = `${counter}/${setup.pools.length}`;
       debug(
-        `- Staked ${stakeAmountString} tokens for Operator Pool ${pool.pool.toString()}`
+        `- [${tracker}] Staked ${stakeAmountString} tokens for Operator Pool ${pool.pool.toString()}`
       );
+      counter++;
     }
   });
 
-  it("Stake random amounts for every delegator", async () => {
+  it("Stake for every delegator", async () => {
     debug(
       `\nPerforming delegator stake instructions for ${setup.delegatorKeypairs.length} delegators`
     );
+    let counter = 1;
     for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
       const delegatorKp = setup.delegatorKeypairs[i];
       assert(delegatorKp != null);
@@ -363,14 +532,17 @@ describe("multi-epoch lifecycle tests", () => {
       });
 
       const stakeAmountString = formatBN(stakeAmount);
+      const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
       debug(
-        `- Staked ${stakeAmountString} tokens for delegator ${delegatorKp.publicKey.toString()}`
+        `- [${tracker}] Staked ${stakeAmountString} tokens for delegator ${delegatorKp.publicKey.toString()}`
       );
+      counter++;
     }
   });
 
   it("Create reward records", async () => {
     debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
+    let counter = 1;
     for (let i = 1; i <= NUMBER_OF_EPOCHS; i++) {
       const rewards = generateRewardsForEpoch(
         setup.pools.map((pool) => pool.pool)
@@ -414,9 +586,11 @@ describe("multi-epoch lifecycle tests", () => {
 
       const tokens = formatBN(totalRewards);
       const usdc = formatBN(totalUsdcAmount);
+      const tracker = `${counter}/${NUMBER_OF_EPOCHS}`;
       debug(
-        `- Creating RewardRecord for epoch ${i} - total token reward = ${tokens} - total USDC payout = ${usdc}`
+        `- [${tracker}] Creating RewardRecord for epoch ${i} - total token reward = ${tokens} - total USDC payout = ${usdc}`
       );
+      counter++;
 
       await program.methods
         .createRewardRecord({
@@ -447,175 +621,31 @@ describe("multi-epoch lifecycle tests", () => {
           Array.from(merkleRoots[i] ?? [])
         );
       }
+
+      if (i % EPOCH_CLAIM_FREQUENCY === 0) {
+        debug(
+          `\n Start reward claims for all existing rewards up to epoch ${i}`
+        );
+        await handleAccrueRewardForEpochs({
+          epochRewards,
+          setup,
+          program,
+          connection,
+          commissionRateBps,
+        });
+        debug("");
+      }
     }
   });
 
-  it(`Accrue Rewards successfully for ${NUMBER_OF_EPOCHS} epochs`, async () => {
-    const commissionFeeMap = new Map<string, anchor.BN>();
-
-    for (let i = 1; i <= NUMBER_OF_EPOCHS; i++) {
-      debug(`\nAccruing rewards for Epoch ${i}`);
-
-      for (const pool of setup.pools) {
-        const isFinalEpochClaim = i === NUMBER_OF_EPOCHS;
-
-        const epochReward = epochRewards[i - 1];
-        assert(epochReward != null);
-        const merkleTree = MerkleUtils.constructMerkleTree(epochReward);
-        const nodeIndex = epochReward.findIndex(
-          (x) => x.address == pool.pool.toString()
-        );
-        const proofInputs = {
-          ...epochReward[nodeIndex],
-          index: nodeIndex,
-          merkleTree,
-        } as GenerateMerkleProofInput;
-
-        const epochRewardsForPool = epochRewards
-          .flatMap((epochReward) =>
-            epochReward.find((x) => x.address == pool.pool.toString())
-          )
-          .filter((x) => x != null);
-        const totalRewardsForPool = epochRewardsForPool.reduce(
-          (acc, curr) => acc.add(new anchor.BN(Number(curr.tokenAmount))),
-          new anchor.BN(0)
-        );
-
-        const { proof, proofPath } =
-          MerkleUtils.generateMerkleProof(proofInputs);
-
-        const poolOverviewPre = await program.account.poolOverview.fetch(
-          setup.poolOverview
-        );
-        const operatorPre = await program.account.operatorPool.fetch(pool.pool);
-        const operatorStakingRecordPre =
-          await program.account.stakingRecord.fetch(pool.stakingRecord);
-        const rewardBalancePre = await connection.getTokenAccountBalance(
-          setup.rewardTokenAccount
-        );
-        const stakedBalancePre = await connection.getTokenAccountBalance(
-          pool.stakedTokenAccount
-        );
-        const feeBalancePre = await connection.getTokenAccountBalance(
-          pool.feeTokenAccount
-        );
-
-        const rewardAmount = new anchor.BN(Number(proofInputs.tokenAmount));
-        const usdcAmount = new anchor.BN(Number(proofInputs.usdcAmount));
-
-        const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(i));
-
-        const tokens = formatBN(rewardAmount);
-        const usdc = formatBN(usdcAmount);
-        debug(
-          `- Calling AccrueReward for Operator Pool ${pool.pool.toString()} - rewardAmount = ${tokens} - usdcAmount = ${usdc}`
-        );
-
-        await program.methods
-          .accrueReward({
-            merkleIndex: 0,
-            proof: proof.map((arr) => Array.from(arr)),
-            proofPath,
-            rewardAmount,
-            usdcAmount,
-          })
-          .accountsStrict({
-            poolOverview: setup.poolOverview,
-            rewardRecord,
-            operatorPool: pool.pool,
-            operatorStakingRecord: pool.stakingRecord,
-            rewardTokenAccount: setup.rewardTokenAccount,
-            stakedTokenAccount: pool.stakedTokenAccount,
-            feeTokenAccount: pool.feeTokenAccount,
-            usdcTokenAccount: setup.usdcTokenAccount,
-            usdcPayoutDestination: pool.usdcTokenAccount,
-            tokenProgram: TOKEN_PROGRAM_ID,
-          })
-          .rpc();
-
-        const operatorPool = await program.account.operatorPool.fetch(
-          pool.pool
-        );
-
-        assert(operatorPool.rewardLastClaimedEpoch.eqn(i));
-        assert(operatorPool.totalShares.eq(operatorPre.totalShares));
-        assert(operatorPool.totalUnstaking.eq(operatorPre.totalUnstaking));
-        assert.isNull(operatorPool.newCommissionRateBps);
-
-        // Verify that operator's shares remain unchanged with auto-stake disabled.
-        const operatorStakingRecord = await program.account.stakingRecord.fetch(
-          pool.stakingRecord
-        );
-        assert(
-          operatorStakingRecordPre.shares.eq(operatorStakingRecord.shares)
-        );
-
-        const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
-        const currentCommissionFeesForPool =
-          commissionFeeMap.get(pool.pool.toString()) ?? new anchor.BN(0);
-        commissionFeeMap.set(
-          pool.pool.toString(),
-          currentCommissionFeesForPool.add(commissionFees)
-        );
-
-        if (isFinalEpochClaim) {
-          // Verify that unclaimedRewards on PoolOverview is updated.
-          const poolOverview = await program.account.poolOverview.fetch(
-            setup.poolOverview
-          );
-          assert(
-            poolOverviewPre.unclaimedRewards
-              .sub(poolOverview.unclaimedRewards)
-              .eq(totalRewardsForPool)
-          );
-
-          // Verify that token balance changes are correct.
-          const rewardBalance = await connection.getTokenAccountBalance(
-            setup.rewardTokenAccount
-          );
-          const stakedBalance = await connection.getTokenAccountBalance(
-            pool.stakedTokenAccount
-          );
-          const feeBalance = await connection.getTokenAccountBalance(
-            pool.feeTokenAccount
-          );
-          assert(
-            totalRewardsForPool.eqn(
-              Number(rewardBalancePre.value.amount) -
-                Number(rewardBalance.value.amount)
-            )
-          );
-
-          const commissionFees = commissionFeeMap.get(pool.pool.toString());
-          assert(commissionFees != null);
-
-          const delegatorRewards = totalRewardsForPool.sub(commissionFees);
-
-          // Verify that claimed delegator rewards are added to OperatorPool
-          // and rewardLastClaimedEpoch is updated.
-          assert(
-            operatorPool.totalStakedAmount
-              .sub(operatorPre.totalStakedAmount)
-              .eq(delegatorRewards)
-          );
-          assert(operatorPool.accruedRewards.isZero());
-          assert(operatorPool.accruedCommission.isZero());
-
-          assert(
-            commissionFees.eqn(
-              Number(feeBalance.value.amount) -
-                Number(feeBalancePre.value.amount)
-            )
-          );
-          assert(
-            delegatorRewards.eqn(
-              Number(stakedBalance.value.amount) -
-                Number(stakedBalancePre.value.amount)
-            )
-          );
-        }
-      }
-    }
+  it("Accrue Rewards for any remaining epochs", async () => {
+    await handleAccrueRewardForEpochs({
+      epochRewards,
+      setup,
+      program,
+      connection,
+      commissionRateBps,
+    });
   });
 
   it("Unstake for all delegators successfully", async () => {
@@ -623,6 +653,7 @@ describe("multi-epoch lifecycle tests", () => {
       `\nPerforming unstake instructions for ${setup.delegatorKeypairs.length} delegators`
     );
 
+    let counter = 1;
     for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
       const delegatorKp = setup.delegatorKeypairs[i];
       assert(delegatorKp != null);
@@ -707,9 +738,11 @@ describe("multi-epoch lifecycle tests", () => {
 
       const sharesString = formatBN(stakingRecordPre.shares);
       const tokensString = formatBN(expectedTokens);
+      const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
       debug(
-        `- Unstaked ${sharesString} shares (${tokensString} tokens) for delegator ${delegatorKp.publicKey.toString()}`
+        `- [${tracker}] Unstaked ${sharesString} shares (${tokensString} tokens) for delegator ${delegatorKp.publicKey.toString()}`
       );
+      counter++;
     }
   });
 
@@ -725,6 +758,7 @@ describe("multi-epoch lifecycle tests", () => {
       `\nPerforming claim unstake instructions for ${setup.delegatorKeypairs.length} delegators`
     );
 
+    let counter = 1;
     for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
       const delegatorKp = setup.delegatorKeypairs[i];
       assert(delegatorKp != null);
@@ -809,9 +843,11 @@ describe("multi-epoch lifecycle tests", () => {
       );
 
       const amountClaimedString = formatBN(amountClaimed);
+      const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
       debug(
-        `- Claimed ${amountClaimedString} tokens for delegator ${delegatorKp.publicKey.toString()}`
+        `- [${tracker}] Claimed ${amountClaimedString} tokens for delegator ${delegatorKp.publicKey.toString()}`
       );
+      counter++;
     }
   });
 
@@ -820,6 +856,7 @@ describe("multi-epoch lifecycle tests", () => {
       `\nClosing staking records for ${setup.delegatorKeypairs.length} delegators`
     );
 
+    let counter = 1;
     for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
       const delegatorKp = setup.delegatorKeypairs[i];
       assert(delegatorKp != null);
@@ -849,15 +886,18 @@ describe("multi-epoch lifecycle tests", () => {
         "Staking record should be closed after closing"
       );
 
+      const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
       debug(
-        `- Closed staking record for delegator ${delegatorKp.publicKey.toString()}`
+        `- [${tracker}] Closed staking record for delegator ${delegatorKp.publicKey.toString()}`
       );
+      counter++;
     }
   });
 
   it("Withdraw operator commissions successfully", async () => {
     debug(`\nWithdrawing commission for ${setup.pools.length} operator pools`);
 
+    let counter = 1;
     for (const pool of setup.pools) {
       const feeTokenAccountPre = await connection.getTokenAccountBalance(
         pool.feeTokenAccount
@@ -919,9 +959,11 @@ describe("multi-epoch lifecycle tests", () => {
       );
 
       const amountWithdrawnString = formatBN(amountWithdrawn);
+      const tracker = `${counter}/${setup.pools.length}`;
       debug(
-        `- Withdrew ${amountWithdrawnString} tokens in commission for Operator Pool ${pool.pool.toString()}`
+        `- [${tracker}] Withdrew ${amountWithdrawnString} tokens in commission for Operator Pool ${pool.pool.toString()}`
       );
+      counter++;
     }
   });
 
@@ -930,6 +972,7 @@ describe("multi-epoch lifecycle tests", () => {
       `\nPerforming unstake instructions for ${setup.pools.length} operator admins`
     );
 
+    let counter = 1;
     for (const pool of setup.pools) {
       const stakingRecordPre = await program.account.stakingRecord.fetch(
         pool.stakingRecord
@@ -1008,9 +1051,11 @@ describe("multi-epoch lifecycle tests", () => {
 
       const sharesString = formatBN(stakingRecordPre.shares);
       const tokensString = formatBN(expectedTokens);
+      const tracker = `${counter}/${setup.pools.length}`;
       debug(
-        `- Unstaked ${sharesString} shares (${tokensString} tokens) for operator ${pool.admin.toString()}`
+        `- [${tracker}] Unstaked ${sharesString} shares (${tokensString} tokens) for operator ${pool.admin.toString()}`
       );
+      counter++;
     }
   });
 
@@ -1026,6 +1071,7 @@ describe("multi-epoch lifecycle tests", () => {
       `\nPerforming claim unstake instructions for ${setup.pools.length} operator admins`
     );
 
+    let counter = 1;
     for (const pool of setup.pools) {
       const stakingRecordPre = await program.account.stakingRecord.fetch(
         pool.stakingRecord
@@ -1112,15 +1158,18 @@ describe("multi-epoch lifecycle tests", () => {
       );
 
       const amountClaimedString = formatBN(amountClaimed);
+      const tracker = `${counter}/${setup.pools.length}`;
       debug(
-        `- Claimed ${amountClaimedString} tokens for operator ${pool.admin.toString()}`
+        `- [${tracker}] Claimed ${amountClaimedString} tokens for operator ${pool.admin.toString()}`
       );
+      counter++;
     }
   });
 
   it("Close all operator pools successfully", async () => {
     debug(`\nClosing ${setup.pools.length} operator pools`);
 
+    let counter = 1;
     for (const pool of setup.pools) {
       await program.methods
         .closeOperatorPool()
@@ -1142,7 +1191,9 @@ describe("multi-epoch lifecycle tests", () => {
         "Operator pool closedAt should match the completed reward epoch"
       );
 
-      debug(`- Closed Operator Pool ${pool.pool.toString()}`);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(`- [${tracker}] Closed Operator Pool ${pool.pool.toString()}`);
+      counter++;
     }
   });
 
@@ -1151,6 +1202,7 @@ describe("multi-epoch lifecycle tests", () => {
       `\nClosing staking records for ${setup.pools.length} operator admins`
     );
 
+    let counter = 1;
     for (const pool of setup.pools) {
       await program.methods
         .closeStakingRecord()
@@ -1170,7 +1222,11 @@ describe("multi-epoch lifecycle tests", () => {
         "Operator staking record should be closed after closing"
       );
 
-      debug(`- Closed staking record for operator ${pool.admin.toString()}`);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(
+        `- [${tracker}] Closed staking record for operator ${pool.admin.toString()}`
+      );
+      counter++;
     }
   });
 });

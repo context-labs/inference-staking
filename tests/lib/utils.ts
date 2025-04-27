@@ -32,6 +32,14 @@ export const shuffleArray = <T>(arr: T[]): T[] => {
   return arr.sort(() => Math.random() - 0.5);
 };
 
+export const batchArray = <T>(arr: T[], batchSize: number): T[][] => {
+  const batches: T[][] = [];
+  for (let i = 0; i < arr.length; i += batchSize) {
+    batches.push(arr.slice(i, i + batchSize));
+  }
+  return batches;
+};
+
 export const randomIntInRange = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
@@ -94,7 +102,7 @@ export const airdrop = async (
 ) => {
   const tx = await provider.connection.requestAirdrop(
     recipient.publicKey,
-    LAMPORTS_PER_SOL
+    LAMPORTS_PER_SOL * 1_000
   );
   await confirmTransaction(provider.connection, tx);
 };

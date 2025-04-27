@@ -145,6 +145,12 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         .checked_add(1)
         .unwrap();
 
+    msg!(
+        "Handling AccrueReward for epoch {} - is_most_recent: {}",
+        reward_record.epoch,
+        is_most_recent
+    );
+
     if is_most_recent {
         operator_pool.total_staked_amount = operator_pool
             .total_staked_amount
