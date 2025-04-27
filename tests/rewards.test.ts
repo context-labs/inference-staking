@@ -786,7 +786,7 @@ describe("Reward creation and accrual tests", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    // assert.equal(operatorPool.newCommissionRateBps, newCommissionRateBps);
+    assert.equal(operatorPool.newCommissionRateBps, newCommissionRateBps);
     assert.equal(operatorPool.commissionRateBps, commissionRateBps);
 
     // Check that rewards accrued are accumulated.
