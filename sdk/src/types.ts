@@ -73,10 +73,10 @@ type AccountMeta = {
 export type InstructionAccountsMap<T extends InferenceStakingInstructions> =
   Partial<Record<InstructionAccountNames<T>, AccountMeta>>;
 
-export type DecodedAirdropProgramInstruction<
-  T extends InferenceStakingInstructions = InferenceStakingInstructions
-> = {
-  name: T;
-  args: InstructionArgsMap[T];
-  accounts: InstructionAccountsMap<T>;
-};
+export type DecodedStakingProgramInstruction = {
+  [K in InferenceStakingInstructions]: {
+    name: K;
+    args: InstructionArgsMap[K];
+    accounts: InstructionAccountsMap<K>;
+  };
+}[InferenceStakingInstructions];

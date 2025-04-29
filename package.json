@@ -11,10 +11,11 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "tsc": "tsc --noEmit",
+    "test:unit": "bun test \"tests/unit\"",
     "test": "anchor test -- --features test",
     "test-all": "./scripts/test-all.sh",
     "build": "anchor build && bun run scripts/generateIDL.ts && bun run format:fix",
-    "check": "bun run build && bun run format && bun run lint && bun run tsc"
+    "check": "bun run build && bun run format && bun run lint && bun run tsc && bun run test:unit"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.31.0",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",
+    "@types/bun": "^1.2.11",
     "@types/chai": "^4.3.0",
     "@types/mocha": "^9.0.0",
     "chai": "^4.3.4",

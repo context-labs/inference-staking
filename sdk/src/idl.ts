@@ -13,7 +13,7 @@ const _IDL = {
     name: "inferenceStaking",
     version: "0.1.0",
     spec: "0.1.0",
-    description: "Created with Anchor",
+    description: "Inference.net Staking Program",
   },
   instructions: [
     {

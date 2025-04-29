@@ -32,7 +32,7 @@ type SetupPoolType = {
   delegatorStakingRecord: PublicKey;
 };
 
-const TEST_PROGRAM_ID = new PublicKey(
+export const TEST_PROGRAM_ID = new PublicKey(
   "dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm"
 );
 

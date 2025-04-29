@@ -2,7 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "types": ["mocha", "chai"],
+    "types": ["mocha", "chai", "bun"],
     "typeRoots": ["./node_modules/@types"],
     "lib": ["ESNext"],
     "target": "ESNext",

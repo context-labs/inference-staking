@@ -8,7 +8,7 @@ import type { InferenceStaking } from "./idl";
 import { getIdlWithProgramId, IDL } from "./idl";
 import type {
   InferenceStakingErrors,
-  DecodedAirdropProgramInstruction,
+  DecodedStakingProgramInstruction,
   InferenceStakingInstructions,
   InstructionArgsMap,
   InstructionAccountsMap,
@@ -302,8 +302,8 @@ export class InferenceStakingProgramSDK {
 
   decodeTransaction(
     tx: VersionedTransaction
-  ): DecodedAirdropProgramInstruction[] {
-    const final: DecodedAirdropProgramInstruction[] = [];
+  ): DecodedStakingProgramInstruction[] {
+    const final: DecodedStakingProgramInstruction[] = [];
     const borshCoder = new BorshCoder(this.program.idl);
     if (tx.message.version === "legacy") {
       for (const instruction of tx.message.instructions) {
@@ -345,11 +345,11 @@ export class InferenceStakingProgramSDK {
             accounts[name as keyof typeof accounts] = account;
           }
 
-          const result: DecodedAirdropProgramInstruction = {
+          const result = {
             name,
             args,
             accounts,
-          };
+          } as DecodedStakingProgramInstruction;
 
           final.push(result);
         } catch {
