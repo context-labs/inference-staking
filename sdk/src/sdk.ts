@@ -19,7 +19,7 @@ import type {
 } from "./types";
 import { capitalize, toCamelCase } from "./utils";
 
-export class InferenceStakingProgramSDK {
+export class InferenceStakingProgramSdk {
   program: Program<InferenceStaking>;
 
   constructor(args: { provider: AnchorProvider; programId: PublicKey }) {

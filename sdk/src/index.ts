@@ -1,3 +1,3 @@
 export * from "./eventTypes";
 export * from "./types";
-export { InferenceStakingProgramSDK } from "./sdk";
+export { InferenceStakingProgramSdk as InferenceStakingProgramSDK } from "./sdk";

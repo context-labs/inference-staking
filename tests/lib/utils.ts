@@ -10,7 +10,7 @@ import type {
   StakingRecordAccountStruct,
 } from "@sdk/src";
 import type { InferenceStaking } from "@sdk/src/idl";
-import { InferenceStakingProgramSDK } from "@sdk/src/sdk";
+import { InferenceStakingProgramSdk } from "@sdk/src/sdk";
 
 import type { ConstructMerkleTreeInput } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
@@ -73,7 +73,7 @@ export function assertStakingProgramError(
   code: InferenceStakingErrors
 ) {
   const errorName =
-    InferenceStakingProgramSDK.getErrorNameFromTransactionError(error);
+    InferenceStakingProgramSdk.getErrorNameFromTransactionError(error);
   assert.equal(errorName, code);
 }
 
