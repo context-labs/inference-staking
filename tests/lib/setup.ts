@@ -6,7 +6,7 @@ import {
 } from "@solana/spl-token";
 import { Keypair, PublicKey } from "@solana/web3.js";
 
-import { InferenceStakingProgramSDK } from "@sdk/src";
+import { InferenceStakingProgramSdk } from "@sdk/src";
 
 import { DELEGATOR_COUNT, OPERATOR_POOL_SIZE } from "@tests/lib/const";
 import {
@@ -67,7 +67,7 @@ export async function setupTests() {
   const delegatorKeypairs = range(DELEGATOR_COUNT).map(() => new Keypair());
 
   const provider = getProvider();
-  const sdk = new InferenceStakingProgramSDK({
+  const sdk = new InferenceStakingProgramSdk({
     provider: anchor.AnchorProvider.env(),
     programId: TEST_PROGRAM_ID,
   });

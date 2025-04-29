@@ -3,7 +3,7 @@ import type { VersionedTransactionResponse } from "@solana/web3.js";
 import { VersionedMessage, VersionedTransaction } from "@solana/web3.js";
 import { expect, describe, it } from "bun:test";
 
-import { InferenceStakingProgramSDK } from "@sdk/src";
+import { InferenceStakingProgramSdk } from "@sdk/src";
 
 import { TEST_PROGRAM_ID } from "@tests/lib/setup";
 
@@ -76,11 +76,11 @@ function reconstructVersionedTransaction(
   return new VersionedTransaction(message, signatures);
 }
 
-describe("InferenceStakingProgramSDK decodeTransaction", () => {
+describe("InferenceStakingProgramSdk decodeTransaction", () => {
   it("should decode the transaction", () => {
     anchor.setProvider(anchor.AnchorProvider.env());
 
-    const sdk = new InferenceStakingProgramSDK({
+    const sdk = new InferenceStakingProgramSdk({
       provider: anchor.AnchorProvider.env(),
       programId: TEST_PROGRAM_ID,
     });
