@@ -16,13 +16,13 @@ pub struct CloseStakingRecord<'info> {
         close = receiver,
         seeds = [
             b"StakingRecord".as_ref(),
-            staking_record.operator_pool.as_ref(),
+            owner_staking_record.operator_pool.as_ref(),
             owner.key().as_ref()
         ],
         bump,
         has_one = owner,
     )]
-    pub staking_record: Account<'info, StakingRecord>,
+    pub owner_staking_record: Account<'info, StakingRecord>,
 
     pub system_program: Program<'info, System>,
 }
@@ -30,11 +30,11 @@ pub struct CloseStakingRecord<'info> {
 pub fn handler(ctx: Context<CloseStakingRecord>) -> Result<()> {
     // Assert the StakingRecord is empty
     require!(
-        ctx.accounts.staking_record.shares == 0,
+        ctx.accounts.owner_staking_record.shares == 0,
         ErrorCode::AccountNotEmpty
     );
     require!(
-        ctx.accounts.staking_record.tokens_unstake_amount == 0,
+        ctx.accounts.owner_staking_record.tokens_unstake_amount == 0,
         ErrorCode::AccountNotEmpty
     );
     Ok(())

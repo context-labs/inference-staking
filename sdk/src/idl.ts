@@ -412,10 +412,10 @@ const _IDL = {
         {
           name: "owner",
           signer: true,
-          relations: ["stakingRecord"],
+          relations: ["ownerStakingRecord"],
         },
         {
-          name: "stakingRecord",
+          name: "ownerStakingRecord",
           writable: true,
           pda: {
             seeds: [
@@ -427,7 +427,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "staking_record.operator_pool",
+                path: "owner_staking_record.operator_pool",
                 account: "stakingRecord",
               },
               {
@@ -737,7 +737,7 @@ const _IDL = {
           },
         },
         {
-          name: "stakingRecord",
+          name: "ownerStakingRecord",
           writable: true,
           pda: {
             seeds: [

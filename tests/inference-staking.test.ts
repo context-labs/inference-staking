@@ -552,7 +552,7 @@ describe("inference-staking program tests", () => {
         payer: setup.payer,
         owner: setup.delegator1,
         operatorPool: setup.pool1.pool,
-        stakingRecord: setup.pool1.delegatorStakingRecord,
+        ownerStakingRecord: setup.pool1.delegatorStakingRecord,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.delegator1Kp])
@@ -870,7 +870,7 @@ describe("inference-staking program tests", () => {
         .accountsStrict({
           receiver: setup.payer,
           owner: setup.delegator1,
-          stakingRecord: setup.pool1.delegatorStakingRecord,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           systemProgram: SystemProgram.programId,
         })
         .signers([setup.delegator1Kp])
@@ -2402,7 +2402,7 @@ describe("inference-staking program tests", () => {
         .accountsStrict({
           receiver: setup.payer,
           owner: setup.delegator1,
-          stakingRecord: setup.pool1.delegatorStakingRecord,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           systemProgram: SystemProgram.programId,
         })
         .signers([setup.delegator1Kp])
@@ -2424,7 +2424,7 @@ describe("inference-staking program tests", () => {
         payer: setup.payer,
         owner: setup.delegator2,
         operatorPool: setup.pool1.pool,
-        stakingRecord: delegator2StakingRecord,
+        ownerStakingRecord: delegator2StakingRecord,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.delegator2Kp])
@@ -2439,7 +2439,7 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         receiver: setup.payer,
         owner: setup.delegator2,
-        stakingRecord: delegator2StakingRecord,
+        ownerStakingRecord: delegator2StakingRecord,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.delegator2Kp])

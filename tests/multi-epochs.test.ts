@@ -522,7 +522,7 @@ describe("multi-epoch lifecycle tests", () => {
           payer: setup.payer,
           owner: delegatorKp.publicKey,
           operatorPool: pool.pool,
-          stakingRecord,
+          ownerStakingRecord: stakingRecord,
           systemProgram: SystemProgram.programId,
         })
         .signers([setup.payerKp, delegatorKp])
@@ -927,7 +927,7 @@ describe("multi-epoch lifecycle tests", () => {
         .accountsStrict({
           receiver: setup.payer,
           owner: delegatorKp.publicKey,
-          stakingRecord: stakingRecord,
+          ownerStakingRecord: stakingRecord,
           systemProgram: SystemProgram.programId,
         })
         .signers([delegatorKp])
@@ -1263,7 +1263,7 @@ describe("multi-epoch lifecycle tests", () => {
         .accountsStrict({
           receiver: setup.payer,
           owner: pool.admin,
-          stakingRecord: pool.stakingRecord,
+          ownerStakingRecord: pool.stakingRecord,
           systemProgram: SystemProgram.programId,
         })
         .signers([pool.adminKp])

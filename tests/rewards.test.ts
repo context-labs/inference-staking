@@ -233,7 +233,7 @@ describe("Reward creation and accrual tests", () => {
         payer: setup.payer,
         owner: setup.delegator1,
         operatorPool: setup.pool1.pool,
-        stakingRecord: setup.pool1.delegatorStakingRecord,
+        ownerStakingRecord: setup.pool1.delegatorStakingRecord,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.payerKp, setup.delegator1Kp])

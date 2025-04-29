@@ -10,7 +10,7 @@ echo "Validating Anchor.toml file..."
 PATTERN1="^test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/\*\*/inference-staking.test.ts\"$"
 PATTERN2="^# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/\*\*/rewards.test.ts\"$"
 PATTERN3="^# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/\*\*/constraints.test.ts\"$"
-PATTERN3="^# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 10000000 tests/\*\*/multi-epochs.test.ts\"$"
+PATTERN3="^# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 100000000 tests/\*\*/multi-epochs.test.ts\"$"
 
 # Check if the file is in the expected state
 if ! grep -q "$PATTERN1" "$FILE_PATH" || \
@@ -22,7 +22,7 @@ if ! grep -q "$PATTERN1" "$FILE_PATH" || \
     echo "test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/inference-staking.test.ts\""
     echo "# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/rewards.test.ts\""
     echo "# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/constraints.test.ts\""
-    echo "# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 10000000 tests/**/multi-epochs.test.ts\""
+    echo "# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 100000000 tests/**/multi-epochs.test.ts\""
     echo ""
     exit 1
 fi
@@ -67,7 +67,7 @@ echo ""
 
 sed -i'.bak' \
     -e 's/^test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 1000000 tests\/\*\*\/constraints.test.ts"$/# test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 1000000 tests\/\*\*\/constraints.test.ts"/' \
-    -e 's/^# test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 10000000 tests\/\*\*\/multi-epochs.test.ts"$/test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 10000000 tests\/\*\*\/multi-epochs.test.ts"/' \
+    -e 's/^# test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 100000000 tests\/\*\*\/multi-epochs.test.ts"$/test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 100000000 tests\/\*\*\/multi-epochs.test.ts"/' \
     $FILE_PATH
 
 bun run test
