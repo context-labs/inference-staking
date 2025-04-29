@@ -121,10 +121,8 @@ export class InferenceStakingProgramSdk {
   }
 
   async fetchStakingRecord(
-    operatorPoolPda: PublicKey,
-    owner: PublicKey
+    stakingRecordPda: PublicKey
   ): Promise<StakingRecordAccountStruct> {
-    const stakingRecordPda = this.stakingRecordPda(operatorPoolPda, owner);
     return this.program.account.stakingRecord.fetch(stakingRecordPda);
   }
 
