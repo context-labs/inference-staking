@@ -34,6 +34,7 @@ pub struct UpdateOperatorPoolArgs {
     pub name: Option<String>,
     pub description: Option<String>,
     pub website_url: Option<String>,
+    pub avatar_image_url: Option<String>,
 }
 
 pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -> Result<()> {
@@ -53,6 +54,10 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
 
     if let Some(website_url) = args.website_url {
         operator_pool.website_url = website_url;
+    }
+
+    if let Some(avatar_image_url) = args.avatar_image_url {
+        operator_pool.avatar_image_url = avatar_image_url;
     }
 
     if let Some(allow_delegation) = args.allow_delegation {

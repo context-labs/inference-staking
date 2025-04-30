@@ -261,6 +261,7 @@ describe("Additional tests for instruction constraints", () => {
           name: setup.pool1.name,
           description: setup.pool1.description,
           websiteUrl: setup.pool1.websiteUrl,
+          avatarImageUrl: setup.pool1.avatarImageUrl,
         })
         .accountsStrict({
           payer: setup.payer,

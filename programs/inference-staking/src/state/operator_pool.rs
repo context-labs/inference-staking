@@ -24,6 +24,10 @@ pub struct OperatorPool {
     #[max_len(128)]
     pub website_url: String,
 
+    /// Avatar image url of Operator.
+    #[max_len(128)]
+    pub avatar_image_url: String,
+
     /// StakingRecord owned by Operator.
     pub operator_staking_record: Pubkey,
 

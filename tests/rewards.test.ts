@@ -194,6 +194,7 @@ describe("Reward creation and accrual tests", () => {
         name: setup.pool1.name,
         description: setup.pool1.description,
         websiteUrl: setup.pool1.websiteUrl,
+        avatarImageUrl: setup.pool1.avatarImageUrl,
       })
       .accountsStrict({
         payer: setup.payer,
@@ -268,6 +269,7 @@ describe("Reward creation and accrual tests", () => {
         name: setup.pool1.name,
         description: setup.pool1.description,
         websiteUrl: setup.pool1.websiteUrl,
+        avatarImageUrl: setup.pool1.avatarImageUrl,
       })
       .accountsStrict({
         admin: setup.pool1.admin,

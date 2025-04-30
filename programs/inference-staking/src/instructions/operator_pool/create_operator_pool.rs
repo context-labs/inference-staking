@@ -89,6 +89,7 @@ pub struct CreateOperatorPoolArgs {
     pub name: String,
     pub description: String,
     pub website_url: String,
+    pub avatar_image_url: String,
 }
 
 /// Instruction to setup an OperatorPool.
@@ -100,6 +101,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
         name,
         description,
         website_url,
+        avatar_image_url,
     } = args;
 
     require_gte!(10_000, commission_rate_bps);
@@ -113,6 +115,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.name = name;
     operator_pool.description = description;
     operator_pool.website_url = website_url;
+    operator_pool.avatar_image_url = avatar_image_url;
     operator_pool.admin = ctx.accounts.admin.key();
     operator_pool.operator_staking_record = ctx.accounts.staking_record.key();
     operator_pool.auto_stake_fees = auto_stake_fees;

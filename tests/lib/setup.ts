@@ -26,6 +26,7 @@ type SetupPoolType = {
   name: string;
   description: string;
   websiteUrl: string;
+  avatarImageUrl: string;
   admin: PublicKey;
   adminKp: Keypair;
   feeTokenAccount: PublicKey;
@@ -193,6 +194,7 @@ export async function setupTests() {
       name: `Test Operator ${shortId()}`,
       description: `Test Description ${shortId()}`,
       websiteUrl: `https://test.com/${shortId()}`,
+      avatarImageUrl: `https://test.com/${shortId()}`,
       admin: adminKeypair.publicKey,
       adminKp: adminKeypair,
       feeTokenAccount: sdk.feeTokenPda(operatorPool),

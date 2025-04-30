@@ -1611,6 +1611,10 @@ const _IDL = {
             name: "websiteUrl",
             type: "string",
           },
+          {
+            name: "avatarImageUrl",
+            type: "string",
+          },
         ],
       },
     },
@@ -1689,6 +1693,11 @@ const _IDL = {
           {
             name: "websiteUrl",
             docs: ["Website of Operator."],
+            type: "string",
+          },
+          {
+            name: "avatarImageUrl",
+            docs: ["Avatar image url of Operator."],
             type: "string",
           },
           {
@@ -2152,6 +2161,12 @@ const _IDL = {
           },
           {
             name: "websiteUrl",
+            type: {
+              option: "string",
+            },
+          },
+          {
+            name: "avatarImageUrl",
             type: {
               option: "string",
             },

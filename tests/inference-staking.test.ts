@@ -98,6 +98,7 @@ describe("inference-staking program tests", () => {
           name: setup.pool1.name,
           description: setup.pool1.description,
           websiteUrl: setup.pool1.websiteUrl,
+          avatarImageUrl: setup.pool1.avatarImageUrl,
         })
         .accountsStrict({
           payer: setup.payer,
@@ -312,6 +313,7 @@ describe("inference-staking program tests", () => {
         name: setup.pool1.name,
         description: setup.pool1.description,
         websiteUrl: setup.pool1.websiteUrl,
+        avatarImageUrl: setup.pool1.avatarImageUrl,
       })
       .accountsStrict({
         payer: setup.payer,
@@ -498,6 +500,7 @@ describe("inference-staking program tests", () => {
     const newName = `Test Operator ${shortId()}`;
     const newDescription = `Test Description ${shortId()}`;
     const newWebsiteUrl = `https://test.com/${shortId()}`;
+    const newAvatarImageUrl = `https://test.com/${shortId()}`;
 
     await program.methods
       .updateOperatorPool({
@@ -507,6 +510,7 @@ describe("inference-staking program tests", () => {
         name: newName,
         description: newDescription,
         websiteUrl: newWebsiteUrl,
+        avatarImageUrl: newAvatarImageUrl,
       })
       .accountsStrict({
         admin: setup.pool1.admin,
@@ -536,6 +540,10 @@ describe("inference-staking program tests", () => {
     assert(
       operatorPool.websiteUrl === newWebsiteUrl,
       "Website URL should be set"
+    );
+    assert(
+      operatorPool.avatarImageUrl === newAvatarImageUrl,
+      "Avatar image URL should be set"
     );
 
     // Reset to original values
@@ -1272,6 +1280,7 @@ describe("inference-staking program tests", () => {
         name: setup.pool2.name,
         description: setup.pool2.description,
         websiteUrl: setup.pool2.websiteUrl,
+        avatarImageUrl: setup.pool2.avatarImageUrl,
       })
       .accountsStrict({
         payer: setup.payer,
@@ -2624,6 +2633,7 @@ describe("inference-staking program tests", () => {
         name: setup.pool3.name,
         description: setup.pool3.description,
         websiteUrl: setup.pool3.websiteUrl,
+        avatarImageUrl: setup.pool3.avatarImageUrl,
       })
       .accountsStrict({
         payer: setup.payer,
