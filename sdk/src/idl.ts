@@ -1492,22 +1492,22 @@ const _IDL = {
     {
       code: 6020,
       name: "nameTooLong",
-      msg: "Name is too long",
+      msg: "Name is too long, max length is 64 characters",
     },
     {
       code: 6021,
       name: "descriptionTooLong",
-      msg: "Description is too long",
+      msg: "Description is too long, max length is 200 characters",
     },
     {
       code: 6022,
       name: "websiteUrlTooLong",
-      msg: "Website URL is too long",
+      msg: "Website URL is too long, max length is 64 characters",
     },
     {
       code: 6023,
       name: "avatarImageUrlTooLong",
-      msg: "Avatar image URL is too long",
+      msg: "Avatar image URL is too long, max length is 128 characters",
     },
     {
       code: 6024,
