@@ -1695,6 +1695,20 @@ const _IDL = {
       },
     },
     {
+      name: "newCommissionRateSetting",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "rateBps",
+            type: {
+              option: "u16",
+            },
+          },
+        ],
+      },
+    },
+    {
       name: "operatorPool",
       type: {
         kind: "struct",
@@ -2174,7 +2188,11 @@ const _IDL = {
               "If provided, the commission rate will become active next epoch",
             ],
             type: {
-              option: "u16",
+              option: {
+                defined: {
+                  name: "newCommissionRateSetting",
+                },
+              },
             },
           },
           {

@@ -495,7 +495,7 @@ describe("inference-staking program tests", () => {
       await program.methods
         .updateOperatorPool({
           ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
-          newCommissionRateBps: 150_00,
+          newCommissionRateBps: { rateBps: 150_00 },
           autoStakeFees: true,
           allowDelegation: false,
         })
@@ -598,7 +598,7 @@ describe("inference-staking program tests", () => {
 
     await program.methods
       .updateOperatorPool({
-        newCommissionRateBps,
+        newCommissionRateBps: { rateBps: newCommissionRateBps },
         autoStakeFees: true,
         allowDelegation: false,
         name: newName,
@@ -644,6 +644,7 @@ describe("inference-staking program tests", () => {
     await program.methods
       .updateOperatorPool({
         ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
+        newCommissionRateBps: { rateBps: null },
         autoStakeFees,
         allowDelegation,
       })

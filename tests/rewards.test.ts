@@ -263,7 +263,7 @@ describe("Reward creation and accrual tests", () => {
 
     await program.methods
       .updateOperatorPool({
-        newCommissionRateBps,
+        newCommissionRateBps: { rateBps: newCommissionRateBps },
         autoStakeFees: true,
         allowDelegation: false,
         name: setup.pool1.name,
