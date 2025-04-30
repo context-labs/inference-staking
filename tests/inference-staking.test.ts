@@ -29,6 +29,7 @@ import {
   sleep,
   setEpochFinalizationState,
   setStakingHalted,
+  shortId,
 } from "@tests/lib/utils";
 
 describe("inference-staking program tests", () => {
@@ -94,6 +95,9 @@ describe("inference-staking program tests", () => {
           autoStakeFees,
           commissionRateBps,
           allowDelegation,
+          name: setup.pool1.name,
+          description: setup.pool1.description,
+          websiteUrl: setup.pool1.websiteUrl,
         })
         .accountsStrict({
           payer: setup.payer,
@@ -305,6 +309,9 @@ describe("inference-staking program tests", () => {
         autoStakeFees,
         commissionRateBps,
         allowDelegation,
+        name: setup.pool1.name,
+        description: setup.pool1.description,
+        websiteUrl: setup.pool1.websiteUrl,
       })
       .accountsStrict({
         payer: setup.payer,
@@ -391,6 +398,7 @@ describe("inference-staking program tests", () => {
       // Expect failure as commission cannot exceed 100%.
       await program.methods
         .updateOperatorPool({
+          ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
           newCommissionRateBps: 150_00,
           autoStakeFees: true,
           allowDelegation: false,
@@ -419,6 +427,7 @@ describe("inference-staking program tests", () => {
         );
       await program.methods
         .updateOperatorPool({
+          ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
           newCommissionRateBps: null,
           autoStakeFees: null,
           allowDelegation: null,
@@ -448,11 +457,9 @@ describe("inference-staking program tests", () => {
       owner.publicKey
     );
     await program.methods
-      .updateOperatorPool({
-        newCommissionRateBps: null,
-        autoStakeFees: null,
-        allowDelegation: null,
-      })
+      .updateOperatorPool(
+        setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction()
+      )
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
@@ -473,11 +480,9 @@ describe("inference-staking program tests", () => {
     );
 
     await program.methods
-      .updateOperatorPool({
-        newCommissionRateBps: null,
-        autoStakeFees: null,
-        allowDelegation: null,
-      })
+      .updateOperatorPool(
+        setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction()
+      )
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
@@ -489,11 +494,19 @@ describe("inference-staking program tests", () => {
 
   it("Should update OperatorPool successfully", async () => {
     const newCommissionRateBps = 1_500;
+
+    const newName = `Test Operator ${shortId()}`;
+    const newDescription = `Test Description ${shortId()}`;
+    const newWebsiteUrl = `https://test.com/${shortId()}`;
+
     await program.methods
       .updateOperatorPool({
         newCommissionRateBps,
         autoStakeFees: true,
         allowDelegation: false,
+        name: newName,
+        description: newDescription,
+        websiteUrl: newWebsiteUrl,
       })
       .accountsStrict({
         admin: setup.pool1.admin,
@@ -515,10 +528,20 @@ describe("inference-staking program tests", () => {
       operatorPool.allowDelegation === false,
       "Allow delegation should be false"
     );
+    assert(operatorPool.name === newName, "Name should be set");
+    assert(
+      operatorPool.description === newDescription,
+      "Description should be set"
+    );
+    assert(
+      operatorPool.websiteUrl === newWebsiteUrl,
+      "Website URL should be set"
+    );
+
     // Reset to original values
     await program.methods
       .updateOperatorPool({
-        newCommissionRateBps: null,
+        ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
         autoStakeFees,
         allowDelegation,
       })
@@ -714,8 +737,7 @@ describe("inference-staking program tests", () => {
   it("Fail to stake when delegation is disabled", async () => {
     await program.methods
       .updateOperatorPool({
-        newCommissionRateBps: null,
-        autoStakeFees,
+        ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
         allowDelegation: false,
       })
       .accountsStrict({
@@ -776,8 +798,7 @@ describe("inference-staking program tests", () => {
     // Allow delegation
     await program.methods
       .updateOperatorPool({
-        newCommissionRateBps: null,
-        autoStakeFees,
+        ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
         allowDelegation: true,
       })
       .accountsStrict({
@@ -1248,6 +1269,9 @@ describe("inference-staking program tests", () => {
         autoStakeFees,
         commissionRateBps,
         allowDelegation,
+        name: setup.pool2.name,
+        description: setup.pool2.description,
+        websiteUrl: setup.pool2.websiteUrl,
       })
       .accountsStrict({
         payer: setup.payer,
@@ -2597,6 +2621,9 @@ describe("inference-staking program tests", () => {
         autoStakeFees,
         commissionRateBps,
         allowDelegation,
+        name: setup.pool3.name,
+        description: setup.pool3.description,
+        websiteUrl: setup.pool3.websiteUrl,
       })
       .accountsStrict({
         payer: setup.payer,

@@ -12,6 +12,18 @@ pub struct OperatorPool {
     /// Authority allowed to configure settings for this account.
     pub admin: Pubkey,
 
+    /// Name of Operator.
+    #[max_len(64)]
+    pub name: String,
+
+    /// Description of Operator.
+    #[max_len(512)]
+    pub description: String,
+
+    /// Website of Operator.
+    #[max_len(128)]
+    pub website_url: String,
+
     /// StakingRecord owned by Operator.
     pub operator_staking_record: Pubkey,
 

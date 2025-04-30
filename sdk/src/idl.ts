@@ -1599,6 +1599,18 @@ const _IDL = {
             name: "allowDelegation",
             type: "bool",
           },
+          {
+            name: "name",
+            type: "string",
+          },
+          {
+            name: "description",
+            type: "string",
+          },
+          {
+            name: "websiteUrl",
+            type: "string",
+          },
         ],
       },
     },
@@ -1663,6 +1675,21 @@ const _IDL = {
             name: "admin",
             docs: ["Authority allowed to configure settings for this account."],
             type: "pubkey",
+          },
+          {
+            name: "name",
+            docs: ["Name of Operator."],
+            type: "string",
+          },
+          {
+            name: "description",
+            docs: ["Description of Operator."],
+            type: "string",
+          },
+          {
+            name: "websiteUrl",
+            docs: ["Website of Operator."],
+            type: "string",
           },
           {
             name: "operatorStakingRecord",
@@ -2093,7 +2120,7 @@ const _IDL = {
           {
             name: "newCommissionRateBps",
             docs: [
-              "Update Operator commission rate that will become active next epoch",
+              "If provided, the commission rate will become active next epoch",
             ],
             type: {
               option: "u16",
@@ -2101,16 +2128,32 @@ const _IDL = {
           },
           {
             name: "allowDelegation",
-            docs: ["Allow delegation from stakers that are not the Operator"],
             type: {
               option: "bool",
             },
           },
           {
             name: "autoStakeFees",
-            docs: ["Auto stake operator fees"],
             type: {
               option: "bool",
+            },
+          },
+          {
+            name: "name",
+            type: {
+              option: "string",
+            },
+          },
+          {
+            name: "description",
+            type: {
+              option: "string",
+            },
+          },
+          {
+            name: "websiteUrl",
+            type: {
+              option: "string",
             },
           },
         ],

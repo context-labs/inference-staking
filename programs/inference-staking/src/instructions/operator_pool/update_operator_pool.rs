@@ -27,12 +27,13 @@ pub struct UpdateOperatorPool<'info> {
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
 pub struct UpdateOperatorPoolArgs {
-    /// Update Operator commission rate that will become active next epoch
+    /// If provided, the commission rate will become active next epoch
     pub new_commission_rate_bps: Option<u16>,
-    /// Allow delegation from stakers that are not the Operator
     pub allow_delegation: Option<bool>,
-    /// Auto stake operator fees
     pub auto_stake_fees: Option<bool>,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub website_url: Option<String>,
 }
 
 pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -> Result<()> {
@@ -41,7 +42,18 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
     }
 
     let operator_pool = &mut ctx.accounts.operator_pool;
-    operator_pool.new_commission_rate_bps = args.new_commission_rate_bps;
+
+    if let Some(name) = args.name {
+        operator_pool.name = name;
+    }
+
+    if let Some(description) = args.description {
+        operator_pool.description = description;
+    }
+
+    if let Some(website_url) = args.website_url {
+        operator_pool.website_url = website_url;
+    }
 
     if let Some(allow_delegation) = args.allow_delegation {
         operator_pool.allow_delegation = allow_delegation;
@@ -55,6 +67,8 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
     if let Some(usdc_payout_destination) = usdc_payout_destination {
         operator_pool.usdc_payout_destination = usdc_payout_destination.key();
     }
+
+    operator_pool.new_commission_rate_bps = args.new_commission_rate_bps;
 
     Ok(())
 }

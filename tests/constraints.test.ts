@@ -258,6 +258,9 @@ describe("Additional tests for instruction constraints", () => {
           autoStakeFees,
           commissionRateBps: 110_00,
           allowDelegation,
+          name: setup.pool1.name,
+          description: setup.pool1.description,
+          websiteUrl: setup.pool1.websiteUrl,
         })
         .accountsStrict({
           payer: setup.payer,

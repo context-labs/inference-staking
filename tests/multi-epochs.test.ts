@@ -387,6 +387,9 @@ describe("multi-epoch lifecycle tests", () => {
           autoStakeFees,
           commissionRateBps,
           allowDelegation,
+          name: pool.name,
+          description: pool.description,
+          websiteUrl: pool.websiteUrl,
         })
         .accountsStrict({
           payer: setup.payer,

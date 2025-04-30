@@ -32,6 +32,10 @@ export const shuffleArray = <T>(arr: T[]): T[] => {
   return arr.sort(() => Math.random() - 0.5);
 };
 
+export const shortId = (): string => {
+  return Math.random().toString(36).substring(2, 8);
+};
+
 export const batchArray = <T>(arr: T[], batchSize: number): T[][] => {
   const batches: T[][] = [];
   for (let i = 0; i < arr.length; i += batchSize) {
