@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
 
+// Keep numbers in sync with error codes.
 const MAX_NAME_LENGTH: usize = 64;
 const MAX_DESCRIPTION_LENGTH: usize = 200;
 const MAX_WEBSITE_URL_LENGTH: usize = 64;
