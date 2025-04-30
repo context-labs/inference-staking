@@ -1605,15 +1605,21 @@ const _IDL = {
           },
           {
             name: "description",
-            type: "string",
+            type: {
+              option: "string",
+            },
           },
           {
             name: "websiteUrl",
-            type: "string",
+            type: {
+              option: "string",
+            },
           },
           {
             name: "avatarImageUrl",
-            type: "string",
+            type: {
+              option: "string",
+            },
           },
         ],
       },
@@ -1688,17 +1694,23 @@ const _IDL = {
           {
             name: "description",
             docs: ["Description of Operator."],
-            type: "string",
+            type: {
+              option: "string",
+            },
           },
           {
             name: "websiteUrl",
             docs: ["Website of Operator."],
-            type: "string",
+            type: {
+              option: "string",
+            },
           },
           {
             name: "avatarImageUrl",
             docs: ["Avatar image url of Operator."],
-            type: "string",
+            type: {
+              option: "string",
+            },
           },
           {
             name: "operatorStakingRecord",

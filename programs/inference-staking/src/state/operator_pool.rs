@@ -18,15 +18,15 @@ pub struct OperatorPool {
 
     /// Description of Operator.
     #[max_len(512)]
-    pub description: String,
+    pub description: Option<String>,
 
     /// Website of Operator.
     #[max_len(128)]
-    pub website_url: String,
+    pub website_url: Option<String>,
 
     /// Avatar image url of Operator.
     #[max_len(128)]
-    pub avatar_image_url: String,
+    pub avatar_image_url: Option<String>,
 
     /// StakingRecord owned by Operator.
     pub operator_staking_record: Pubkey,

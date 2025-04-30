@@ -87,9 +87,9 @@ pub struct CreateOperatorPoolArgs {
     pub commission_rate_bps: u16,
     pub allow_delegation: bool,
     pub name: String,
-    pub description: String,
-    pub website_url: String,
-    pub avatar_image_url: String,
+    pub description: Option<String>,
+    pub website_url: Option<String>,
+    pub avatar_image_url: Option<String>,
 }
 
 /// Instruction to setup an OperatorPool.
