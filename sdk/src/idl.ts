@@ -2185,7 +2185,7 @@ const _IDL = {
           {
             name: "newCommissionRateBps",
             docs: [
-              "If provided, the commission rate will become active next epoch",
+              "If set, the new commission rate will become active next epoch",
             ],
             type: {
               option: {
