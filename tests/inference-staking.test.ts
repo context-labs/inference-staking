@@ -421,7 +421,6 @@ describe("inference-staking program tests", () => {
 
       assert(false);
     } catch (error) {
-      console.log(error);
       assertStakingProgramError(error, "nameTooLong");
     }
 
@@ -438,7 +437,6 @@ describe("inference-staking program tests", () => {
 
       assert(false);
     } catch (error) {
-      console.log(error);
       assertStakingProgramError(error, "descriptionTooLong");
     }
 
@@ -455,8 +453,23 @@ describe("inference-staking program tests", () => {
 
       assert(false);
     } catch (error) {
-      console.log(error);
       assertStakingProgramError(error, "websiteUrlTooLong");
+    }
+
+    try {
+      const invalidWebsiteUrl = "invalid";
+      await program.methods
+        .updateOperatorPool({
+          ...args,
+          websiteUrl: invalidWebsiteUrl,
+        })
+        .accountsStrict(accounts)
+        .signers(signers)
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "invalidWebsiteUrl");
     }
 
     try {
@@ -472,7 +485,6 @@ describe("inference-staking program tests", () => {
 
       assert(false);
     } catch (error) {
-      console.log(error);
       assertStakingProgramError(error, "avatarImageUrlTooLong");
     }
   });
@@ -1353,7 +1365,7 @@ describe("inference-staking program tests", () => {
     }
   });
 
-  it("Fail to create an OperatorPool with a name that is too long", async () => {
+  it("Fail to create an OperatorPool with a name that is too long or invalid", async () => {
     const args = {
       autoStakeFees,
       commissionRateBps,
@@ -1426,6 +1438,22 @@ describe("inference-staking program tests", () => {
       assert(false);
     } catch (error) {
       assertStakingProgramError(error, "websiteUrlTooLong");
+    }
+
+    try {
+      const invalidWebsiteUrl = "invalid";
+      await program.methods
+        .createOperatorPool({
+          ...args,
+          websiteUrl: invalidWebsiteUrl,
+        })
+        .accountsStrict(accounts)
+        .signers(signers)
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "invalidWebsiteUrl");
     }
 
     try {
@@ -2850,10 +2878,10 @@ describe("inference-staking program tests", () => {
         autoStakeFees,
         commissionRateBps,
         allowDelegation,
-        name: "a".repeat(64),
+        name: setup.pool4.name,
         description: mockDescription,
-        websiteUrl: "a".repeat(64),
-        avatarImageUrl: "a".repeat(128),
+        websiteUrl: setup.pool4.websiteUrl,
+        avatarImageUrl: setup.pool4.avatarImageUrl,
       })
       .accountsStrict({
         payer: setup.payer,
