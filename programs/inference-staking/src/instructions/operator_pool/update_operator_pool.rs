@@ -50,14 +50,13 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
 
     let operator_pool = &mut ctx.accounts.operator_pool;
 
-    operator_pool.description = description;
-    operator_pool.website_url = website_url;
-    operator_pool.avatar_image_url = avatar_image_url;
-    operator_pool.new_commission_rate_bps = new_commission_rate_bps;
-
     if let Some(name) = name {
         operator_pool.name = name;
     }
+
+    operator_pool.description = description;
+    operator_pool.website_url = website_url;
+    operator_pool.avatar_image_url = avatar_image_url;
 
     if let Some(allow_delegation) = allow_delegation {
         operator_pool.allow_delegation = allow_delegation;
@@ -67,10 +66,18 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
         operator_pool.auto_stake_fees = auto_stake_fees;
     }
 
+    if let Some(new_rate) = new_commission_rate_bps {
+        require_gte!(10_000, new_rate);
+    }
+
+    operator_pool.new_commission_rate_bps = new_commission_rate_bps;
+
     let usdc_payout_destination = &ctx.accounts.usdc_payout_destination;
     if let Some(usdc_payout_destination) = usdc_payout_destination {
         operator_pool.usdc_payout_destination = usdc_payout_destination.key();
     }
+
+    operator_pool.validate_string_fields()?;
 
     Ok(())
 }

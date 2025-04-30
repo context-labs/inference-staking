@@ -395,6 +395,88 @@ describe("inference-staking program tests", () => {
     );
   });
 
+  it("Fail to update an OperatorPool with a name that is too long", async () => {
+    const args = {
+      ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
+    } as const;
+
+    const accounts = {
+      admin: setup.pool1.admin,
+      operatorPool: setup.pool1.pool,
+      usdcPayoutDestination: null,
+    } as const;
+
+    const signers = [setup.pool1.adminKp];
+
+    try {
+      const longName = "a".repeat(65);
+      await program.methods
+        .updateOperatorPool({
+          ...args,
+          name: longName,
+        })
+        .accountsStrict(accounts)
+        .signers(signers)
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      console.log(error);
+      assertStakingProgramError(error, "nameTooLong");
+    }
+
+    try {
+      const longDescription = "a".repeat(401);
+      await program.methods
+        .updateOperatorPool({
+          ...args,
+          description: longDescription,
+        })
+        .accountsStrict(accounts)
+        .signers(signers)
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      console.log(error);
+      assertStakingProgramError(error, "descriptionTooLong");
+    }
+
+    try {
+      const longWebsiteUrl = "a".repeat(65);
+      await program.methods
+        .updateOperatorPool({
+          ...args,
+          websiteUrl: longWebsiteUrl,
+        })
+        .accountsStrict(accounts)
+        .signers(signers)
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      console.log(error);
+      assertStakingProgramError(error, "websiteUrlTooLong");
+    }
+
+    try {
+      const longAvatarImageUrl = "a".repeat(129);
+      await program.methods
+        .updateOperatorPool({
+          ...args,
+          avatarImageUrl: longAvatarImageUrl,
+        })
+        .accountsStrict(accounts)
+        .signers(signers)
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      console.log(error);
+      assertStakingProgramError(error, "avatarImageUrlTooLong");
+    }
+  });
+
   it("Fail to update operator pool with invalid commission rate", async () => {
     try {
       // Expect failure as commission cannot exceed 100%.
@@ -495,7 +577,7 @@ describe("inference-staking program tests", () => {
   });
 
   it("Should update OperatorPool successfully", async () => {
-    const newCommissionRateBps = 1_500;
+    const newCommissionRateBps = 5_500;
 
     const newName = `Test Operator ${shortId()}`;
     const newDescription = `Test Description ${shortId()}`;
@@ -1268,6 +1350,98 @@ describe("inference-staking program tests", () => {
       assert(false);
     } catch (error) {
       assertStakingProgramError(error, "pendingDelay");
+    }
+  });
+
+  it("Fail to create an OperatorPool with a name that is too long", async () => {
+    const args = {
+      autoStakeFees,
+      commissionRateBps,
+      allowDelegation,
+      name: "Test",
+      description: setup.pool2.description,
+      websiteUrl: setup.pool2.websiteUrl,
+      avatarImageUrl: setup.pool2.avatarImageUrl,
+    } as const;
+
+    const accounts = {
+      payer: setup.payer,
+      admin: setup.pool2.admin,
+      operatorPool: setup.pool2.pool,
+      stakingRecord: setup.pool2.stakingRecord,
+      stakedTokenAccount: setup.pool2.stakedTokenAccount,
+      feeTokenAccount: setup.pool2.feeTokenAccount,
+      poolOverview: setup.poolOverview,
+      mint: setup.tokenMint,
+      usdcPayoutDestination: setup.pool2.usdcTokenAccount,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    } as const;
+
+    const signers = [setup.payerKp, setup.pool2.adminKp];
+
+    try {
+      const longName = "a".repeat(65);
+      await program.methods
+        .createOperatorPool({
+          ...args,
+          name: longName,
+        })
+        .accountsStrict(accounts)
+        .signers(signers)
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "nameTooLong");
+    }
+
+    try {
+      const longDescription = "a".repeat(401);
+      await program.methods
+        .createOperatorPool({
+          ...args,
+          description: longDescription,
+        })
+        .accountsStrict(accounts)
+        .signers(signers)
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "descriptionTooLong");
+    }
+
+    try {
+      const longWebsiteUrl = "a".repeat(65);
+      await program.methods
+        .createOperatorPool({
+          ...args,
+          websiteUrl: longWebsiteUrl,
+        })
+        .accountsStrict(accounts)
+        .signers(signers)
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "websiteUrlTooLong");
+    }
+
+    try {
+      const longAvatarImageUrl = "a".repeat(129);
+      await program.methods
+        .createOperatorPool({
+          ...args,
+          avatarImageUrl: longAvatarImageUrl,
+        })
+        .accountsStrict(accounts)
+        .signers(signers)
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "avatarImageUrlTooLong");
     }
   });
 
@@ -2657,6 +2831,53 @@ describe("inference-staking program tests", () => {
     assert(poolOverviewPre.isEpochFinalizing === true);
     assert(operatorPool.poolId.eqn(3));
     assert(operatorPool.admin.equals(setup.pool3.admin));
+    assert(
+      operatorPool.rewardLastClaimedEpoch.eqn(
+        poolOverviewPre.completedRewardEpoch.addn(1).toNumber()
+      )
+    );
+  });
+
+  it("An operator pool can be created with the maximum allowed length for all string fields", async () => {
+    const poolOverviewPre = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+
+    const mockDescription = `NodeOperator-XYZ: High-performance validator with 99.8% uptime. Specialized in Solana infrastructure since 2021. Our setup includes redundant systems and 24/7 monitoring. We are good. #ReliableStaking`;
+
+    await program.methods
+      .createOperatorPool({
+        autoStakeFees,
+        commissionRateBps,
+        allowDelegation,
+        name: "a".repeat(64),
+        description: mockDescription,
+        websiteUrl: "a".repeat(64),
+        avatarImageUrl: "a".repeat(128),
+      })
+      .accountsStrict({
+        payer: setup.payer,
+        admin: setup.pool4.admin,
+        operatorPool: setup.pool4.pool,
+        stakingRecord: setup.pool4.stakingRecord,
+        stakedTokenAccount: setup.pool4.stakedTokenAccount,
+        feeTokenAccount: setup.pool4.feeTokenAccount,
+        poolOverview: setup.poolOverview,
+        mint: setup.tokenMint,
+        usdcPayoutDestination: setup.pool4.usdcTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([setup.payerKp, setup.pool4.adminKp])
+      .rpc();
+
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool4.pool
+    );
+
+    assert(poolOverviewPre.isEpochFinalizing === true);
+    assert(operatorPool.poolId.eqn(4));
+    assert(operatorPool.admin.equals(setup.pool4.admin));
     assert(
       operatorPool.rewardLastClaimedEpoch.eqn(
         poolOverviewPre.completedRewardEpoch.addn(1).toNumber()

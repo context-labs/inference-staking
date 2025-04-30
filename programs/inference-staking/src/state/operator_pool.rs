@@ -1,5 +1,12 @@
 use anchor_lang::prelude::*;
 
+use crate::error::ErrorCode;
+
+const MAX_NAME_LENGTH: usize = 64;
+const MAX_DESCRIPTION_LENGTH: usize = 200;
+const MAX_WEBSITE_URL_LENGTH: usize = 64;
+const MAX_AVATAR_IMAGE_URL_LENGTH: usize = 128;
+
 #[derive(InitSpace)]
 #[account]
 pub struct OperatorPool {
@@ -13,19 +20,19 @@ pub struct OperatorPool {
     pub admin: Pubkey,
 
     /// Name of Operator.
-    #[max_len(64)]
+    #[max_len(MAX_NAME_LENGTH)]
     pub name: String,
 
     /// Description of Operator.
-    #[max_len(512)]
+    #[max_len(MAX_DESCRIPTION_LENGTH)]
     pub description: Option<String>,
 
     /// Website of Operator.
-    #[max_len(128)]
+    #[max_len(MAX_WEBSITE_URL_LENGTH)]
     pub website_url: Option<String>,
 
     /// Avatar image url of Operator.
-    #[max_len(128)]
+    #[max_len(MAX_AVATAR_IMAGE_URL_LENGTH)]
     pub avatar_image_url: Option<String>,
 
     /// StakingRecord owned by Operator.
@@ -150,5 +157,53 @@ impl OperatorPool {
             .checked_div(10_000)
             .unwrap();
         u64::try_from(shares_amount_u128).unwrap()
+    }
+}
+
+impl OperatorPool {
+    pub fn validate_name(&self) -> Result<()> {
+        if self.name.len() > MAX_NAME_LENGTH {
+            return Err(ErrorCode::NameTooLong.into());
+        }
+
+        Ok(())
+    }
+
+    pub fn validate_description(&self) -> Result<()> {
+        if let Some(description) = &self.description {
+            if description.len() > MAX_DESCRIPTION_LENGTH {
+                return Err(ErrorCode::DescriptionTooLong.into());
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn validate_website_url(&self) -> Result<()> {
+        if let Some(website_url) = &self.website_url {
+            if website_url.len() > MAX_WEBSITE_URL_LENGTH {
+                return Err(ErrorCode::WebsiteUrlTooLong.into());
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn validate_avatar_image_url(&self) -> Result<()> {
+        if let Some(avatar_image_url) = &self.avatar_image_url {
+            if avatar_image_url.len() > MAX_AVATAR_IMAGE_URL_LENGTH {
+                return Err(ErrorCode::AvatarImageUrlTooLong.into());
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn validate_string_fields(&self) -> Result<()> {
+        self.validate_name()?;
+        self.validate_description()?;
+        self.validate_website_url()?;
+        self.validate_avatar_image_url()?;
+        Ok(())
     }
 }

@@ -42,4 +42,16 @@ pub enum ErrorCode {
     InvalidUsdcPayoutDestination,
     #[msg("Epoch must be finalizing when calling CreateRewardRecord")]
     EpochMustBeFinalizing,
+    #[msg("Name is too long")]
+    NameTooLong,
+    #[msg("Description is too long")]
+    DescriptionTooLong,
+    #[msg("Website URL is too long")]
+    WebsiteUrlTooLong,
+    #[msg("Avatar image URL is too long")]
+    AvatarImageUrlTooLong,
+    #[msg("Website URL is invalid")]
+    InvalidWebsiteUrl,
+    #[msg("Avatar image URL is invalid")]
+    InvalidAvatarImageUrl,
 }

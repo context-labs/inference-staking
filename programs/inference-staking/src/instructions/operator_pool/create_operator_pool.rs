@@ -143,5 +143,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     staking_record.owner = ctx.accounts.admin.key();
     staking_record.operator_pool = operator_pool.key();
 
+    operator_pool.validate_string_fields()?;
+
     Ok(())
 }

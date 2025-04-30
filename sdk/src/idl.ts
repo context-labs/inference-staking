@@ -1489,6 +1489,36 @@ const _IDL = {
       name: "epochMustBeFinalizing",
       msg: "Epoch must be finalizing when calling CreateRewardRecord",
     },
+    {
+      code: 6020,
+      name: "nameTooLong",
+      msg: "Name is too long",
+    },
+    {
+      code: 6021,
+      name: "descriptionTooLong",
+      msg: "Description is too long",
+    },
+    {
+      code: 6022,
+      name: "websiteUrlTooLong",
+      msg: "Website URL is too long",
+    },
+    {
+      code: 6023,
+      name: "avatarImageUrlTooLong",
+      msg: "Avatar image URL is too long",
+    },
+    {
+      code: 6024,
+      name: "invalidWebsiteUrl",
+      msg: "Website URL is invalid",
+    },
+    {
+      code: 6025,
+      name: "invalidAvatarImageUrl",
+      msg: "Avatar image URL is invalid",
+    },
   ],
   types: [
     {
