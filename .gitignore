@@ -8,6 +8,8 @@ test-ledger
 dist
 .npmrc
 .env
+.rollup.cache
+.tsconfig.tsbuildinfo
 
 Anchor.toml.bak
 
