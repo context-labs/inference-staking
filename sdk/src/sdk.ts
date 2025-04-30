@@ -248,6 +248,22 @@ export class InferenceStakingProgramSdk {
     return empty;
   }
 
+  getEmptyOperatorPoolFieldsForUpdateInstruction() {
+    type EmptyUpdateFields = Parameters<
+      typeof this.program.methods.updateOperatorPool
+    >[0];
+    const empty: EmptyUpdateFields = {
+      newCommissionRateBps: null,
+      autoStakeFees: null,
+      allowDelegation: null,
+      name: null,
+      description: null,
+      websiteUrl: null,
+      avatarImageUrl: null,
+    };
+    return empty;
+  }
+
   static getErrorNameFromTransactionLogs(
     logs: string[]
   ): InferenceStakingErrors | undefined {

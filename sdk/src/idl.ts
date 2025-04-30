@@ -1489,6 +1489,36 @@ const _IDL = {
       name: "epochMustBeFinalizing",
       msg: "Epoch must be finalizing when calling CreateRewardRecord",
     },
+    {
+      code: 6020,
+      name: "nameTooLong",
+      msg: "Name is too long, max length is 64 characters",
+    },
+    {
+      code: 6021,
+      name: "descriptionTooLong",
+      msg: "Description is too long, max length is 200 characters",
+    },
+    {
+      code: 6022,
+      name: "websiteUrlTooLong",
+      msg: "Website URL is too long, max length is 64 characters",
+    },
+    {
+      code: 6023,
+      name: "avatarImageUrlTooLong",
+      msg: "Avatar image URL is too long, max length is 128 characters",
+    },
+    {
+      code: 6024,
+      name: "invalidWebsiteUrl",
+      msg: "Website URL is invalid",
+    },
+    {
+      code: 6025,
+      name: "invalidAvatarImageUrl",
+      msg: "Avatar image URL is invalid",
+    },
   ],
   types: [
     {
@@ -1599,6 +1629,28 @@ const _IDL = {
             name: "allowDelegation",
             type: "bool",
           },
+          {
+            name: "name",
+            type: "string",
+          },
+          {
+            name: "description",
+            type: {
+              option: "string",
+            },
+          },
+          {
+            name: "websiteUrl",
+            type: {
+              option: "string",
+            },
+          },
+          {
+            name: "avatarImageUrl",
+            type: {
+              option: "string",
+            },
+          },
         ],
       },
     },
@@ -1643,6 +1695,20 @@ const _IDL = {
       },
     },
     {
+      name: "newCommissionRateSetting",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "rateBps",
+            type: {
+              option: "u16",
+            },
+          },
+        ],
+      },
+    },
+    {
       name: "operatorPool",
       type: {
         kind: "struct",
@@ -1663,6 +1729,32 @@ const _IDL = {
             name: "admin",
             docs: ["Authority allowed to configure settings for this account."],
             type: "pubkey",
+          },
+          {
+            name: "name",
+            docs: ["Name of Operator."],
+            type: "string",
+          },
+          {
+            name: "description",
+            docs: ["Description of Operator."],
+            type: {
+              option: "string",
+            },
+          },
+          {
+            name: "websiteUrl",
+            docs: ["Website of Operator."],
+            type: {
+              option: "string",
+            },
+          },
+          {
+            name: "avatarImageUrl",
+            docs: ["Avatar image url of Operator."],
+            type: {
+              option: "string",
+            },
           },
           {
             name: "operatorStakingRecord",
@@ -2093,24 +2185,50 @@ const _IDL = {
           {
             name: "newCommissionRateBps",
             docs: [
-              "Update Operator commission rate that will become active next epoch",
+              "If set, the new commission rate will become active next epoch",
             ],
             type: {
-              option: "u16",
+              option: {
+                defined: {
+                  name: "newCommissionRateSetting",
+                },
+              },
             },
           },
           {
             name: "allowDelegation",
-            docs: ["Allow delegation from stakers that are not the Operator"],
             type: {
               option: "bool",
             },
           },
           {
             name: "autoStakeFees",
-            docs: ["Auto stake operator fees"],
             type: {
               option: "bool",
+            },
+          },
+          {
+            name: "name",
+            type: {
+              option: "string",
+            },
+          },
+          {
+            name: "description",
+            type: {
+              option: "string",
+            },
+          },
+          {
+            name: "websiteUrl",
+            type: {
+              option: "string",
+            },
+          },
+          {
+            name: "avatarImageUrl",
+            type: {
+              option: "string",
             },
           },
         ],

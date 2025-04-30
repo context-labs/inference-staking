@@ -86,6 +86,10 @@ pub struct CreateOperatorPoolArgs {
     pub auto_stake_fees: bool,
     pub commission_rate_bps: u16,
     pub allow_delegation: bool,
+    pub name: String,
+    pub description: Option<String>,
+    pub website_url: Option<String>,
+    pub avatar_image_url: Option<String>,
 }
 
 /// Instruction to setup an OperatorPool.
@@ -94,6 +98,10 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
         auto_stake_fees,
         commission_rate_bps,
         allow_delegation,
+        name,
+        description,
+        website_url,
+        avatar_image_url,
     } = args;
 
     require_gte!(10_000, commission_rate_bps);
@@ -104,6 +112,10 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     let operator_pool = &mut ctx.accounts.operator_pool;
     operator_pool.pool_id = pool_overview.total_pools;
     operator_pool.bump = ctx.bumps.operator_pool;
+    operator_pool.name = name;
+    operator_pool.description = description;
+    operator_pool.website_url = website_url;
+    operator_pool.avatar_image_url = avatar_image_url;
     operator_pool.admin = ctx.accounts.admin.key();
     operator_pool.operator_staking_record = ctx.accounts.staking_record.key();
     operator_pool.auto_stake_fees = auto_stake_fees;
@@ -130,6 +142,8 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     let staking_record = &mut ctx.accounts.staking_record;
     staking_record.owner = ctx.accounts.admin.key();
     staking_record.operator_pool = operator_pool.key();
+
+    operator_pool.validate_string_fields()?;
 
     Ok(())
 }
