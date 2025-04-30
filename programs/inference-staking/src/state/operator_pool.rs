@@ -161,6 +161,13 @@ impl OperatorPool {
 }
 
 impl OperatorPool {
+    pub fn is_url_valid(&self, url: &str) -> bool {
+        if !url.starts_with("https://") && !url.starts_with("http://") {
+            return false;
+        }
+        true
+    }
+
     pub fn validate_name(&self) -> Result<()> {
         if self.name.len() > MAX_NAME_LENGTH {
             return Err(ErrorCode::NameTooLong.into());
@@ -184,6 +191,9 @@ impl OperatorPool {
             if website_url.len() > MAX_WEBSITE_URL_LENGTH {
                 return Err(ErrorCode::WebsiteUrlTooLong.into());
             }
+            if !self.is_url_valid(website_url) {
+                return Err(ErrorCode::InvalidWebsiteUrl.into());
+            }
         }
 
         Ok(())
@@ -193,6 +203,9 @@ impl OperatorPool {
         if let Some(avatar_image_url) = &self.avatar_image_url {
             if avatar_image_url.len() > MAX_AVATAR_IMAGE_URL_LENGTH {
                 return Err(ErrorCode::AvatarImageUrlTooLong.into());
+            }
+            if !self.is_url_valid(avatar_image_url) {
+                return Err(ErrorCode::InvalidAvatarImageUrl.into());
             }
         }
 
