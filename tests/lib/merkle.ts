@@ -33,26 +33,6 @@ function arraysShallowEqual(a: Uint8Array, b: Uint8Array): boolean {
   return a.every((val, i) => val === b[i]);
 }
 
-function serializeMerkleTreeNode(node: Uint8Array): string[] {
-  return [bs58.encode(node)];
-}
-
-function deserializeMerkleTreeNode(node: string[]): Uint8Array {
-  const data = node[0];
-  if (data == null) {
-    throw new Error("Invalid merkle root data");
-  }
-  return bs58.decode(data);
-}
-
-function serializeMerkleProof(proof: Uint8Array[]): string[] {
-  return proof.map((node) => serializeMerkleTreeNode(node)).flat();
-}
-
-function deserializeMerkleProof(proof: string[]): Uint8Array[] {
-  return proof.map((node) => bs58.decode(node));
-}
-
 function areRootsEqual(root1: Uint8Array, root2: Uint8Array): boolean {
   return arraysShallowEqual(root1, root2);
 }
@@ -325,14 +305,10 @@ function logProofInBase58(proof: Uint8Array[]): void {
 export const MerkleUtils = {
   areRootsEqual,
   constructMerkleTree,
-  deserializeMerkleProof,
-  deserializeMerkleTreeNode,
   generateMerkleProof,
   getTreeRoot,
   logProofInBase58,
   logTreeInBase58,
-  serializeMerkleProof,
-  serializeMerkleTreeNode,
   sha256,
   sortAddressList,
   verifyProof,
