@@ -18,6 +18,9 @@ pub struct RewardRecord {
 
     /// Amount of USDC tokens issued for this epoch.
     pub total_usdc_payout: u64,
+
+    /// Timestamp when the epoch was finalized (when this record was created).
+    pub epoch_finalized_at: i64,
 }
 
 impl RewardRecord {

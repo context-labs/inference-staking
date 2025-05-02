@@ -2004,6 +2004,13 @@ const _IDL = {
             docs: ["Amount of USDC tokens issued for this epoch."],
             type: "u64",
           },
+          {
+            name: "epochFinalizedAt",
+            docs: [
+              "Timestamp when the epoch was finalized (when this record was created).",
+            ],
+            type: "i64",
+          },
         ],
       },
     },

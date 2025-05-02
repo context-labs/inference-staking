@@ -76,6 +76,8 @@ pub fn handler(ctx: Context<CreateRewardRecord>, args: CreateRewardRecordArgs) -
     reward_record.merkle_roots = merkle_roots;
     reward_record.total_rewards = total_rewards;
     reward_record.total_usdc_payout = total_usdc_payout;
+    reward_record.epoch_finalized_at = Clock::get()?.unix_timestamp;
+
     // Update unclaimed rewards to include new epoch rewards.
     pool_overview.unclaimed_rewards = pool_overview
         .unclaimed_rewards
