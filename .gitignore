@@ -13,5 +13,4 @@ dist
 
 Anchor.toml.bak
 
-x.ts
-x-program.rs
+compiled-program.rs
