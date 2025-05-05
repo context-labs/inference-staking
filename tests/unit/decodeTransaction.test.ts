@@ -1,7 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import type { VersionedTransactionResponse } from "@solana/web3.js";
-import { VersionedMessage, VersionedTransaction } from "@solana/web3.js";
+import {
+  PublicKey,
+  VersionedMessage,
+  VersionedTransaction,
+} from "@solana/web3.js";
 import { expect, describe, it } from "bun:test";
+import { assert } from "chai";
 
 import { InferenceStakingProgramSdk } from "@sdk/src";
 
@@ -90,15 +95,59 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
       SERIALIZED_MESSAGE
     );
     const tx = sdk.decodeTransaction(versionedTransaction);
+
     expect(tx).toBeDefined();
 
-    const ix = tx[0];
-    const ixName = ix?.name;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const ix = tx[0]!;
+    const ixName = ix.name;
     expect(ixName).toBe("updatePoolOverview");
     if (ixName === "updatePoolOverview") {
       // @ts-expect-error - the following should type error!
       const caller = ix.accounts.stakingRecord;
       expect(caller).not.toBeDefined();
+    }
+
+    for (const account of Object.values(ix.accounts)) {
+      switch (account.name) {
+        case "poolOverview": {
+          expect(account).toBeDefined();
+          expect(new PublicKey(account.pubkey)).toBeDefined();
+          break;
+        }
+        case "programAdmin": {
+          expect(account).toBeDefined();
+          expect(new PublicKey(account.pubkey)).toBeDefined();
+          break;
+        }
+        case "admin":
+        case "authority":
+        case "destination":
+        case "feeTokenAccount":
+        case "mint":
+        case "newAdmin":
+        case "newProgramAdmin":
+        case "newStakingRecord":
+        case "operatorPool":
+        case "operatorStakingRecord":
+        case "owner":
+        case "ownerStakingRecord":
+        case "ownerTokenAccount":
+        case "payer":
+        case "receiver":
+        case "rewardRecord":
+        case "rewardTokenAccount":
+        case "stakedTokenAccount":
+        case "stakingRecord":
+        case "systemProgram":
+        case "tokenProgram":
+        case "usdcMint":
+        case "usdcPayoutDestination":
+        case "usdcTokenAccount":
+        default: {
+          assert.fail(`Unhandled case reached: ${account.name}`);
+        }
+      }
     }
   });
 });

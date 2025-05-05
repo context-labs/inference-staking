@@ -64,14 +64,18 @@ export type InstructionAccountNames<T extends InferenceStakingInstructions> =
     { name: T }
   >["accounts"][number]["name"];
 
-type AccountMeta = {
+export type InferenceStakingAccountName =
+  InferenceStaking["instructions"][number]["accounts"][number]["name"];
+
+export type AccountMetaWithName = {
+  name: InferenceStakingAccountName;
   pubkey: PublicKey;
   isSigner: boolean;
   isWritable: boolean;
 };
 
 export type InstructionAccountsMap<T extends InferenceStakingInstructions> =
-  Partial<Record<InstructionAccountNames<T>, AccountMeta>>;
+  Partial<Record<InstructionAccountNames<T>, AccountMetaWithName>>;
 
 export type DecodedStakingProgramInstruction = {
   [K in InferenceStakingInstructions]: {

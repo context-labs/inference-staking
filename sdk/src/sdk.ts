@@ -16,6 +16,8 @@ import type {
   PoolOverviewAccountStruct,
   RewardRecordAccountStruct,
   StakingRecordAccountStruct,
+  AccountMetaWithName,
+  InferenceStakingAccountName,
 } from "./types";
 import { capitalize, toCamelCase } from "./utils";
 
@@ -339,12 +341,17 @@ export class InferenceStakingProgramSdk {
           const args = decodedInstructionArguments.args;
 
           const accountsMeta: AccountMeta[] = instruction.accounts.map(
-            (idx) => ({
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              pubkey: tx.message.getAccountKeys().get(idx)!,
-              isSigner: tx.message.isAccountSigner(idx),
-              isWritable: tx.message.isAccountWritable(idx),
-            })
+            (idx) => {
+              const pubkey = tx.message.getAccountKeys().get(idx);
+              if (pubkey == null) {
+                throw new Error(`No pubkey exists for account index: ${idx}`);
+              }
+              return {
+                pubkey,
+                isSigner: tx.message.isAccountSigner(idx),
+                isWritable: tx.message.isAccountWritable(idx),
+              };
+            }
           );
 
           const decodedAccounts = borshCoder.instruction.format(
@@ -354,9 +361,16 @@ export class InferenceStakingProgramSdk {
 
           const accounts: InstructionAccountsMap<InferenceStakingInstructions> =
             {};
+
           for (const account of decodedAccounts?.accounts ?? []) {
-            const name = toCamelCase(account.name ?? "");
-            accounts[name as keyof typeof accounts] = account;
+            const name = toCamelCase(
+              account.name ?? ""
+            ) as InferenceStakingAccountName;
+            const accountMeta: AccountMetaWithName = {
+              ...account,
+              name,
+            };
+            accounts[name] = accountMeta;
           }
 
           const result = {

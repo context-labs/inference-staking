@@ -45,6 +45,11 @@ pub struct ChangeOperatorStakingRecord<'info> {
     pub new_staking_record: Account<'info, StakingRecord>,
 }
 
+/// This instruction provides an emergency option for an operator to change their staking record,
+/// in the event that the key controlling their original staking owner wallet is compromised,
+/// and withdraw the stake from the compromised staking record. Without this option, operators would
+/// be unable to withdraw their stake because it would move them below the minimum operator share
+/// requirement.
 pub fn handler(ctx: Context<ChangeOperatorStakingRecord>) -> Result<()> {
     let min_operator_share_bps = ctx.accounts.pool_overview.min_operator_share_bps;
     let min_operator_shares = ctx
