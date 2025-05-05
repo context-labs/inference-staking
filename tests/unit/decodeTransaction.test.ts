@@ -110,16 +110,11 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
 
     for (const account of Object.values(ix.accounts)) {
       switch (account.name) {
-        case "poolOverview": {
+        case "poolOverview":
+        case "programAdmin":
           expect(account).toBeDefined();
           expect(new PublicKey(account.pubkey)).toBeDefined();
           break;
-        }
-        case "programAdmin": {
-          expect(account).toBeDefined();
-          expect(new PublicKey(account.pubkey)).toBeDefined();
-          break;
-        }
         case "admin":
         case "authority":
         case "destination":

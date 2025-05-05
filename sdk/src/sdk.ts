@@ -148,30 +148,10 @@ export class InferenceStakingProgramSdk {
     return this.program.account.operatorPool.all();
   }
 
-  async fetchAllStakingRecordsForOwner(
-    owner: PublicKey
-  ): Promise<{ publicKey: PublicKey; account: StakingRecordAccountStruct }[]> {
-    return this.program.account.stakingRecord.all([
-      {
-        memcmp: {
-          offset: 8,
-          bytes: owner.toBase58(),
-        },
-      },
-    ]);
-  }
-
-  async fetchAllStakingRecordsForPool(
-    operatorPoolPda: PublicKey
-  ): Promise<{ publicKey: PublicKey; account: StakingRecordAccountStruct }[]> {
-    return this.program.account.stakingRecord.all([
-      {
-        memcmp: {
-          offset: 8 + 32,
-          bytes: operatorPoolPda.toBase58(),
-        },
-      },
-    ]);
+  async fetchAllStakingRecordsForPool(): Promise<
+    { publicKey: PublicKey; account: StakingRecordAccountStruct }[]
+  > {
+    return this.program.account.stakingRecord.all();
   }
 
   async fetchAllRewardRecords(): Promise<

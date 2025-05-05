@@ -28,32 +28,32 @@ describe("Instruction Account Matching", () => {
     for (const account of accounts) {
       seen.set(account, (seen.get(account) ?? 0) + 1);
       switch (account) {
-        case "poolOverview":
-        case "rewardRecord":
-        case "operatorPool":
-        case "operatorStakingRecord":
-        case "usdcPayoutDestination":
-        case "rewardTokenAccount":
-        case "usdcTokenAccount":
-        case "stakedTokenAccount":
-        case "feeTokenAccount":
-        case "tokenProgram":
-        case "owner":
-        case "ownerStakingRecord":
         case "admin":
-        case "newAdmin":
-        case "newStakingRecord":
-        case "ownerTokenAccount":
-        case "receiver":
-        case "stakingRecord":
-        case "systemProgram":
-        case "payer":
-        case "mint":
-        case "programAdmin":
-        case "usdcMint":
         case "authority":
         case "destination":
+        case "feeTokenAccount":
+        case "mint":
+        case "newAdmin":
         case "newProgramAdmin":
+        case "newStakingRecord":
+        case "operatorPool":
+        case "operatorStakingRecord":
+        case "owner":
+        case "ownerStakingRecord":
+        case "ownerTokenAccount":
+        case "payer":
+        case "poolOverview":
+        case "programAdmin":
+        case "receiver":
+        case "rewardRecord":
+        case "rewardTokenAccount":
+        case "stakedTokenAccount":
+        case "stakingRecord":
+        case "systemProgram":
+        case "tokenProgram":
+        case "usdcMint":
+        case "usdcPayoutDestination":
+        case "usdcTokenAccount":
           assert.ok(seen.get(account) === 1);
           break;
         default: {
