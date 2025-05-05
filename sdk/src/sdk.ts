@@ -1,9 +1,19 @@
-import type { AnchorProvider } from "@coral-xyz/anchor";
+import type { AnchorProvider, ProgramAccount } from "@coral-xyz/anchor";
 import { BN } from "@coral-xyz/anchor";
 import { Program, AnchorError, BorshCoder } from "@coral-xyz/anchor";
-import type { AccountMeta, VersionedTransaction } from "@solana/web3.js";
+import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
+import type {
+  AccountInfo,
+  AccountMeta,
+  VersionedTransaction,
+} from "@solana/web3.js";
 import { PublicKey } from "@solana/web3.js";
 
+import {
+  OPERATOR_POOL_DISCRIMINATOR,
+  STAKING_RECORD_DISCRIMINATOR,
+  REWARD_RECORD_DISCRIMINATOR,
+} from "./discriminators";
 import type { InferenceStaking } from "./idl";
 import { getIdlWithProgramId, IDL } from "./idl";
 import type {
@@ -18,17 +28,31 @@ import type {
   StakingRecordAccountStruct,
   AccountMetaWithName,
   InferenceStakingAccountName,
+  InferenceStakingAccountStructName,
 } from "./types";
-import { capitalize, toCamelCase } from "./utils";
+import {
+  batchArray,
+  capitalize,
+  executeWithRetries,
+  limitConcurrency,
+  toCamelCase,
+  zipArrays,
+} from "./utils";
 
 export class InferenceStakingProgramSdk {
   program: Program<InferenceStaking>;
+  coder: BorshCoder;
 
   constructor(args: { provider: AnchorProvider; programId: PublicKey }) {
     const { provider, programId } = args;
     const idl = getIdlWithProgramId(programId);
+    this.coder = new BorshCoder(idl);
     this.program = new Program<InferenceStaking>(idl, provider);
   }
+
+  /** ************************************************************************
+   *  PDA Methods
+   *************************************************************************** */
 
   poolOverviewPda(): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
@@ -104,6 +128,10 @@ export class InferenceStakingProgramSdk {
     return pda;
   }
 
+  /** ************************************************************************
+   *  Account Lookup Methods
+   *************************************************************************** */
+
   async fetchPoolOverview(): Promise<PoolOverviewAccountStruct> {
     const poolOverviewPda = this.poolOverviewPda();
     return this.program.account.poolOverview.fetch(poolOverviewPda);
@@ -142,24 +170,6 @@ export class InferenceStakingProgramSdk {
     return this.program.account.rewardRecord.fetch(rewardRecordPda);
   }
 
-  async fetchAllOperatorPools(): Promise<
-    { publicKey: PublicKey; account: OperatorPoolAccountStruct }[]
-  > {
-    return this.program.account.operatorPool.all();
-  }
-
-  async fetchAllStakingRecordsForPool(): Promise<
-    { publicKey: PublicKey; account: StakingRecordAccountStruct }[]
-  > {
-    return this.program.account.stakingRecord.all();
-  }
-
-  async fetchAllRewardRecords(): Promise<
-    { publicKey: PublicKey; account: RewardRecordAccountStruct }[]
-  > {
-    return this.program.account.rewardRecord.all();
-  }
-
   async fetchRewardRecordForEpoch(
     epoch: BN
   ): Promise<RewardRecordAccountStruct> {
@@ -185,6 +195,166 @@ export class InferenceStakingProgramSdk {
       return false;
     }
   }
+
+  /** ************************************************************************
+   *  Get Program Account Methods
+   *************************************************************************** */
+
+  async #handleFetchAccountPubkeys(
+    discriminator: number[]
+  ): Promise<PublicKey[]> {
+    const connection = this.program.provider.connection;
+    const result = await executeWithRetries(async () => {
+      const accounts = await connection.getProgramAccounts(
+        this.program.programId,
+        {
+          // Return no data, we only want the public keys at this stage.
+          dataSlice: { offset: 0, length: 0 },
+          // Filter on the discriminator (first 8‑bytes of every Anchor account).
+          filters: [
+            {
+              memcmp: {
+                offset: 0,
+                bytes: bs58.encode(discriminator),
+              },
+            },
+          ],
+          commitment: "finalized",
+        }
+      );
+
+      return accounts.map((a) => a.pubkey);
+    });
+    return result;
+  }
+
+  async #handleFetchAccountInfos(pubkeys: PublicKey[]) {
+    const connection = this.program.provider.connection;
+    return await executeWithRetries(async () => {
+      const accountInfos = await connection.getMultipleAccountsInfo(
+        pubkeys,
+        "finalized"
+      );
+      return accountInfos;
+    });
+  }
+
+  #handleDecodeAccount<T>(
+    accountName: InferenceStakingAccountStructName,
+    data: Buffer
+  ): T {
+    return this.coder.accounts.decode<T>(accountName, data);
+  }
+
+  #handleFetchAccountsInfos<T>(
+    accountName: InferenceStakingAccountStructName,
+    accountInfosWithPubkeys: [PublicKey, AccountInfo<Buffer> | null][]
+  ): ProgramAccount<T>[] {
+    const results: ProgramAccount<T>[] = [];
+    for (const [publicKey, info] of accountInfosWithPubkeys) {
+      if (info == null) {
+        continue;
+      }
+
+      const account = this.#handleDecodeAccount<T>(accountName, info.data);
+      results.push({
+        account,
+        publicKey,
+      });
+    }
+    return results;
+  }
+
+  async fetchOperatorPoolPubkeys(): Promise<PublicKey[]> {
+    if (OPERATOR_POOL_DISCRIMINATOR == null) {
+      throw new Error("OPERATOR_POOL_DISCRIMINATOR is not defined");
+    }
+    return await this.#handleFetchAccountPubkeys(OPERATOR_POOL_DISCRIMINATOR);
+  }
+
+  async fetchOperatorPoolAccounts(
+    pubkeys: PublicKey[]
+  ): Promise<ProgramAccount<OperatorPoolAccountStruct>[]> {
+    if (pubkeys.length === 0) {
+      return [];
+    }
+
+    const BATCH_SIZE = 100;
+
+    const batches = batchArray(pubkeys, BATCH_SIZE);
+    const final = await limitConcurrency(batches, async (batch) => {
+      const accountInfos = await this.#handleFetchAccountInfos(batch);
+      const accountInfosWithPubkeys = zipArrays(batch, accountInfos);
+      return this.#handleFetchAccountsInfos<OperatorPoolAccountStruct>(
+        "operatorPool",
+        accountInfosWithPubkeys
+      );
+    });
+
+    return final.flat();
+  }
+
+  async fetchStakingRecordPubkeys(): Promise<PublicKey[]> {
+    if (STAKING_RECORD_DISCRIMINATOR == null) {
+      throw new Error("STAKING_RECORD_DISCRIMINATOR is not defined");
+    }
+    return await this.#handleFetchAccountPubkeys(STAKING_RECORD_DISCRIMINATOR);
+  }
+
+  async fetchStakingRecordAccounts(
+    pubkeys: PublicKey[]
+  ): Promise<ProgramAccount<StakingRecordAccountStruct>[]> {
+    if (pubkeys.length === 0) {
+      return [];
+    }
+
+    const BATCH_SIZE = 100;
+
+    const batches = batchArray(pubkeys, BATCH_SIZE);
+    const final = await limitConcurrency(batches, async (batch) => {
+      const accountInfos = await this.#handleFetchAccountInfos(batch);
+      const accountInfosWithPubkeys = zipArrays(batch, accountInfos);
+      return this.#handleFetchAccountsInfos<StakingRecordAccountStruct>(
+        "stakingRecord",
+        accountInfosWithPubkeys
+      );
+    });
+
+    return final.flat();
+  }
+
+  async fetchRewardRecordPubkeys(): Promise<PublicKey[]> {
+    if (REWARD_RECORD_DISCRIMINATOR == null) {
+      throw new Error("REWARD_RECORD_DISCRIMINATOR is not defined");
+    }
+    return await this.#handleFetchAccountPubkeys(REWARD_RECORD_DISCRIMINATOR);
+  }
+
+  async fetchRewardRecordAccounts(
+    pubkeys: PublicKey[]
+  ): Promise<ProgramAccount<RewardRecordAccountStruct>[]> {
+    if (pubkeys.length === 0) {
+      return [];
+    }
+
+    const BATCH_SIZE = 100;
+
+    const batches = batchArray(pubkeys, BATCH_SIZE);
+    const final = await limitConcurrency(batches, async (batch) => {
+      const accountInfos = await this.#handleFetchAccountInfos(batch);
+      const accountInfosWithPubkeys = zipArrays(batch, accountInfos);
+      return this.#handleFetchAccountsInfos<RewardRecordAccountStruct>(
+        "rewardRecord",
+        accountInfosWithPubkeys
+      );
+    });
+
+    return final.flat();
+  }
+
+  /** ************************************************************************
+   *  Token Account Balance Methods
+   *************************************************************************** */
 
   async fetchStakedTokenAccountBalance(
     operatorPoolPda: PublicKey
@@ -214,6 +384,10 @@ export class InferenceStakingProgramSdk {
       );
     return new BN(tokenAccountInfo.value.amount);
   }
+
+  /** ************************************************************************
+   *  Helper Methods
+   *************************************************************************** */
 
   getEmptyPoolOverviewFieldsForUpdateInstruction() {
     type EmptyUpdateFields = Parameters<
@@ -245,6 +419,10 @@ export class InferenceStakingProgramSdk {
     };
     return empty;
   }
+
+  /** ************************************************************************
+   *  Error Handling Methods
+   *************************************************************************** */
 
   static getErrorNameFromTransactionLogs(
     logs: string[]
@@ -295,6 +473,10 @@ export class InferenceStakingProgramSdk {
     const errorName = this.getErrorNameFromTransactionLogs(logs);
     return this.getErrorMsgFromErrorName(errorName);
   }
+
+  /** ************************************************************************
+   *  Transaction Decoding Method
+   *************************************************************************** */
 
   decodeTransaction(
     tx: VersionedTransaction

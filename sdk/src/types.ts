@@ -25,6 +25,9 @@ export type StakingRecordAccountStruct = Awaited<
   ReturnType<ProgramType["account"]["stakingRecord"]["fetch"]>
 >;
 
+export type InferenceStakingAccountStructName =
+  InferenceStaking["accounts"][number]["name"];
+
 export type InstructionArgs<T extends keyof ProgramType["methods"]> =
   Parameters<ProgramType["methods"][T]>[0];
 
