@@ -137,17 +137,10 @@ export class InferenceStakingProgramSdk {
     return this.program.account.poolOverview.fetch(poolOverviewPda);
   }
 
-  async fetchOperatorPool(
-    operatorPoolId: BN
+  async fetchOperatorPoolByPda(
+    operatorPoolPda: PublicKey
   ): Promise<OperatorPoolAccountStruct> {
-    const operatorPoolPda = this.operatorPoolPda(operatorPoolId);
     return this.program.account.operatorPool.fetch(operatorPoolPda);
-  }
-
-  async fetchOperatorPoolByAddress(
-    operatorPoolAddress: PublicKey
-  ): Promise<OperatorPoolAccountStruct> {
-    return this.program.account.operatorPool.fetch(operatorPoolAddress);
   }
 
   async fetchStakingRecord(
@@ -159,7 +152,7 @@ export class InferenceStakingProgramSdk {
   async fetchOperatorStakingRecord(
     operatorPoolPda: PublicKey
   ): Promise<StakingRecordAccountStruct> {
-    const operatorPool = await this.fetchOperatorPoolByAddress(operatorPoolPda);
+    const operatorPool = await this.fetchOperatorPoolByPda(operatorPoolPda);
     return this.program.account.stakingRecord.fetch(
       operatorPool.operatorStakingRecord
     );
