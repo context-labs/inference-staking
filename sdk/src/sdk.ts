@@ -40,8 +40,8 @@ import {
 } from "./utils";
 
 export class InferenceStakingProgramSdk {
-  program: Program<InferenceStaking>;
   coder: BorshCoder;
+  program: Program<InferenceStaking>;
 
   constructor(args: { provider: AnchorProvider; programId: PublicKey }) {
     const { provider, programId } = args;
