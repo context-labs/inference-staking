@@ -1,4 +1,4 @@
-import pLimit from "p-limit";
+import promiseLimit from "promise-limit";
 
 export function toCamelCase(text: string): string {
   return text
@@ -74,6 +74,6 @@ export async function limitConcurrency<T, R>(
   fn: (val: T) => Promise<R>,
   concurrencyLimit = 10
 ): Promise<R[]> {
-  const limit = pLimit(concurrencyLimit);
+  const limit = promiseLimit<R>(concurrencyLimit);
   return Promise.all(arr.map((item) => limit(() => fn(item))));
 }
