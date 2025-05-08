@@ -57,7 +57,7 @@ async function getRewardClaimInputs({
 }: GetRewardClaimInputsInput): Promise<GetRewardClaimInputsOutput | null> {
   if (TEST_WITH_RELAY) {
     debug(
-      "End-to-end test flow is enabled, fetching reward claim eligibility..."
+      "- End-to-end test flow is enabled, fetching reward claim eligibility from Relay..."
     );
     const response = await trpc.checkRewardClaimEligibility(
       pool.pool.toString(),
@@ -714,10 +714,10 @@ describe("multi-epoch lifecycle tests", () => {
   it("Create reward records", async () => {
     debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
     let counter = 1;
-    for (let i = 1; i <= NUMBER_OF_EPOCHS; i++) {
+    for (let epoch = 1; epoch <= NUMBER_OF_EPOCHS; epoch++) {
       if (TEST_WITH_RELAY) {
         debug(
-          "End-to-end test flow is enabled, submitting epoch finalization request..."
+          `- End-to-end test flow is enabled, submitting epoch finalization request for epoch ${epoch}...`
         );
         const response = await trpc.executeEpochFinalization();
 
@@ -728,7 +728,7 @@ describe("multi-epoch lifecycle tests", () => {
           );
         }
 
-        const claims = await trpc.getRewardClaimsForEpoch(BigInt(i));
+        const claims = await trpc.getRewardClaimsForEpoch(BigInt(epoch));
         const totalRewards = claims.rewardClaims.reduce((acc, claim) => {
           assert(
             claim.merkleRewardAmount != null,
@@ -745,7 +745,21 @@ describe("multi-epoch lifecycle tests", () => {
           return acc.add(new anchor.BN(claim.merkleUsdcAmount.toString()));
         }, new anchor.BN(0));
 
-        console.log("totalRewards", totalRewards.toString());
+        const expectedEpochRewards = await trpc.getRewardEmissionsForEpoch(
+          BigInt(epoch)
+        );
+
+        const expectedTotalRewards =
+          expectedEpochRewards.rewardEmissions.totalRewards;
+        assert(
+          new anchor.BN(expectedTotalRewards.toString()).eq(totalRewards),
+          `Total rewards for epoch ${epoch} ${totalRewards.toString()} do not match expected rewards ${expectedTotalRewards.toString()}`
+        );
+
+        const totalRewardsString = formatBN(totalRewards);
+        debug(
+          `- ✅ Total rewards for epoch ${epoch} match expected epoch reward emissions: ${totalRewardsString}`
+        );
 
         await mintTo(
           connection,
@@ -766,8 +780,6 @@ describe("multi-epoch lifecycle tests", () => {
         );
 
         await trpc.createRewardRecord();
-
-        return;
       } else {
         const rewards = generateRewardsForEpoch(
           setup.pools.map((pool) => pool.pool)
@@ -809,13 +821,13 @@ describe("multi-epoch lifecycle tests", () => {
           program,
         });
 
-        const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(i));
+        const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(epoch));
 
         const tokens = formatBN(totalRewards);
         const usdc = formatBN(totalUsdcAmount);
         const tracker = `${counter}/${NUMBER_OF_EPOCHS}`;
         debug(
-          `- [${tracker}] Creating RewardRecord for epoch ${i} - total token reward = ${tokens} - total USDC payout = ${usdc}`
+          `- [${tracker}] Creating RewardRecord for epoch ${epoch} - total token reward = ${tokens} - total USDC payout = ${usdc}`
         );
         counter++;
 
@@ -840,7 +852,7 @@ describe("multi-epoch lifecycle tests", () => {
         const rewardRecordAccount = await program.account.rewardRecord.fetch(
           rewardRecord
         );
-        assert(rewardRecordAccount.epoch.eqn(i));
+        assert(rewardRecordAccount.epoch.eqn(epoch));
         assert(rewardRecordAccount.totalRewards.eq(totalRewards));
         for (let i = 0; i < rewardRecordAccount.merkleRoots.length; i++) {
           assert.deepEqual(
@@ -850,9 +862,9 @@ describe("multi-epoch lifecycle tests", () => {
         }
       }
 
-      if (i % EPOCH_CLAIM_FREQUENCY === 0) {
+      if (epoch % EPOCH_CLAIM_FREQUENCY === 0) {
         debug(
-          `\nStart reward claims for all existing rewards up to epoch ${i}`
+          `\nStart reward claims for all existing rewards up to epoch ${epoch}`
         );
         await handleAccrueRewardForEpochs({
           commissionRateBps,

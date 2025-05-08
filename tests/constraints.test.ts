@@ -298,7 +298,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "invalidProgramAdmin");
+      assertStakingProgramError(error, "invalidRewardDistributionAuthority");
     }
   });
 });

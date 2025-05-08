@@ -32,12 +32,23 @@ export type OperatorPoolRewardClaimApiResponse = {
   txSignature: string | null;
 };
 
+type RewardEmissionApiResponse = {
+  epoch: bigint;
+  uptimeRewards: bigint;
+  tokenRewards: bigint;
+  totalRewards: bigint;
+};
+
 type CheckRewardClaimEligibilityResponse = ServiceResponse & {
   claim: OperatorPoolRewardClaimApiResponse;
 };
 
 type GetRewardClaimsForEpochResponse = ServiceResponse & {
   rewardClaims: OperatorPoolRewardClaimApiResponse[];
+};
+
+type GetRewardEmissionsForEpochResponse = ServiceResponse & {
+  rewardEmissions: RewardEmissionApiResponse;
 };
 
 export class TrpcHttpClient {
@@ -215,6 +226,20 @@ export class TrpcHttpClient {
         "Error inserting and processing transaction by signature:",
         error
       );
+      throw error;
+    }
+  }
+
+  public async getRewardEmissionsForEpoch(
+    epoch: bigint
+  ): Promise<GetRewardEmissionsForEpochResponse> {
+    try {
+      const result = await this.query("staking.getRewardEmissionsForEpoch", {
+        epoch,
+      });
+      return result as GetRewardEmissionsForEpochResponse;
+    } catch (error) {
+      console.error("Error getting reward emissions for epoch:", error);
       throw error;
     }
   }
