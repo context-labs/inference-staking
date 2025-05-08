@@ -107,8 +107,7 @@ export class TrpcHttpClient {
     const headers = this.getHeaders();
     const url = `${this.baseUrl}${path}`;
 
-    const data = input ? superjson.stringify(input) : undefined;
-
+    const data = superjson.stringify(input);
     const response = await axios.post(url, data, {
       ...config,
       headers,
