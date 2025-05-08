@@ -37,9 +37,9 @@ function areRootsEqual(root1: Uint8Array, root2: Uint8Array): boolean {
   return arraysShallowEqual(root1, root2);
 }
 
-function sortAddressList(
-  addresses: ConstructMerkleTreeInput[]
-): ConstructMerkleTreeInput[] {
+function sortAddressList<T extends ConstructMerkleTreeInput>(
+  addresses: T[]
+): T[] {
   return addresses.slice().sort((a, b) => a.address.localeCompare(b.address));
 }
 
@@ -49,7 +49,7 @@ function validateInputs(addresses: ConstructMerkleTreeInput[]) {
     throw new Error("Addresses length cannot be zero");
   }
 
-  for (const { address, tokenAmount, usdcAmount } of addresses) {
+  for (const { address, tokenAmount: tokenAmount, usdcAmount } of addresses) {
     if (!isValidPublicKey(address)) {
       throw new Error(`${address} is not a valid wallet pubkey`);
     }
@@ -100,7 +100,7 @@ function fillAddresses(addresses: ConstructMerkleTreeInput[]): void {
 }
 
 function formatLeaf(input: ConstructMerkleTreeInput): string {
-  const { address, tokenAmount, usdcAmount } = input;
+  const { address, tokenAmount: tokenAmount, usdcAmount } = input;
   return `${address},${tokenAmount},${usdcAmount}`;
 }
 
@@ -121,8 +121,6 @@ function constructMerkleTree(
   validateInputs(input);
   fillAddresses(input);
 
-  const encoder = new TextEncoder();
-
   // Represent merkle tree where each array represents nodes in the same level,
   // with its parent at index (i // 2) in the next array.
   const tree: Uint8Array[][] = [[]];
@@ -131,8 +129,7 @@ function constructMerkleTree(
   // Create the initial level of tree nodes by hashing each wallet and its token amount,
   // separated by a comma.
   for (const val of input) {
-    const data = encoder.encode(formatLeaf(val));
-    const hash = sha256(data);
+    const hash = hashLeafNode(val);
     tree[0]?.push(hash);
   }
 
@@ -169,6 +166,12 @@ function getTreeRoot(tree: Uint8Array[][]): Uint8Array {
   return root;
 }
 
+function hashLeafNode(leaf: ConstructMerkleTreeInput): Uint8Array {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(formatLeaf(leaf));
+  return sha256(data);
+}
+
 export type GenerateMerkleProofInput = {
   address: string;
   tokenAmount: bigint;
@@ -198,9 +201,8 @@ function generateMerkleProof({
   if (index < 0) {
     throw new Error(`Index is negative, received: ${index}`);
   }
-  const encoder = new TextEncoder();
-  const data = encoder.encode(formatLeaf({ address, tokenAmount, usdcAmount }));
-  const hash = sha256(data);
+
+  const hash = hashLeafNode({ address, tokenAmount, usdcAmount });
 
   // Verify that leaf node matches expected hash.
   const leaf = merkleTree[0]?.[index];
@@ -307,6 +309,7 @@ export const MerkleUtils = {
   constructMerkleTree,
   generateMerkleProof,
   getTreeRoot,
+  hashLeafNode,
   logProofInBase58,
   logTreeInBase58,
   sha256,
