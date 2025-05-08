@@ -8,7 +8,6 @@ import {
 import type { Connection } from "@solana/web3.js";
 import { SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
-import invariant from "invariant";
 
 import type { InferenceStaking } from "@sdk/src/idl";
 import { deserializeMerkleProof } from "@sdk/src/utils";
