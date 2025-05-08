@@ -16,7 +16,7 @@ pub struct CreateRewardRecord<'info> {
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
         constraint = pool_overview.reward_distribution_authorities.contains(authority.key)
-            @ ErrorCode::InvalidAuthority,
+            @ ErrorCode::InvalidRewardDistributionAuthority,
         constraint = pool_overview.is_epoch_finalizing @ ErrorCode::EpochMustBeFinalizing,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,

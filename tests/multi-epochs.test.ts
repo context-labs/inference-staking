@@ -8,8 +8,10 @@ import {
 import type { Connection } from "@solana/web3.js";
 import { SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
+import invariant from "invariant";
 
 import type { InferenceStaking } from "@sdk/src/idl";
+import { deserializeMerkleProof } from "@sdk/src/utils";
 
 import {
   EPOCH_CLAIM_FREQUENCY,
@@ -21,8 +23,9 @@ import type {
   GenerateMerkleProofInput,
 } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
-import type { SetupTestResult } from "@tests/lib/setup";
+import type { SetupPoolType, SetupTestResult } from "@tests/lib/setup";
 import { setupTests } from "@tests/lib/setup";
+import { TrpcHttpClient } from "@tests/lib/trpc";
 import {
   assertStakingRecordCreatedState,
   debug,
@@ -32,18 +35,117 @@ import {
   setEpochFinalizationState,
 } from "@tests/lib/utils";
 
+type GetRewardClaimInputsInput = {
+  epochRewards: ConstructMerkleTreeInput[][];
+  pool: SetupPoolType;
+  epoch: number;
+  trpc: TrpcHttpClient;
+};
+
+type GetRewardClaimInputsOutput = {
+  merkleIndex: number;
+  proof: number[][];
+  proofPath: boolean[];
+  rewardAmount: anchor.BN;
+  usdcAmount: anchor.BN;
+};
+
+async function getRewardClaimInputs({
+  epochRewards,
+  pool,
+  epoch,
+  trpc,
+}: GetRewardClaimInputsInput): Promise<GetRewardClaimInputsOutput | null> {
+  if (TEST_WITH_RELAY) {
+    debug(
+      "End-to-end test flow is enabled, fetching reward claim eligibility..."
+    );
+    const response = await trpc.checkRewardClaimEligibility(
+      pool.pool.toString(),
+      BigInt(epoch)
+    );
+
+    const {
+      merkleRewardAmount,
+      merkleUsdcAmount,
+      proof,
+      proofPath,
+      merkleTreeIndex,
+    } = response.claim;
+
+    assert(
+      merkleRewardAmount != null,
+      "Merkle reward amount should not be null"
+    );
+    assert(merkleUsdcAmount != null, "Merkle usdc amount should not be null");
+    assert(proof != null, "Proof should not be null");
+    assert(proofPath != null, "Proof path should not be null");
+    assert(merkleTreeIndex != null, "Merkle tree index should not be null");
+
+    const deserializedProof = deserializeMerkleProof(proof);
+
+    return {
+      merkleIndex: merkleTreeIndex,
+      proof: deserializedProof.map((arr) => Array.from(arr)),
+      proofPath,
+      rewardAmount: new anchor.BN(Number(merkleRewardAmount)),
+      usdcAmount: new anchor.BN(Number(merkleUsdcAmount)),
+    };
+  } else {
+    if (epoch > epochRewards.length) {
+      debug(`Epoch ${epoch} reward data not available yet, skipping`);
+      return null;
+    }
+
+    const epochReward = epochRewards[epoch - 1];
+    assert(epochReward != null, `No reward data found for epoch ${epoch}`);
+
+    const merkleTree = MerkleUtils.constructMerkleTree(epochReward);
+    const nodeIndex = epochReward.findIndex(
+      (x) => x.address == pool.pool.toString()
+    );
+
+    if (nodeIndex === -1) {
+      debug(
+        `No rewards for pool ${pool.pool.toString()} in epoch ${epoch}, skipping`
+      );
+      return null;
+    }
+
+    const proofInputs = {
+      ...epochReward[nodeIndex],
+      index: nodeIndex,
+      merkleTree,
+    } as GenerateMerkleProofInput;
+
+    const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+    const rewardAmount = new anchor.BN(Number(proofInputs.tokenAmount));
+    const usdcAmount = new anchor.BN(Number(proofInputs.usdcAmount));
+
+    return {
+      merkleIndex: 0,
+      proof: proof.map((arr) => Array.from(arr)),
+      proofPath,
+      rewardAmount,
+      usdcAmount,
+    };
+  }
+}
+
 async function handleAccrueRewardForEpochs({
   epochRewards,
   setup,
   program,
   connection,
   commissionRateBps,
+  trpc,
 }: {
   epochRewards: ConstructMerkleTreeInput[][];
   setup: SetupTestResult;
   program: Program<InferenceStaking>;
   connection: Connection;
   commissionRateBps: number;
+  trpc: TrpcHttpClient;
 }) {
   const commissionFeeMap = new Map<string, anchor.BN>();
   const poolOverview = await program.account.poolOverview.fetch(
@@ -59,35 +161,12 @@ async function handleAccrueRewardForEpochs({
       commissionFeeMap.set(pool.pool.toString(), new anchor.BN(0));
     }
 
-    for (let i = lastClaimedEpoch + 1; i <= currentCompletedEpoch; i++) {
-      if (i > epochRewards.length) {
-        debug(`Epoch ${i} reward data not available yet, skipping`);
-        continue;
-      }
-
-      const isFinalEpochClaim = i === currentCompletedEpoch;
-      const epochReward = epochRewards[i - 1];
-      assert(epochReward != null, `No reward data found for epoch ${i}`);
-
-      const merkleTree = MerkleUtils.constructMerkleTree(epochReward);
-      const nodeIndex = epochReward.findIndex(
-        (x) => x.address == pool.pool.toString()
-      );
-
-      if (nodeIndex === -1) {
-        debug(
-          `No rewards for pool ${pool.pool.toString()} in epoch ${i}, skipping`
-        );
-        continue;
-      }
-
-      const proofInputs = {
-        ...epochReward[nodeIndex],
-        index: nodeIndex,
-        merkleTree,
-      } as GenerateMerkleProofInput;
-
-      const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+    for (
+      let epoch = lastClaimedEpoch + 1;
+      epoch <= currentCompletedEpoch;
+      epoch++
+    ) {
+      const isFinalEpochClaim = epoch === currentCompletedEpoch;
       const poolOverviewPre = await program.account.poolOverview.fetch(
         setup.poolOverview
       );
@@ -103,17 +182,30 @@ async function handleAccrueRewardForEpochs({
       const feeBalancePre = await connection.getTokenAccountBalance(
         pool.feeTokenAccount
       );
-      const rewardAmount = new anchor.BN(Number(proofInputs.tokenAmount));
-      const usdcAmount = new anchor.BN(Number(proofInputs.usdcAmount));
-      const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(i));
+      const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(epoch));
+
+      const claimData = await getRewardClaimInputs({
+        epochRewards,
+        pool,
+        epoch,
+        trpc,
+      });
+
+      if (claimData == null) {
+        debug(`No claim data found for epoch ${epoch}, skipping`);
+        continue;
+      }
+
+      const { rewardAmount, usdcAmount, proof, proofPath } = claimData;
+
       const tokens = formatBN(rewardAmount);
       const usdc = formatBN(usdcAmount);
 
       debug(
-        `- Claiming Epoch ${i} rewards for Operator Pool ${pool.pool.toString()} - rewardAmount = ${tokens} - usdcAmount = ${usdc}`
+        `- Claiming Epoch ${epoch} rewards for Operator Pool ${pool.pool.toString()} - rewardAmount = ${tokens} - usdcAmount = ${usdc}`
       );
 
-      await program.methods
+      const signature = await program.methods
         .accrueReward({
           merkleIndex: 0,
           proof: proof.map((arr) => Array.from(arr)),
@@ -135,7 +227,13 @@ async function handleAccrueRewardForEpochs({
         })
         .rpc();
 
-      const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
+      if (TEST_WITH_RELAY) {
+        await trpc.insertAndProcessTransactionBySignature(signature);
+      }
+
+      const commissionFees = rewardAmount
+        .mul(new anchor.BN(commissionRateBps))
+        .div(new anchor.BN(10_000));
       const currentCommissionFeesForPool =
         commissionFeeMap.get(pool.pool.toString()) ?? new anchor.BN(0);
       commissionFeeMap.set(
@@ -145,8 +243,8 @@ async function handleAccrueRewardForEpochs({
 
       const operatorPool = await program.account.operatorPool.fetch(pool.pool);
       assert(
-        operatorPool.rewardLastClaimedEpoch.eqn(i),
-        `Pool reward last claimed epoch should be ${i}`
+        operatorPool.rewardLastClaimedEpoch.eqn(epoch),
+        `Pool reward last claimed epoch should be ${epoch}`
       );
       assert(
         operatorPool.totalShares.eq(operatorPre.totalShares),
@@ -172,16 +270,19 @@ async function handleAccrueRewardForEpochs({
 
       if (isFinalEpochClaim) {
         const claimedEpochsRewardsForPool = epochRewards
-          .slice(lastClaimedEpoch, i)
+          .slice(lastClaimedEpoch, epoch)
           .flatMap((epochReward) =>
             epochReward.find((x) => x.address == pool.pool.toString())
           )
           .filter((x) => x != null);
 
-        const totalClaimedRewardsForPool = claimedEpochsRewardsForPool.reduce(
-          (acc, curr) => acc.add(new anchor.BN(Number(curr.tokenAmount))),
-          new anchor.BN(0)
-        );
+        const totalClaimedRewardsForPool = TEST_WITH_RELAY
+          ? rewardAmount
+          : claimedEpochsRewardsForPool.reduce(
+              (acc, curr) =>
+                acc.add(new anchor.BN(curr.tokenAmount.toString())),
+              new anchor.BN(0)
+            );
 
         const poolOverview = await program.account.poolOverview.fetch(
           setup.poolOverview
@@ -203,12 +304,12 @@ async function handleAccrueRewardForEpochs({
           pool.feeTokenAccount
         );
 
+        const diff = new anchor.BN(rewardBalancePre.value.amount).sub(
+          new anchor.BN(rewardBalance.value.amount)
+        );
         assert(
-          totalClaimedRewardsForPool.eqn(
-            Number(rewardBalancePre.value.amount) -
-              Number(rewardBalance.value.amount)
-          ),
-          "Reward token account balance should be reduced by claimed amount"
+          totalClaimedRewardsForPool.eq(diff),
+          `Reward token account balance should be reduced by claimed amount: ${totalClaimedRewardsForPool.toString()} received: ${diff.toString()}`
         );
 
         const commissionFees = commissionFeeMap.get(pool.pool.toString());
@@ -216,34 +317,37 @@ async function handleAccrueRewardForEpochs({
         const delegatorRewards = totalClaimedRewardsForPool.sub(commissionFees);
 
         // Verify that claimed delegator rewards are added to OperatorPool
+        const stakedAmountDiff = operatorPool.totalStakedAmount.sub(
+          operatorPre.totalStakedAmount
+        );
+
         assert(
-          operatorPool.totalStakedAmount
-            .sub(operatorPre.totalStakedAmount)
-            .eq(delegatorRewards),
-          "Total staked amount should increase by delegator rewards"
+          stakedAmountDiff.eq(delegatorRewards),
+          `Total staked amount should increase by delegator rewards, total staked amount diff: ${stakedAmountDiff.toString()}, delegator rewards: ${delegatorRewards.toString()}`
         );
         assert(
           operatorPool.accruedRewards.isZero(),
-          "Accrued rewards should be zero"
+          `Accrued rewards should be zero, was ${operatorPool.accruedRewards.toString()}`
         );
         assert(
           operatorPool.accruedCommission.isZero(),
-          "Accrued commission should be zero"
+          `Accrued commission should be zero, was ${operatorPool.accruedCommission.toString()}`
         );
 
         // Verify token balances
-        assert(
-          commissionFees.eqn(
-            Number(feeBalance.value.amount) - Number(feeBalancePre.value.amount)
-          ),
-          "Fee token account balance should increase by commission fees"
+        const feeBalanceDiff = new anchor.BN(feeBalance.value.amount).sub(
+          new anchor.BN(feeBalancePre.value.amount)
         );
         assert(
-          delegatorRewards.eqn(
-            Number(stakedBalance.value.amount) -
-              Number(stakedBalancePre.value.amount)
-          ),
-          "Staked token account balance should increase by delegator rewards"
+          commissionFees.eq(feeBalanceDiff),
+          `Fee token account balance should increase by commission fees, was ${feeBalance.value.amount} - ${feeBalancePre.value.amount}`
+        );
+        const stakedBalanceDiff = new anchor.BN(stakedBalance.value.amount).sub(
+          new anchor.BN(stakedBalancePre.value.amount)
+        );
+        assert(
+          delegatorRewards.eq(stakedBalanceDiff),
+          `Staked token account balance should increase by delegator rewards, was ${stakedBalance.value.amount} - ${stakedBalancePre.value.amount}`
         );
       }
     }
@@ -266,10 +370,16 @@ describe("multi-epoch lifecycle tests", () => {
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
 
+  const trpc = new TrpcHttpClient();
+
   before(async () => {
     setup = await setupTests();
     program = setup.sdk.program;
     connection = program.provider.connection;
+
+    if (TEST_WITH_RELAY) {
+      await trpc.login();
+    }
   });
 
   it("Create PoolOverview successfully", async () => {
@@ -606,82 +716,139 @@ describe("multi-epoch lifecycle tests", () => {
     debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
     let counter = 1;
     for (let i = 1; i <= NUMBER_OF_EPOCHS; i++) {
-      const rewards = generateRewardsForEpoch(
-        setup.pools.map((pool) => pool.pool)
-      );
-      epochRewards.push(rewards);
-      const merkleTree = MerkleUtils.constructMerkleTree(rewards);
-      const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
-      let totalRewards = new anchor.BN(0);
-      for (const addressInput of rewards) {
-        totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
-      }
-      let totalUsdcAmount = new anchor.BN(0);
-      for (const addressInput of rewards) {
-        totalUsdcAmount = totalUsdcAmount.addn(Number(addressInput.usdcAmount));
-      }
-
-      await mintTo(
-        connection,
-        setup.payerKp,
-        setup.tokenMint,
-        setup.rewardTokenAccount,
-        setup.tokenHolderKp,
-        totalRewards.toNumber()
-      );
-
-      await mintTo(
-        connection,
-        setup.payerKp,
-        setup.usdcTokenMint,
-        setup.usdcTokenAccount,
-        setup.tokenHolderKp,
-        totalUsdcAmount.toNumber()
-      );
-
-      await setEpochFinalizationState({
-        setup,
-        program,
-      });
-
-      const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(i));
-
-      const tokens = formatBN(totalRewards);
-      const usdc = formatBN(totalUsdcAmount);
-      const tracker = `${counter}/${NUMBER_OF_EPOCHS}`;
-      debug(
-        `- [${tracker}] Creating RewardRecord for epoch ${i} - total token reward = ${tokens} - total USDC payout = ${usdc}`
-      );
-      counter++;
-
-      await program.methods
-        .createRewardRecord({
-          merkleRoots,
-          totalRewards,
-          totalUsdcPayout: totalUsdcAmount,
-        })
-        .accountsStrict({
-          payer: setup.payer,
-          authority: setup.rewardDistributionAuthority,
-          poolOverview: setup.poolOverview,
-          rewardRecord,
-          rewardTokenAccount: setup.rewardTokenAccount,
-          usdcTokenAccount: setup.usdcTokenAccount,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
-        .rpc();
-
-      const rewardRecordAccount = await program.account.rewardRecord.fetch(
-        rewardRecord
-      );
-      assert(rewardRecordAccount.epoch.eqn(i));
-      assert(rewardRecordAccount.totalRewards.eq(totalRewards));
-      for (let i = 0; i < rewardRecordAccount.merkleRoots.length; i++) {
-        assert.deepEqual(
-          rewardRecordAccount.merkleRoots[i],
-          Array.from(merkleRoots[i] ?? [])
+      if (TEST_WITH_RELAY) {
+        debug(
+          "End-to-end test flow is enabled, submitting epoch finalization request..."
         );
+        const response = await trpc.executeEpochFinalization();
+
+        if (response.status !== "200") {
+          console.error(response);
+          throw new Error(
+            "executeEpochFinalization returned with non-200 status"
+          );
+        }
+
+        const claims = await trpc.getRewardClaimsForEpoch(BigInt(i));
+        const totalRewards = claims.rewardClaims.reduce((acc, claim) => {
+          invariant(
+            claim.merkleRewardAmount != null,
+            "merkleRewardAmount cannot be null"
+          );
+          return acc.add(new anchor.BN(claim.merkleRewardAmount.toString()));
+        }, new anchor.BN(0));
+
+        const totalUsdcAmount = claims.rewardClaims.reduce((acc, claim) => {
+          invariant(
+            claim.merkleUsdcAmount != null,
+            "merkleUsdcAmount cannot be null"
+          );
+          return acc.add(new anchor.BN(claim.merkleUsdcAmount.toString()));
+        }, new anchor.BN(0));
+
+        console.log("totalRewards", totalRewards.toString());
+
+        await mintTo(
+          connection,
+          setup.payerKp,
+          setup.tokenMint,
+          setup.rewardTokenAccount,
+          setup.tokenHolderKp,
+          totalRewards.toNumber()
+        );
+
+        await mintTo(
+          connection,
+          setup.payerKp,
+          setup.usdcTokenMint,
+          setup.usdcTokenAccount,
+          setup.tokenHolderKp,
+          totalUsdcAmount.toNumber()
+        );
+
+        await trpc.createRewardRecord();
+
+        return;
+      } else {
+        const rewards = generateRewardsForEpoch(
+          setup.pools.map((pool) => pool.pool)
+        );
+        epochRewards.push(rewards);
+        const merkleTree = MerkleUtils.constructMerkleTree(rewards);
+        const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
+        let totalRewards = new anchor.BN(0);
+        for (const addressInput of rewards) {
+          totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
+        }
+        let totalUsdcAmount = new anchor.BN(0);
+        for (const addressInput of rewards) {
+          totalUsdcAmount = totalUsdcAmount.addn(
+            Number(addressInput.usdcAmount)
+          );
+        }
+
+        await mintTo(
+          connection,
+          setup.payerKp,
+          setup.tokenMint,
+          setup.rewardTokenAccount,
+          setup.tokenHolderKp,
+          totalRewards.toNumber()
+        );
+
+        await mintTo(
+          connection,
+          setup.payerKp,
+          setup.usdcTokenMint,
+          setup.usdcTokenAccount,
+          setup.tokenHolderKp,
+          totalUsdcAmount.toNumber()
+        );
+
+        await setEpochFinalizationState({
+          setup,
+          program,
+        });
+
+        const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(i));
+
+        const tokens = formatBN(totalRewards);
+        const usdc = formatBN(totalUsdcAmount);
+        const tracker = `${counter}/${NUMBER_OF_EPOCHS}`;
+        debug(
+          `- [${tracker}] Creating RewardRecord for epoch ${i} - total token reward = ${tokens} - total USDC payout = ${usdc}`
+        );
+        counter++;
+
+        await program.methods
+          .createRewardRecord({
+            merkleRoots,
+            totalRewards,
+            totalUsdcPayout: totalUsdcAmount,
+          })
+          .accountsStrict({
+            payer: setup.payer,
+            authority: setup.rewardDistributionAuthority,
+            poolOverview: setup.poolOverview,
+            rewardRecord,
+            rewardTokenAccount: setup.rewardTokenAccount,
+            usdcTokenAccount: setup.usdcTokenAccount,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
+          .rpc();
+
+        const rewardRecordAccount = await program.account.rewardRecord.fetch(
+          rewardRecord
+        );
+        assert(rewardRecordAccount.epoch.eqn(i));
+        assert(rewardRecordAccount.totalRewards.eq(totalRewards));
+        for (let i = 0; i < rewardRecordAccount.merkleRoots.length; i++) {
+          assert.deepEqual(
+            rewardRecordAccount.merkleRoots[i],
+            Array.from(merkleRoots[i] ?? [])
+          );
+        }
       }
 
       if (i % EPOCH_CLAIM_FREQUENCY === 0) {
@@ -689,11 +856,12 @@ describe("multi-epoch lifecycle tests", () => {
           `\nStart reward claims for all existing rewards up to epoch ${i}`
         );
         await handleAccrueRewardForEpochs({
-          epochRewards,
-          setup,
-          program,
-          connection,
           commissionRateBps,
+          connection,
+          epochRewards,
+          program,
+          setup,
+          trpc,
         });
         debug("");
       }
@@ -702,11 +870,12 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Accrue Rewards for any remaining epochs", async () => {
     await handleAccrueRewardForEpochs({
-      epochRewards,
-      setup,
-      program,
-      connection,
       commissionRateBps,
+      connection,
+      epochRewards,
+      program,
+      setup,
+      trpc,
     });
   });
 
@@ -915,7 +1084,7 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Close staking records for all delegators successfully", async () => {
     if (TEST_WITH_RELAY) {
-      debug("TEST_WITH_RELAY is enabled, skipping close staking records");
+      debug("End-to-end test flow is enabled, skipping close staking records");
       return;
     }
 
@@ -1266,7 +1435,7 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Close all operator staking records successfully", async () => {
     if (TEST_WITH_RELAY) {
-      debug("TEST_WITH_RELAY is enabled, skipping close staking records");
+      debug("End-to-end test flow is enabled, skipping close staking records");
       return;
     }
 

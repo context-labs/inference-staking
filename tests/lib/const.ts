@@ -1,5 +1,7 @@
 import dotenv from "dotenv";
 
+import { parseKeypairFromString } from "@sdk/src/utils";
+
 dotenv.config();
 
 export const OPERATOR_POOL_SIZE = process.env.OPERATOR_POOL_SIZE
@@ -29,3 +31,20 @@ export const API_URL = process.env.API_URL
 export const LOGIN_EMAIL = process.env.LOGIN_EMAIL ?? "";
 
 export const LOGIN_PASSWORD = process.env.LOGIN_PASSWORD ?? "";
+
+const PROGRAM_ADMIN_KEYPAIR_STRING = process.env.PROGRAM_ADMIN_KEYPAIR;
+
+const REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR_STRING =
+  process.env.REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR;
+
+export const PROGRAM_ADMIN_KEYPAIR = parseKeypairFromString(
+  PROGRAM_ADMIN_KEYPAIR_STRING
+);
+
+export const REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR = parseKeypairFromString(
+  REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR_STRING
+);
+
+const PAYER_KEYPAIR_STRING = process.env.PAYER_KEYPAIR;
+
+export const PAYER_KEYPAIR = parseKeypairFromString(PAYER_KEYPAIR_STRING);

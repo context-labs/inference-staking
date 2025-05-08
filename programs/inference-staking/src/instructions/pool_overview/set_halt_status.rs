@@ -13,7 +13,7 @@ pub struct SetHaltStatus<'info> {
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
         constraint = pool_overview.halt_authorities.contains(authority.key)
-          @ ErrorCode::InvalidAuthority,
+          @ ErrorCode::InvalidHaltAuthority,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
 

@@ -5,6 +5,41 @@ import superjson from "superjson";
 
 import { API_URL, LOGIN_EMAIL, LOGIN_PASSWORD } from "@tests/lib/const";
 
+type ServiceResponse = {
+  status:
+    | "200"
+    | "400"
+    | "401"
+    | "402"
+    | "403"
+    | "404"
+    | "422"
+    | "429"
+    | "500"
+    | "504";
+};
+
+export type OperatorPoolRewardClaimApiResponse = {
+  operatorPoolPda: string;
+  operatorPoolId: bigint;
+  epoch: bigint;
+  merkleRewardAmount: bigint | null;
+  merkleUsdcAmount: bigint | null;
+  proof: string[] | null;
+  proofPath: boolean[] | null;
+  merkleTreeIndex: number | null;
+  claimedAt: Date | null;
+  txSignature: string | null;
+};
+
+type CheckRewardClaimEligibilityResponse = ServiceResponse & {
+  claim: OperatorPoolRewardClaimApiResponse;
+};
+
+type GetRewardClaimsForEpochResponse = ServiceResponse & {
+  rewardClaims: OperatorPoolRewardClaimApiResponse[];
+};
+
 export class TrpcHttpClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -37,7 +72,7 @@ export class TrpcHttpClient {
     const params: Record<string, string> = {};
 
     if (input) {
-      params.input = JSON.stringify(input);
+      params.input = superjson.stringify(input);
     }
 
     const response = await axios.get(url, {
@@ -70,20 +105,7 @@ export class TrpcHttpClient {
   private handleResponse<T>(response: AxiosResponse): T {
     if (response.status >= 200 && response.status < 300) {
       const result = response.data?.result;
-
-      if (result) {
-        if (typeof result === "string") {
-          try {
-            return superjson.parse(result);
-          } catch {
-            return result as unknown as T;
-          }
-        }
-
-        return result as T;
-      }
-
-      return response.data as T;
+      return result.data.json as T;
     }
 
     throw new Error(
@@ -91,29 +113,28 @@ export class TrpcHttpClient {
     );
   }
 
-  public async login(): Promise<boolean> {
+  public async login(): Promise<void> {
     try {
       const params = { email: LOGIN_EMAIL, password: LOGIN_PASSWORD };
       const response = await this.mutate("user.login", params);
-
       if (response.user && response.token) {
         this.token = response.token;
+      } else {
+        throw new Error("Login failed");
       }
-
-      return true;
     } catch (error) {
       console.error(
         "Login error:",
         error instanceof Error ? error.message : error
       );
-      return false;
+      throw error;
     }
   }
 
   public async executeEpochFinalization(): Promise<any> {
     try {
       const result = await this.mutate(
-        "epochFinalizationTRPC.executeEpochFinalization"
+        "epochFinalization.executeEpochFinalization"
       );
       return result;
     } catch (error) {
@@ -125,7 +146,7 @@ export class TrpcHttpClient {
   public async getCurrentEpochFinalization(): Promise<any> {
     try {
       const result = await this.query(
-        "epochFinalizationTRPC.getCurrentEpochFinalization"
+        "epochFinalization.getCurrentEpochFinalization"
       );
       return result;
     } catch (error) {
@@ -136,9 +157,7 @@ export class TrpcHttpClient {
 
   public async createRewardRecord(): Promise<any> {
     try {
-      const result = await this.mutate(
-        "epochFinalizationTRPC.createRewardRecord"
-      );
+      const result = await this.mutate("epochFinalization.createRewardRecord");
       return result;
     } catch (error) {
       console.error("Error creating reward record:", error);
@@ -149,7 +168,7 @@ export class TrpcHttpClient {
   public async checkRewardClaimEligibility(
     operatorPoolPda: string,
     epoch: bigint
-  ): Promise<any> {
+  ): Promise<CheckRewardClaimEligibilityResponse> {
     try {
       const params = {
         operatorPoolPda,
@@ -161,9 +180,41 @@ export class TrpcHttpClient {
         params
       );
 
-      return result;
+      return result as CheckRewardClaimEligibilityResponse;
     } catch (error) {
       console.error("Error checking reward claim eligibility:", error);
+      throw error;
+    }
+  }
+
+  public async getRewardClaimsForEpoch(
+    epoch: bigint
+  ): Promise<GetRewardClaimsForEpochResponse> {
+    try {
+      const result = await this.query("staking.getRewardClaimsForEpoch", {
+        epoch,
+      });
+      return result as GetRewardClaimsForEpochResponse;
+    } catch (error) {
+      console.error("Error getting reward claims for epoch:", error);
+      throw error;
+    }
+  }
+
+  public async insertAndProcessTransactionBySignature(signature: string) {
+    try {
+      const result = await this.mutate(
+        "solanaTransactions.insertAndProcessTransactionBySignature",
+        {
+          signature,
+        }
+      );
+      return result;
+    } catch (error) {
+      console.error(
+        "Error inserting and processing transaction by signature:",
+        error
+      );
       throw error;
     }
   }

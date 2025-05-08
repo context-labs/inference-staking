@@ -28,8 +28,14 @@ pub enum ErrorCode {
     StakingHalted,
     #[msg("Withdrawals are halted")]
     WithdrawalsHalted,
-    #[msg("PoolOverview Authority is not valid")]
-    InvalidAuthority,
+    #[msg("ProgramAdmin is not valid")]
+    InvalidProgramAdmin,
+    #[msg("RewardDistributionAuthority is not valid")]
+    InvalidRewardDistributionAuthority,
+    #[msg("HaltAuthority is not valid")]
+    InvalidHaltAuthority,
+    #[msg("SlashingAuthority is not valid")]
+    InvalidSlashingAuthority,
     #[msg("Exceeded allowed authorities length")]
     AuthoritiesExceeded,
     #[msg("Account not empty")]

@@ -10,7 +10,7 @@ pub struct UpdatePoolOverviewAuthorities<'info> {
         mut,
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
-        has_one = program_admin @ ErrorCode::InvalidAuthority
+        has_one = program_admin @ ErrorCode::InvalidProgramAdmin
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
 

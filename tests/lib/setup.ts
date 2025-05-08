@@ -8,7 +8,13 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 
 import { InferenceStakingProgramSdk } from "@sdk/src";
 
-import { DELEGATOR_COUNT, OPERATOR_POOL_SIZE } from "@tests/lib/const";
+import {
+  DELEGATOR_COUNT,
+  OPERATOR_POOL_SIZE,
+  PAYER_KEYPAIR,
+  PROGRAM_ADMIN_KEYPAIR,
+  REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR,
+} from "@tests/lib/const";
 import {
   airdrop,
   batchArray,
@@ -22,7 +28,7 @@ const { BN, getProvider } = anchor;
 
 export type SetupTestResult = Awaited<ReturnType<typeof setupTests>>;
 
-type SetupPoolType = {
+export type SetupPoolType = {
   name: string;
   description: string;
   websiteUrl: string;
@@ -52,11 +58,12 @@ const TEST_USDC_MINT_KEYPAIR = Keypair.fromSecretKey(
 );
 
 export async function setupTests() {
-  const payerKp = new Keypair();
+  const payerKp = PAYER_KEYPAIR ?? new Keypair();
   const signerKp = new Keypair();
   const tokenHolderKp = new Keypair();
-  const poolOverviewAdminKp = new Keypair();
-  const rewardDistributionAuthorityKp = new Keypair();
+  const poolOverviewAdminKp = PROGRAM_ADMIN_KEYPAIR ?? new Keypair();
+  const rewardDistributionAuthorityKp =
+    REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR ?? new Keypair();
   const haltingAuthorityKp = new Keypair();
   const slashingAuthorityKp = new Keypair();
   const admin1Kp = new Keypair();

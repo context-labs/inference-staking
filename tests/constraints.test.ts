@@ -98,7 +98,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "invalidAuthority");
+      assertStakingProgramError(error, "invalidProgramAdmin");
     }
   });
 
@@ -216,7 +216,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "invalidAuthority");
+      assertStakingProgramError(error, "invalidProgramAdmin");
     }
   });
 
@@ -298,7 +298,7 @@ describe("Additional tests for instruction constraints", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "invalidAuthority");
+      assertStakingProgramError(error, "invalidProgramAdmin");
     }
   });
 });

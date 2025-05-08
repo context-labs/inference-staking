@@ -1,3 +1,5 @@
+import { Keypair } from "@solana/web3.js";
+import bs58 from "bs58";
 import promiseLimit from "promise-limit";
 
 export function toCamelCase(text: string): string {
@@ -76,4 +78,24 @@ export async function limitConcurrency<T, R>(
 ): Promise<R[]> {
   const limit = promiseLimit<R>(concurrencyLimit);
   return Promise.all(arr.map((item) => limit(() => fn(item))));
+}
+
+export function deserializeMerkleProof(proof: string[]): Uint8Array[] {
+  return proof.map((node) => bs58.decode(node));
+}
+
+export function parseKeypairFromString(
+  keypairString: string | undefined | null
+): Keypair | null {
+  if (keypairString == null) {
+    return null;
+  }
+
+  try {
+    return Keypair.fromSecretKey(
+      new Uint8Array(JSON.parse(keypairString) as number[])
+    );
+  } catch {
+    return null;
+  }
 }

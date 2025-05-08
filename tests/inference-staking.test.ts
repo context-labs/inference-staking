@@ -245,7 +245,7 @@ describe("inference-staking program tests", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "invalidAuthority");
+      assertStakingProgramError(error, "invalidRewardDistributionAuthority");
     }
   });
 
@@ -1615,7 +1615,7 @@ describe("inference-staking program tests", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "invalidAuthority");
+      assertStakingProgramError(error, "invalidRewardDistributionAuthority");
     }
   });
 
@@ -2211,7 +2211,7 @@ describe("inference-staking program tests", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "invalidAuthority");
+      assertStakingProgramError(error, "invalidSlashingAuthority");
     }
   });
 
@@ -2340,7 +2340,7 @@ describe("inference-staking program tests", () => {
 
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "invalidAuthority");
+      assertStakingProgramError(error, "invalidHaltAuthority");
     }
   });
 

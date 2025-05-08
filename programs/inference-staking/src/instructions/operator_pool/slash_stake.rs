@@ -16,7 +16,7 @@ pub struct SlashStake<'info> {
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
         constraint = pool_overview.slashing_authorities.contains(authority.key)
-          @ ErrorCode::InvalidAuthority,
+          @ ErrorCode::InvalidSlashingAuthority,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
 
