@@ -51,6 +51,10 @@ type GetRewardEmissionsForEpochResponse = ServiceResponse & {
   rewardEmissions: RewardEmissionApiResponse;
 };
 
+type RunProgramAccountStateValidationResponse = ServiceResponse & {
+  isStateValid: boolean;
+};
+
 export class TrpcHttpClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -240,6 +244,18 @@ export class TrpcHttpClient {
       return result as GetRewardEmissionsForEpochResponse;
     } catch (error) {
       console.error("Error getting reward emissions for epoch:", error);
+      throw error;
+    }
+  }
+
+  public async runProgramAccountStateValidation(): Promise<RunProgramAccountStateValidationResponse> {
+    try {
+      const result = await this.mutate(
+        "stakingProgramService.runProgramAccountStateValidation"
+      );
+      return result as RunProgramAccountStateValidationResponse;
+    } catch (error) {
+      console.error("Error running program account state validation:", error);
       throw error;
     }
   }

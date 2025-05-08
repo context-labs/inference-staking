@@ -1481,4 +1481,14 @@ describe("multi-epoch lifecycle tests", () => {
       counter++;
     }
   });
+
+  it("Final state validation check", async () => {
+    if (!TEST_WITH_RELAY) {
+      debug("End-to-end test flow is disabled, skipping state validation");
+      return;
+    }
+
+    const result = await trpc.runProgramAccountStateValidation();
+    assert(result.isStateValid, "Program account state is valid");
+  });
 });
