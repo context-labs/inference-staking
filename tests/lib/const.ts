@@ -21,3 +21,11 @@ export const EPOCH_CLAIM_FREQUENCY = process.env.EPOCH_CLAIM_FREQUENCY
 export const TEST_WITH_RELAY = process.env.TEST_WITH_RELAY
   ? process.env.TEST_WITH_RELAY === "true"
   : false;
+
+export const API_URL = process.env.API_URL
+  ? process.env.API_URL
+  : "http://localhost:3001";
+
+export const LOGIN_EMAIL = process.env.LOGIN_EMAIL ?? "";
+
+export const LOGIN_PASSWORD = process.env.LOGIN_PASSWORD ?? "";
