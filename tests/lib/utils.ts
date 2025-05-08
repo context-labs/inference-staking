@@ -55,7 +55,11 @@ export const debug = (msg: string) => {
 };
 
 export const formatBN = (bn: anchor.BN): string => {
-  return bn.toNumber().toLocaleString();
+  try {
+    return bn.toNumber().toLocaleString();
+  } catch {
+    return bn.toString();
+  }
 };
 
 export const generateRewardsForEpoch = (
