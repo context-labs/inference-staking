@@ -731,7 +731,7 @@ describe("multi-epoch lifecycle tests", () => {
 
         const claims = await trpc.getRewardClaimsForEpoch(BigInt(i));
         const totalRewards = claims.rewardClaims.reduce((acc, claim) => {
-          invariant(
+          assert(
             claim.merkleRewardAmount != null,
             "merkleRewardAmount cannot be null"
           );
@@ -739,7 +739,7 @@ describe("multi-epoch lifecycle tests", () => {
         }, new anchor.BN(0));
 
         const totalUsdcAmount = claims.rewardClaims.reduce((acc, claim) => {
-          invariant(
+          assert(
             claim.merkleUsdcAmount != null,
             "merkleUsdcAmount cannot be null"
           );
