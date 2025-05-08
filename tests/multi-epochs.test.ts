@@ -1489,9 +1489,7 @@ describe("multi-epoch lifecycle tests", () => {
     }
 
     const result = await trpc.runProgramAccountStateValidation();
-    assert(
-      result.isStateValid,
-      "✅ Program account state is valid. Test completed successfully."
-    );
+    assert(result.isStateValid, "Program account state validation failed.");
+    debug("✅ Program account state is valid. Test completed successfully.");
   });
 });
