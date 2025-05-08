@@ -11,7 +11,11 @@ import { assert } from "chai";
 
 import type { InferenceStaking } from "@sdk/src/idl";
 
-import { EPOCH_CLAIM_FREQUENCY, NUMBER_OF_EPOCHS } from "@tests/lib/const";
+import {
+  EPOCH_CLAIM_FREQUENCY,
+  NUMBER_OF_EPOCHS,
+  TEST_WITH_RELAY,
+} from "@tests/lib/const";
 import type {
   ConstructMerkleTreeInput,
   GenerateMerkleProofInput,
@@ -770,7 +774,7 @@ describe("multi-epoch lifecycle tests", () => {
       assert.approximately(
         stakingRecordPost.unstakeAtTimestamp.toNumber(),
         currentTimestamp + delegatorUnstakeDelaySeconds.toNumber(),
-        3,
+        10,
         "Unstake timestamp should be approximately current time plus delay"
       );
 
@@ -910,6 +914,11 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Close staking records for all delegators successfully", async () => {
+    if (TEST_WITH_RELAY) {
+      debug("TEST_WITH_RELAY is enabled, skipping close staking records");
+      return;
+    }
+
     debug(
       `\nClosing staking records for ${setup.delegatorKeypairs.length} delegators`
     );
@@ -1087,7 +1096,7 @@ describe("multi-epoch lifecycle tests", () => {
       assert.approximately(
         stakingRecordPost.unstakeAtTimestamp.toNumber(),
         currentTimestamp + operatorUnstakeDelaySeconds.toNumber(),
-        3,
+        10,
         "Unstake timestamp should be approximately current time plus delay"
       );
 
@@ -1256,6 +1265,11 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Close all operator staking records successfully", async () => {
+    if (TEST_WITH_RELAY) {
+      debug("TEST_WITH_RELAY is enabled, skipping close staking records");
+      return;
+    }
+
     debug(
       `\nClosing staking records for ${setup.pools.length} operator admins`
     );

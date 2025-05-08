@@ -17,3 +17,7 @@ export const NUMBER_OF_EPOCHS = process.env.NUMBER_OF_EPOCHS
 export const EPOCH_CLAIM_FREQUENCY = process.env.EPOCH_CLAIM_FREQUENCY
   ? parseInt(process.env.EPOCH_CLAIM_FREQUENCY)
   : 2;
+
+export const TEST_WITH_RELAY = process.env.TEST_WITH_RELAY
+  ? process.env.TEST_WITH_RELAY === "true"
+  : false;
