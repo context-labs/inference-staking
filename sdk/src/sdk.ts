@@ -490,10 +490,8 @@ export class InferenceStakingProgramSdk {
 
           const name = decodedIx.name as InferenceStakingInstructions;
 
-          const decodedInstructionArguments = decodedIx.data as {
-            args: InstructionArgsMap[InferenceStakingInstructions];
-          };
-          const args = decodedInstructionArguments.args;
+          const args =
+            decodedIx.data as InstructionArgsMap[InferenceStakingInstructions];
 
           const accountsMeta: AccountMeta[] = instruction.accounts.map(
             (idx) => {
