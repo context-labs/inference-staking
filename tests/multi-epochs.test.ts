@@ -770,7 +770,7 @@ describe("multi-epoch lifecycle tests", () => {
           expectedEpochRewards.rewardEmissions.totalRewards;
         assert(
           new anchor.BN(expectedTotalRewards.toString()).eq(totalRewards),
-          `Total rewards for epoch ${epoch} ${totalRewards.toString()} do not match expected rewards ${expectedTotalRewards.toString()}`
+          `Total rewards for epoch ${epoch}: ${totalRewards.toString()} do not match expected rewards: ${expectedTotalRewards.toString()}`
         );
 
         const totalRewardsString = formatBN(totalRewards);
@@ -798,7 +798,13 @@ describe("multi-epoch lifecycle tests", () => {
 
         await executeWithRetries(
           async () => {
-            await trpc.createRewardRecord();
+            const response = await trpc.createRewardRecord();
+            if (response.status !== "200") {
+              console.error(response);
+              throw new Error(
+                "createRewardRecord returned with non-200 status"
+              );
+            }
           },
           {
             retries: 10,
@@ -1514,6 +1520,8 @@ describe("multi-epoch lifecycle tests", () => {
     }
 
     const result = await trpc.runProgramAccountStateValidation();
+    console.log("Program state validation result:");
+    console.log(result);
     assert(result.isStateValid, "Program account state validation failed.");
     debug("✅ Program account state is valid. Test completed successfully.");
   });

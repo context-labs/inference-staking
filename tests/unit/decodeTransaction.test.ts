@@ -282,7 +282,7 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
     }
   });
 
-  it.only("should decode a Stake transaction correctly", () => {
+  it("should decode a Stake transaction correctly", () => {
     anchor.setProvider(anchor.AnchorProvider.env());
 
     const sdk = new InferenceStakingProgramSdk({
