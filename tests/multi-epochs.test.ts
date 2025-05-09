@@ -10,7 +10,7 @@ import { SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
 import type { InferenceStaking } from "@sdk/src/idl";
-import { deserializeMerkleProof } from "@sdk/src/utils";
+import { deserializeMerkleProof, executeWithRetries } from "@sdk/src/utils";
 
 import {
   EPOCH_CLAIM_FREQUENCY,
@@ -719,16 +719,33 @@ describe("multi-epoch lifecycle tests", () => {
         debug(
           `- End-to-end test flow is enabled, submitting epoch finalization request for epoch ${epoch}...`
         );
-        const response = await trpc.executeEpochFinalization();
 
-        if (response.status !== "200") {
-          console.error(response);
-          throw new Error(
-            "executeEpochFinalization returned with non-200 status"
-          );
-        }
+        await executeWithRetries(
+          async () => {
+            const response = await trpc.executeEpochFinalization();
+            if (response.status !== "200") {
+              console.error(response);
+              throw new Error(
+                "executeEpochFinalization returned with non-200 status"
+              );
+            }
+          },
+          {
+            retries: 10,
+            retryDelayMs: 100,
+          }
+        );
 
         const claims = await trpc.getRewardClaimsForEpoch(BigInt(epoch));
+
+        for (const claim of claims.rewardClaims) {
+          assert(claim.proof != null);
+          assert(claim.proofPath != null);
+          assert(claim.merkleTreeIndex != null);
+          assert(claim.merkleUsdcAmount != null);
+          assert(claim.merkleRewardAmount != null);
+        }
+
         const totalRewards = claims.rewardClaims.reduce((acc, claim) => {
           assert(
             claim.merkleRewardAmount != null,
@@ -779,7 +796,15 @@ describe("multi-epoch lifecycle tests", () => {
           totalUsdcAmount.toNumber()
         );
 
-        await trpc.createRewardRecord();
+        await executeWithRetries(
+          async () => {
+            await trpc.createRewardRecord();
+          },
+          {
+            retries: 10,
+            retryDelayMs: 100,
+          }
+        );
       } else {
         const rewards = generateRewardsForEpoch(
           setup.pools.map((pool) => pool.pool)
