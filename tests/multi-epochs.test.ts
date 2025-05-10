@@ -87,8 +87,8 @@ async function getRewardClaimInputs({
       merkleIndex: merkleTreeIndex,
       proof: deserializedProof.map((arr) => Array.from(arr)),
       proofPath,
-      rewardAmount: new anchor.BN(Number(merkleRewardAmount)),
-      usdcAmount: new anchor.BN(Number(merkleUsdcAmount)),
+      rewardAmount: new anchor.BN(merkleRewardAmount.toString()),
+      usdcAmount: new anchor.BN(merkleUsdcAmount.toString()),
     };
   } else {
     if (epoch > epochRewards.length) {
@@ -118,8 +118,8 @@ async function getRewardClaimInputs({
     } as GenerateMerkleProofInput;
 
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
-    const rewardAmount = new anchor.BN(Number(proofInputs.tokenAmount));
-    const usdcAmount = new anchor.BN(Number(proofInputs.usdcAmount));
+    const rewardAmount = new anchor.BN(proofInputs.tokenAmount.toString());
+    const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
 
     return {
       merkleIndex: 0,
@@ -574,7 +574,7 @@ describe("multi-epoch lifecycle tests", () => {
         setup.tokenMint,
         ownerTokenAccount.address,
         setup.tokenHolderKp,
-        stakeAmount.toNumber()
+        BigInt(stakeAmount.toString())
       );
 
       const poolPre = await program.account.operatorPool.fetch(pool.pool);
@@ -673,7 +673,7 @@ describe("multi-epoch lifecycle tests", () => {
         setup.tokenMint,
         ownerTokenAccount.address,
         setup.tokenHolderKp,
-        stakeAmount.toNumber()
+        BigInt(stakeAmount.toString())
       );
 
       await program.methods
@@ -788,7 +788,7 @@ describe("multi-epoch lifecycle tests", () => {
           setup.tokenMint,
           setup.rewardTokenAccount,
           setup.tokenHolderKp,
-          totalRewards.toNumber()
+          BigInt(totalRewards.toString())
         );
 
         await mintTo(
@@ -797,7 +797,7 @@ describe("multi-epoch lifecycle tests", () => {
           setup.usdcTokenMint,
           setup.usdcTokenAccount,
           setup.tokenHolderKp,
-          totalUsdcAmount.toNumber()
+          BigInt(totalUsdcAmount.toString())
         );
 
         await executeWithRetries(
@@ -824,12 +824,14 @@ describe("multi-epoch lifecycle tests", () => {
         const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
         let totalRewards = new anchor.BN(0);
         for (const addressInput of rewards) {
-          totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
+          totalRewards = totalRewards.add(
+            new anchor.BN(addressInput.tokenAmount.toString())
+          );
         }
         let totalUsdcAmount = new anchor.BN(0);
         for (const addressInput of rewards) {
-          totalUsdcAmount = totalUsdcAmount.addn(
-            Number(addressInput.usdcAmount)
+          totalUsdcAmount = totalUsdcAmount.add(
+            new anchor.BN(addressInput.usdcAmount.toString())
           );
         }
 
@@ -839,7 +841,7 @@ describe("multi-epoch lifecycle tests", () => {
           setup.tokenMint,
           setup.rewardTokenAccount,
           setup.tokenHolderKp,
-          totalRewards.toNumber()
+          BigInt(totalRewards.toString())
         );
 
         await mintTo(
@@ -848,7 +850,7 @@ describe("multi-epoch lifecycle tests", () => {
           setup.usdcTokenMint,
           setup.usdcTokenAccount,
           setup.tokenHolderKp,
-          totalUsdcAmount.toNumber()
+          BigInt(totalUsdcAmount.toString())
         );
 
         await setEpochFinalizationState({
@@ -1110,9 +1112,8 @@ describe("multi-epoch lifecycle tests", () => {
       );
 
       // Verify tokens were received in owner's account
-      const amountClaimed = new anchor.BN(
-        Number(tokenBalancePost.value.amount) -
-          Number(tokenBalancePre.value.amount)
+      const amountClaimed = new anchor.BN(tokenBalancePost.value.amount).sub(
+        new anchor.BN(tokenBalancePre.value.amount)
       );
       assert(
         amountClaimed.eq(stakingRecordPre.tokensUnstakeAmount),
@@ -1185,7 +1186,7 @@ describe("multi-epoch lifecycle tests", () => {
         pool.feeTokenAccount
       );
 
-      if (Number(feeTokenAccountPre.value.amount) === 0) {
+      if (new anchor.BN(feeTokenAccountPre.value.amount).isZero()) {
         debug(
           `- No commission to withdraw for Operator Pool ${pool.pool.toString()}`
         );
@@ -1232,9 +1233,8 @@ describe("multi-epoch lifecycle tests", () => {
 
       // Verify tokens were received in owner's account
       const amountWithdrawn = new anchor.BN(
-        Number(ownerTokenBalancePost.value.amount) -
-          Number(ownerTokenBalancePre.value.amount)
-      );
+        ownerTokenBalancePost.value.amount
+      ).sub(new anchor.BN(ownerTokenBalancePre.value.amount));
       assert(
         amountWithdrawn.eq(new anchor.BN(feeTokenAccountPre.value.amount)),
         "Amount withdrawn should match fee token account balance"
@@ -1430,9 +1430,8 @@ describe("multi-epoch lifecycle tests", () => {
       );
 
       // Verify tokens were received in owner's account
-      const amountClaimed = new anchor.BN(
-        Number(tokenBalancePost.value.amount) -
-          Number(tokenBalancePre.value.amount)
+      const amountClaimed = new anchor.BN(tokenBalancePost.value.amount).sub(
+        new anchor.BN(tokenBalancePre.value.amount)
       );
       assert(
         amountClaimed.eq(stakingRecordPre.tokensUnstakeAmount),
