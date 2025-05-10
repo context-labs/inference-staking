@@ -84,6 +84,29 @@ pub struct OperatorPool {
     pub usdc_payout_destination: Pubkey,
 }
 
+/// Notes on shared based accounting mechanism:
+///
+/// The token protocol issues shares when tokens are staked. The key equations are:
+///
+/// When staking:   shares = (tokenAmount / totalStakedAmount) * totalShares
+/// When unstaking: tokens = (shareAmount / totalShares) * totalStakedAmount
+///
+/// When users stake tokens:
+/// The user receives shares proportional to their token contribution relative to the total pool.
+///
+/// When a user unstakes tokens:
+/// The system converts a user's shares to the corresponding tokens amount, based on the current
+/// ratio. The shares are burned, and the tokens begin unstaking.
+///
+/// When rewards are paid out:
+/// Rewards are added to the pool's total_staked_amount but no new shares are created, which
+/// increases the value of each share proportionally for each delegator in the pool.
+///
+/// Operator commission fees are deducted separately before rewards are paid out, depending
+/// on the operator pool's commission settings.
+///
+/// This shared based accounting mechanism allows the program to fairly and efficiently
+/// distribute and compound rewards among many stakers.
 impl OperatorPool {
     /// Calculates number of shares equivalent to token amount.
     /// Uses a default 1:1 rate if total_shares i 0.
