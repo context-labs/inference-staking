@@ -16,7 +16,7 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/inference-staking.test.ts"
+# test = "bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/inference-staking.test.ts"
 # test = "bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/rewards.test.ts"
 # test = "bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/constraints.test.ts"
-# test = "bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 100000000 tests/**/multi-epochs.test.ts"
+test = "bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 100000000 tests/**/multi-epochs.test.ts"

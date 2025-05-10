@@ -7,6 +7,7 @@ import {
 import { Keypair, PublicKey } from "@solana/web3.js";
 
 import { InferenceStakingProgramSdk } from "@sdk/src";
+import { limitConcurrency } from "@sdk/src/utils";
 
 import {
   DELEGATOR_COUNT,
@@ -191,29 +192,38 @@ export async function setupTests() {
     operatorPool: PublicKey;
     delegatorKeypair: Keypair;
   }): Promise<SetupPoolType> => {
-    const adminUsdcTokenAccount = await getOrCreateAssociatedTokenAccount(
-      provider.connection,
-      payerKp,
-      usdcTokenMint,
-      adminKeypair.publicKey
-    );
-    return {
-      name: `Test Operator ${shortId()}`,
-      description: `Test Description ${shortId()}`,
-      websiteUrl: `https://test.com/${shortId()}`,
-      avatarImageUrl: `https://test.com/${shortId()}`,
-      admin: adminKeypair.publicKey,
-      adminKp: adminKeypair,
-      feeTokenAccount: sdk.feeTokenPda(operatorPool),
-      pool: operatorPool,
-      stakedTokenAccount: sdk.stakedTokenPda(operatorPool),
-      stakingRecord: sdk.stakingRecordPda(operatorPool, adminKeypair.publicKey),
-      usdcTokenAccount: adminUsdcTokenAccount.address,
-      delegatorStakingRecord: sdk.stakingRecordPda(
-        operatorPool,
-        delegatorKeypair.publicKey
-      ),
-    };
+    try {
+      const adminUsdcTokenAccount = await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        payerKp,
+        usdcTokenMint,
+        adminKeypair.publicKey
+      );
+      return {
+        name: `Test Operator ${shortId()}`,
+        description: `Test Description ${shortId()}`,
+        websiteUrl: `https://test.com/${shortId()}`,
+        avatarImageUrl: `https://test.com/${shortId()}`,
+        admin: adminKeypair.publicKey,
+        adminKp: adminKeypair,
+        feeTokenAccount: sdk.feeTokenPda(operatorPool),
+        pool: operatorPool,
+        stakedTokenAccount: sdk.stakedTokenPda(operatorPool),
+        stakingRecord: sdk.stakingRecordPda(
+          operatorPool,
+          adminKeypair.publicKey
+        ),
+        usdcTokenAccount: adminUsdcTokenAccount.address,
+        delegatorStakingRecord: sdk.stakingRecordPda(
+          operatorPool,
+          delegatorKeypair.publicKey
+        ),
+      };
+    } catch (err) {
+      console.log(`Error getting pool setup for ${operatorPool.toBase58()}`);
+      console.error(err);
+      throw err;
+    }
   };
 
   const [pool1, pool2, pool3, pool4, pool5] = await Promise.all([
@@ -247,14 +257,16 @@ export async function setupTests() {
   const poolIds = range(OPERATOR_POOL_SIZE).map((i) =>
     sdk.operatorPoolPda(new BN(i + 1))
   );
-  const pools = await Promise.all(
-    poolIds.map(async (poolId) => {
+  const pools = await limitConcurrency(
+    poolIds,
+    async (poolId) => {
       return getPoolSetup({
         operatorPool: poolId,
         adminKeypair: Keypair.generate(),
         delegatorKeypair: Keypair.generate(),
       });
-    })
+    },
+    10
   );
 
   const rewardRecords = {

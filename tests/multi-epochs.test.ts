@@ -66,10 +66,10 @@ async function getRewardClaimInputs({
 
     const {
       merkleRewardAmount,
+      merkleTreeIndex,
       merkleUsdcAmount,
       proof,
       proofPath,
-      merkleTreeIndex,
     } = response.claim;
 
     assert(
@@ -357,6 +357,8 @@ describe("multi-epoch lifecycle tests", () => {
   let setup: SetupTestResult;
   let connection: Connection;
   let program: Program<InferenceStaking>;
+
+  let totalDistributedRewards = new anchor.BN(0);
   const epochRewards: ConstructMerkleTreeInput[][] = [];
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
@@ -772,6 +774,8 @@ describe("multi-epoch lifecycle tests", () => {
           new anchor.BN(expectedTotalRewards.toString()).eq(totalRewards),
           `Total rewards for epoch ${epoch}: ${totalRewards.toString()} do not match expected rewards: ${expectedTotalRewards.toString()}`
         );
+
+        totalDistributedRewards = totalDistributedRewards.add(totalRewards);
 
         const totalRewardsString = formatBN(totalRewards);
         debug(
@@ -1515,7 +1519,9 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Final state validation check", async () => {
     if (!TEST_WITH_RELAY) {
-      debug("End-to-end test flow is disabled, skipping state validation");
+      debug(
+        "End-to-end test flow is disabled, skipping final state validation"
+      );
       return;
     }
 
@@ -1523,6 +1529,9 @@ describe("multi-epoch lifecycle tests", () => {
     console.log("Program state validation result:");
     console.log(result);
     assert(result.isStateValid, "Program account state validation failed.");
+
+    const totalDistributedRewardsString = formatBN(totalDistributedRewards);
     debug("✅ Program account state is valid. Test completed successfully.");
+    debug(`Total rewards distributed: ${totalDistributedRewardsString}`);
   });
 });
