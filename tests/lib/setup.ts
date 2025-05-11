@@ -21,6 +21,7 @@ import {
   batchArray,
   confirmTransaction,
   generateRewardsForEpoch,
+  randomIntInRange,
   range,
   shortId,
 } from "@tests/lib/utils";
@@ -42,10 +43,22 @@ export type SetupPoolType = {
   stakingRecord: PublicKey;
   usdcTokenAccount: PublicKey;
   delegatorStakingRecord: PublicKey;
+  autoStakeFees: boolean;
+  commissionRateBps: number;
 };
 
 export const TEST_PROGRAM_ID = new PublicKey(
   "dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm"
+);
+
+// intW4zCHBLLci7zznq1x3H2gczXxaEyGyyHCwKibW8E
+const TEST_TOKEN_MINT_KEYPAIR = Keypair.fromSecretKey(
+  new Uint8Array([
+    188, 173, 224, 45, 214, 77, 151, 137, 179, 209, 161, 204, 158, 25, 227, 124,
+    59, 54, 135, 249, 5, 128, 200, 215, 175, 173, 19, 68, 247, 116, 50, 125, 10,
+    180, 178, 231, 116, 74, 3, 245, 230, 126, 33, 167, 101, 154, 119, 124, 235,
+    105, 96, 65, 217, 138, 39, 108, 4, 209, 12, 149, 210, 75, 241, 215,
+  ])
 );
 
 // usdEkK5GbzC22bd2gKMFpt6sY2YETm2eaCiu7bBheZV
@@ -111,7 +124,8 @@ export async function setupTests() {
     payerKp,
     tokenHolderKp.publicKey,
     tokenHolderKp.publicKey,
-    9
+    9,
+    TEST_TOKEN_MINT_KEYPAIR
   );
 
   const createAndMintToAta = async (user: Keypair, tokenMint: PublicKey) => {
@@ -218,6 +232,8 @@ export async function setupTests() {
           operatorPool,
           delegatorKeypair.publicKey
         ),
+        autoStakeFees: false,
+        commissionRateBps: randomIntInRange(100, 10_000),
       };
     } catch (err) {
       console.log(`Error getting pool setup for ${operatorPool.toBase58()}`);

@@ -136,14 +136,12 @@ async function handleAccrueRewardForEpochs({
   setup,
   program,
   connection,
-  commissionRateBps,
   trpc,
 }: {
   epochRewards: ConstructMerkleTreeInput[][];
   setup: SetupTestResult;
   program: Program<InferenceStaking>;
   connection: Connection;
-  commissionRateBps: number;
   trpc: TrpcHttpClient;
 }) {
   const commissionFeeMap = new Map<string, anchor.BN>();
@@ -231,7 +229,7 @@ async function handleAccrueRewardForEpochs({
       }
 
       const commissionFees = rewardAmount
-        .mul(new anchor.BN(commissionRateBps))
+        .mul(new anchor.BN(pool.commissionRateBps))
         .div(new anchor.BN(10_000));
       const currentCommissionFeesForPool =
         commissionFeeMap.get(pool.pool.toString()) ?? new anchor.BN(0);
@@ -363,8 +361,6 @@ describe("multi-epoch lifecycle tests", () => {
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
-  const autoStakeFees = false;
-  const commissionRateBps = 1_500;
   const allowDelegation = true;
   const minOperatorShareBps = 1_000;
   const allowPoolCreation = true;
@@ -499,8 +495,8 @@ describe("multi-epoch lifecycle tests", () => {
       assert(pool != null);
       await program.methods
         .createOperatorPool({
-          autoStakeFees,
-          commissionRateBps,
+          autoStakeFees: pool.autoStakeFees,
+          commissionRateBps: pool.commissionRateBps,
           allowDelegation,
           name: pool.name,
           description: pool.description,
@@ -527,8 +523,8 @@ describe("multi-epoch lifecycle tests", () => {
       assert(operatorPool.poolId.eqn(i + 1));
       assert(operatorPool.admin.equals(pool.admin));
       assert(operatorPool.operatorStakingRecord.equals(pool.stakingRecord));
-      assert.equal(operatorPool.autoStakeFees, autoStakeFees);
-      assert.equal(operatorPool.commissionRateBps, commissionRateBps);
+      assert.equal(operatorPool.autoStakeFees, pool.autoStakeFees);
+      assert.equal(operatorPool.commissionRateBps, pool.commissionRateBps);
       assert.isNull(operatorPool.newCommissionRateBps);
       assert.equal(operatorPool.allowDelegation, allowDelegation);
       assert(operatorPool.totalStakedAmount.isZero());
@@ -904,7 +900,6 @@ describe("multi-epoch lifecycle tests", () => {
           `\nStart reward claims for all existing rewards up to epoch ${epoch}`
         );
         await handleAccrueRewardForEpochs({
-          commissionRateBps,
           connection,
           epochRewards,
           program,
@@ -918,7 +913,6 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Accrue Rewards for any remaining epochs", async () => {
     await handleAccrueRewardForEpochs({
-      commissionRateBps,
       connection,
       epochRewards,
       program,
