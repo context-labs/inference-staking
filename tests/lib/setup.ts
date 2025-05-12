@@ -23,6 +23,7 @@ import {
   generateRewardsForEpoch,
   randomIntInRange,
   range,
+  resetDatabaseState,
   shortId,
 } from "@tests/lib/utils";
 
@@ -72,6 +73,8 @@ const TEST_USDC_MINT_KEYPAIR = Keypair.fromSecretKey(
 );
 
 export async function setupTests() {
+  await resetDatabaseState();
+
   const payerKp = PAYER_KEYPAIR ?? new Keypair();
   const signerKp = new Keypair();
   const tokenHolderKp = new Keypair();

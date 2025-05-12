@@ -158,6 +158,8 @@ async function handleAccrueRewardForEpochs({
       commissionFeeMap.set(pool.pool.toString(), new anchor.BN(0));
     }
 
+    const rewardClaimsForPool: anchor.BN[] = [];
+
     for (
       let epoch = lastClaimedEpoch + 1;
       epoch <= currentCompletedEpoch;
@@ -201,6 +203,8 @@ async function handleAccrueRewardForEpochs({
       debug(
         `- Claiming Epoch ${epoch} rewards for Operator Pool ${pool.pool.toString()} - rewardAmount = ${tokens} - usdcAmount = ${usdc}`
       );
+
+      rewardClaimsForPool.push(rewardAmount);
 
       const signature = await program.methods
         .accrueReward({
@@ -274,7 +278,10 @@ async function handleAccrueRewardForEpochs({
           .filter((x) => x != null);
 
         const totalClaimedRewardsForPool = TEST_WITH_RELAY
-          ? rewardAmount
+          ? rewardClaimsForPool.reduce(
+              (acc, curr) => acc.add(curr),
+              new anchor.BN(0)
+            )
           : claimedEpochsRewardsForPool.reduce(
               (acc, curr) =>
                 acc.add(new anchor.BN(curr.tokenAmount.toString())),

@@ -3,6 +3,7 @@ import type { Program } from "@coral-xyz/anchor";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import type { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { assert } from "chai";
+import { Pool } from "pg";
 
 import type {
   InferenceStakingErrors,
@@ -12,6 +13,7 @@ import type {
 import type { InferenceStaking } from "@sdk/src/idl";
 import { InferenceStakingProgramSdk } from "@sdk/src/sdk";
 
+import { TEST_WITH_RELAY } from "@tests/lib/const";
 import type { ConstructMerkleTreeInput } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
 import type { SetupTestResult } from "@tests/lib/setup";
@@ -224,4 +226,42 @@ export const assertStakingRecordCreatedState = ({
     ),
     "No tokens should be in unstake queue immediately after staking"
   );
+};
+
+// Helper function for end-to-end local testing.
+export const resetDatabaseState = async () => {
+  if (!TEST_WITH_RELAY) {
+    return;
+  }
+
+  try {
+    const host = process.env.SOLANA_PROGRAMS_DB_HOST;
+    if (host != null) {
+      console.warn("\n- Local DB host provided, database state will be reset.");
+      const pool = new Pool({
+        host,
+        port: Number(process.env.SOLANA_PROGRAMS_DB_PORT),
+        user: process.env.SOLANA_PROGRAMS_DB_USERNAME,
+        password: process.env.SOLANA_PROGRAMS_DB_PASSWORD,
+        database: process.env.SOLANA_PROGRAMS_DB_NAME,
+        ssl: false,
+      });
+
+      const query = `
+        truncate pool_overview;
+        truncate operator_pools cascade;
+        truncate staking_records;
+        truncate reward_records;
+        truncate operator_pool_reward_claims;
+        truncate solana_transactions cascade;
+        truncate epoch_finalizations cascade;
+      `;
+
+      await pool.query(query);
+      console.warn("- Database state reset successfully.\n");
+    }
+  } catch (err) {
+    console.error("Failed to reset database state");
+    console.error(err);
+  }
 };
