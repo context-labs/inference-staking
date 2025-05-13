@@ -15,6 +15,7 @@ import { deserializeMerkleProof, executeWithRetries } from "@sdk/src/utils";
 import {
   EPOCH_CLAIM_FREQUENCY,
   NUMBER_OF_EPOCHS,
+  SHOULD_CLOSE_ACCOUNTS,
   TEST_WITH_RELAY,
 } from "@tests/lib/const";
 import type {
@@ -1131,7 +1132,7 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Close staking records for all delegators successfully", async () => {
-    if (TEST_WITH_RELAY) {
+    if (!SHOULD_CLOSE_ACCOUNTS) {
       debug("End-to-end test flow is enabled, skipping close staking records");
       return;
     }
@@ -1480,8 +1481,10 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Close all operator staking records successfully", async () => {
-    if (TEST_WITH_RELAY) {
-      debug("End-to-end test flow is enabled, skipping close staking records");
+    if (!SHOULD_CLOSE_ACCOUNTS) {
+      debug(
+        "End-to-end test flow is enabled, skipping close operator staking records"
+      );
       return;
     }
 

@@ -24,6 +24,10 @@ export const TEST_WITH_RELAY = process.env.TEST_WITH_RELAY
   ? process.env.TEST_WITH_RELAY === "true"
   : false;
 
+export const SHOULD_CLOSE_ACCOUNTS = process.env.SHOULD_CLOSE_ACCOUNTS
+  ? process.env.SHOULD_CLOSE_ACCOUNTS === "true"
+  : false;
+
 export const API_URL = process.env.API_URL
   ? process.env.API_URL
   : "http://localhost:3001";
