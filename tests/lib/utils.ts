@@ -1,7 +1,14 @@
 import type * as anchor from "@coral-xyz/anchor";
 import type { Program } from "@coral-xyz/anchor";
+import { createMint, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import type {
+  ConfirmOptions,
+  Connection,
+  PublicKey,
+  Signer,
+} from "@solana/web3.js";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import type { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair } from "@solana/web3.js";
 import { assert } from "chai";
 import { Pool } from "pg";
 
@@ -264,4 +271,31 @@ export const resetDatabaseState = async () => {
     console.error("Failed to reset database state");
     console.error(err);
   }
+};
+
+export const createMintIfNotExists = async (
+  connection: Connection,
+  payer: Signer,
+  mintAuthority: PublicKey,
+  freezeAuthority: PublicKey | null,
+  decimals: number,
+  keypair = Keypair.generate(),
+  confirmOptions?: ConfirmOptions,
+  programId = TOKEN_PROGRAM_ID
+) => {
+  const accountInfo = await connection.getAccountInfo(keypair.publicKey);
+  if (accountInfo != null) {
+    return keypair.publicKey;
+  }
+
+  return await createMint(
+    connection,
+    payer,
+    mintAuthority,
+    freezeAuthority,
+    decimals,
+    keypair,
+    confirmOptions,
+    programId
+  );
 };

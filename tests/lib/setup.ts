@@ -1,9 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import {
-  createMint,
-  getOrCreateAssociatedTokenAccount,
-  mintTo,
-} from "@solana/spl-token";
+import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 import { Keypair, PublicKey } from "@solana/web3.js";
 
 import { InferenceStakingProgramSdk } from "@sdk/src";
@@ -15,11 +11,13 @@ import {
   PAYER_KEYPAIR,
   PROGRAM_ADMIN_KEYPAIR,
   REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR,
+  TOKEN_MINT_OWNER_KEYPAIR,
 } from "@tests/lib/const";
 import {
   airdrop,
   batchArray,
   confirmTransaction,
+  createMintIfNotExists,
   generateRewardsForEpoch,
   randomIntInRange,
   range,
@@ -77,7 +75,7 @@ export async function setupTests() {
 
   const payerKp = PAYER_KEYPAIR ?? new Keypair();
   const signerKp = new Keypair();
-  const tokenHolderKp = new Keypair();
+  const tokenHolderKp = TOKEN_MINT_OWNER_KEYPAIR ?? new Keypair();
   const poolOverviewAdminKp = PROGRAM_ADMIN_KEYPAIR ?? new Keypair();
   const rewardDistributionAuthorityKp =
     REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR ?? new Keypair();
@@ -122,7 +120,7 @@ export async function setupTests() {
     await Promise.all(batch.map((recipient) => airdrop(provider, recipient)));
   }
 
-  const tokenMint = await createMint(
+  const tokenMint = await createMintIfNotExists(
     provider.connection,
     payerKp,
     tokenHolderKp.publicKey,
@@ -163,7 +161,7 @@ export async function setupTests() {
     txs2.map((txn) => confirmTransaction(provider.connection, txn))
   );
 
-  const usdcTokenMint = await createMint(
+  const usdcTokenMint = await createMintIfNotExists(
     provider.connection,
     payerKp,
     tokenHolderKp.publicKey,
@@ -177,7 +175,7 @@ export async function setupTests() {
     await createAndMintToAta(payerKp, usdcTokenMint)
   );
 
-  const invalidUsdcTokenMint = await createMint(
+  const invalidUsdcTokenMint = await createMintIfNotExists(
     provider.connection,
     payerKp,
     tokenHolderKp.publicKey,

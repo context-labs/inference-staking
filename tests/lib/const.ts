@@ -52,3 +52,9 @@ export const REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR = parseKeypairFromString(
 const PAYER_KEYPAIR_STRING = process.env.PAYER_KEYPAIR;
 
 export const PAYER_KEYPAIR = parseKeypairFromString(PAYER_KEYPAIR_STRING);
+
+const TOKEN_MINT_OWNER_KEYPAIR_STRING = process.env.TOKEN_MINT_OWNER_KEYPAIR;
+
+export const TOKEN_MINT_OWNER_KEYPAIR = parseKeypairFromString(
+  TOKEN_MINT_OWNER_KEYPAIR_STRING
+);
