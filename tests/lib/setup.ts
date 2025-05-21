@@ -31,9 +31,9 @@ export type SetupTestResult = Awaited<ReturnType<typeof setupTests>>;
 
 export type SetupPoolType = {
   name: string;
-  description: string;
-  websiteUrl: string;
-  avatarImageUrl: string;
+  description: string | null;
+  websiteUrl: string | null;
+  avatarImageUrl: string | null;
   admin: PublicKey;
   adminKp: Keypair;
   feeTokenAccount: PublicKey;
@@ -218,7 +218,7 @@ export async function setupTests() {
         name: `Test Operator ${shortId()}`,
         description: `Test Description ${shortId()}`,
         websiteUrl: `https://test.com/${shortId()}`,
-        avatarImageUrl: `https://test.com/${shortId()}`,
+        avatarImageUrl: null,
         admin: adminKeypair.publicKey,
         adminKp: adminKeypair,
         feeTokenAccount: sdk.feeTokenPda(operatorPool),
@@ -234,7 +234,7 @@ export async function setupTests() {
           delegatorKeypair.publicKey
         ),
         autoStakeFees: false,
-        commissionRateBps: randomIntInRange(100, 10_000),
+        commissionRateBps: randomIntInRange(0, 100) * 100,
       };
     } catch (err) {
       console.log(`Error getting pool setup for ${operatorPool.toBase58()}`);

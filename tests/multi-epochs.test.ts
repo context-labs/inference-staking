@@ -16,6 +16,7 @@ import {
   EPOCH_CLAIM_FREQUENCY,
   NUMBER_OF_EPOCHS,
   SHOULD_CLOSE_ACCOUNTS,
+  SHOULD_UNSTAKE,
   TEST_WITH_RELAY,
 } from "@tests/lib/const";
 import type {
@@ -930,6 +931,11 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Unstake for all delegators successfully", async () => {
+    if (!SHOULD_UNSTAKE) {
+      debug("End-to-end test flow is enabled, skipping unstake");
+      return;
+    }
+
     debug(
       `\nPerforming unstake instructions for ${setup.delegatorKeypairs.length} delegators`
     );
@@ -1028,6 +1034,11 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Claim unstake for all delegators successfully", async () => {
+    if (!SHOULD_UNSTAKE) {
+      debug("End-to-end test flow is enabled, skipping claim unstake");
+      return;
+    }
+
     debug(
       `\nWaiting for delegator unstake delay (${delegatorUnstakeDelaySeconds.toString()} seconds) to elapse...`
     );
@@ -1252,6 +1263,11 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Unstake for all operator admins successfully", async () => {
+    if (!SHOULD_UNSTAKE) {
+      debug("End-to-end test flow is enabled, skipping unstake");
+      return;
+    }
+
     debug(
       `\nPerforming unstake instructions for ${setup.pools.length} operator admins`
     );
@@ -1344,6 +1360,11 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Claim unstake for all operator admins successfully", async () => {
+    if (!SHOULD_UNSTAKE) {
+      debug("End-to-end test flow is enabled, skipping claim unstake");
+      return;
+    }
+
     debug(
       `\nWaiting for operator unstake delay (${operatorUnstakeDelaySeconds.toString()} seconds) to elapse...`
     );
