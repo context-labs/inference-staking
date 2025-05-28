@@ -285,10 +285,13 @@ export const createMintIfNotExists = async (
 ) => {
   const accountInfo = await connection.getAccountInfo(keypair.publicKey);
   if (accountInfo != null) {
+    debug(
+      `- Token mint ${keypair.publicKey.toString()} already exists, skipping creation`
+    );
     return keypair.publicKey;
   }
 
-  return await createMint(
+  const result = await createMint(
     connection,
     payer,
     mintAuthority,
@@ -298,4 +301,10 @@ export const createMintIfNotExists = async (
     confirmOptions,
     programId
   );
+
+  debug(
+    `- Created token mint ${result.toString()} with mint authority ${mintAuthority.toString()}`
+  );
+
+  return result;
 };

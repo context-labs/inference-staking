@@ -663,7 +663,9 @@ describe("multi-epoch lifecycle tests", () => {
       assert(stakingRecordPre.tokensUnstakeAmount.isZero());
       assert(stakingRecordPre.unstakeAtTimestamp.isZero());
 
-      const stakeAmount = new anchor.BN(Math.floor(randomIntInRange(1, 1_000)));
+      const stakeAmount = new anchor.BN(
+        Math.floor(randomIntInRange(100_000, 1_000_000))
+      );
 
       const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
         connection,

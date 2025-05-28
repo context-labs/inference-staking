@@ -18,6 +18,7 @@ import {
   batchArray,
   confirmTransaction,
   createMintIfNotExists,
+  debug,
   generateRewardsForEpoch,
   randomIntInRange,
   range,
@@ -50,13 +51,13 @@ export const TEST_PROGRAM_ID = new PublicKey(
   "dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm"
 );
 
-// intW4zCHBLLci7zznq1x3H2gczXxaEyGyyHCwKibW8E
+// kzoYhD6RXkQK8NGgxaBNNFhieLQpUMMMEThNnH67YWj
 const TEST_TOKEN_MINT_KEYPAIR = Keypair.fromSecretKey(
   new Uint8Array([
-    188, 173, 224, 45, 214, 77, 151, 137, 179, 209, 161, 204, 158, 25, 227, 124,
-    59, 54, 135, 249, 5, 128, 200, 215, 175, 173, 19, 68, 247, 116, 50, 125, 10,
-    180, 178, 231, 116, 74, 3, 245, 230, 126, 33, 167, 101, 154, 119, 124, 235,
-    105, 96, 65, 217, 138, 39, 108, 4, 209, 12, 149, 210, 75, 241, 215,
+    195, 138, 21, 156, 183, 161, 121, 233, 36, 135, 207, 198, 245, 75, 227, 159,
+    200, 95, 56, 24, 236, 238, 44, 98, 26, 176, 78, 108, 140, 160, 210, 194, 11,
+    69, 85, 18, 124, 97, 45, 80, 244, 236, 157, 123, 246, 166, 79, 234, 94, 130,
+    8, 210, 5, 47, 98, 250, 226, 45, 59, 57, 147, 121, 236, 24,
   ])
 );
 
@@ -72,6 +73,10 @@ const TEST_USDC_MINT_KEYPAIR = Keypair.fromSecretKey(
 
 export async function setupTests() {
   await resetDatabaseState();
+
+  debug(
+    `- Running test setup for ${OPERATOR_POOL_SIZE} operator pools and ${DELEGATOR_COUNT} delegators`
+  );
 
   const payerKp = PAYER_KEYPAIR ?? new Keypair();
   const signerKp = new Keypair();
@@ -115,6 +120,8 @@ export async function setupTests() {
       delegator5Kp,
     ].map((recipient) => airdrop(provider, recipient))
   );
+
+  debug(`- Airdropping SOL to ${delegatorKeypairs.length} delegators`);
 
   for (const batch of batchArray(delegatorKeypairs, 10)) {
     await Promise.all(batch.map((recipient) => airdrop(provider, recipient)));
@@ -305,6 +312,8 @@ export async function setupTests() {
     2: generateRewardsForEpoch(fixedPoolIds),
     3: generateRewardsForEpoch(fixedPoolIds),
   };
+
+  debug(`- Test setup complete\n`);
 
   return {
     sdk,
