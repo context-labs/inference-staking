@@ -29,6 +29,7 @@ import { setupTests } from "@tests/lib/setup";
 import { TrpcHttpClient } from "@tests/lib/trpc";
 import {
   assertStakingRecordCreatedState,
+  convertToTokenUnitAmount,
   debug,
   formatBN,
   generateRewardsForEpoch,
@@ -563,7 +564,7 @@ describe("multi-epoch lifecycle tests", () => {
     let counter = 1;
     for (const pool of setup.pools) {
       const stakeAmount = new anchor.BN(
-        randomIntInRange(1_000_000, 10_000_000)
+        convertToTokenUnitAmount(randomIntInRange(1_000_000, 10_000_000))
       );
 
       const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
@@ -664,7 +665,7 @@ describe("multi-epoch lifecycle tests", () => {
       assert(stakingRecordPre.unstakeAtTimestamp.isZero());
 
       const stakeAmount = new anchor.BN(
-        Math.floor(randomIntInRange(100_000, 1_000_000))
+        convertToTokenUnitAmount(randomIntInRange(100_000, 1_000_000))
       );
 
       const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
@@ -1473,6 +1474,11 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Close all operator pools successfully", async () => {
+    if (!SHOULD_CLOSE_ACCOUNTS) {
+      debug("End-to-end test flow is enabled, skipping close operator pools");
+      return;
+    }
+
     debug(`\nClosing ${setup.pools.length} operator pools`);
 
     let counter = 1;

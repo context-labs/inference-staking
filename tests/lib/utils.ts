@@ -1,4 +1,4 @@
-import type * as anchor from "@coral-xyz/anchor";
+import * as anchor from "@coral-xyz/anchor";
 import type { Program } from "@coral-xyz/anchor";
 import { createMint, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import type {
@@ -307,4 +307,8 @@ export const createMintIfNotExists = async (
   );
 
   return result;
+};
+
+export const convertToTokenUnitAmount = (amount: number) => {
+  return new anchor.BN(amount).mul(new anchor.BN(10 ** 9));
 };
