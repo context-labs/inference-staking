@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::TokenAccount;
 
 use crate::constants;
+use crate::error::ErrorCode;
 use crate::state::OperatorPool;
 
 #[derive(Accounts)]
@@ -40,6 +41,7 @@ pub struct UpdateOperatorPoolArgs {
     pub description: Option<String>,
     pub website_url: Option<String>,
     pub avatar_image_url: Option<String>,
+    pub operator_auth_keys: Option<Vec<Pubkey>>,
 }
 
 pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -> Result<()> {
@@ -51,6 +53,7 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
         description,
         website_url,
         avatar_image_url,
+        operator_auth_keys,
     } = args;
 
     let operator_pool = &mut ctx.accounts.operator_pool;
@@ -81,6 +84,15 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
     let usdc_payout_destination = &ctx.accounts.usdc_payout_destination;
     if let Some(usdc_payout_destination) = usdc_payout_destination {
         operator_pool.usdc_payout_destination = usdc_payout_destination.key();
+    }
+
+    if let Some(operator_auth_keys) = operator_auth_keys {
+        require_gte!(
+            3,
+            operator_auth_keys.len(),
+            ErrorCode::OperatorAuthKeysLengthInvalid
+        );
+        operator_pool.operator_auth_keys = operator_auth_keys;
     }
 
     operator_pool.validate_string_fields()?;

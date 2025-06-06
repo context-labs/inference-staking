@@ -38,6 +38,8 @@ pub enum ErrorCode {
     InvalidSlashingAuthority,
     #[msg("Exceeded allowed authorities length")]
     AuthoritiesExceeded,
+    #[msg("Invalid operator auth keys length")]
+    OperatorAuthKeysLengthInvalid,
     #[msg("Account not empty")]
     AccountNotEmpty,
     #[msg("Pool creation is disabled")]

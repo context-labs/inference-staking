@@ -90,6 +90,7 @@ pub struct CreateOperatorPoolArgs {
     pub description: Option<String>,
     pub website_url: Option<String>,
     pub avatar_image_url: Option<String>,
+    pub operator_auth_keys: Option<Vec<Pubkey>>,
 }
 
 /// Instruction to setup an OperatorPool.
@@ -102,6 +103,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
         description,
         website_url,
         avatar_image_url,
+        operator_auth_keys,
     } = args;
 
     require_gte!(10_000, commission_rate_bps);
@@ -122,6 +124,15 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.commission_rate_bps = commission_rate_bps;
     operator_pool.allow_delegation = allow_delegation;
     operator_pool.usdc_payout_destination = ctx.accounts.usdc_payout_destination.key();
+
+    if let Some(operator_auth_keys) = operator_auth_keys {
+        require_gte!(
+            3,
+            operator_auth_keys.len(),
+            ErrorCode::OperatorAuthKeysLengthInvalid
+        );
+        operator_pool.operator_auth_keys = operator_auth_keys;
+    }
 
     // The reward_last_claimed_epoch is initialized conditionally like this to avoid
     // the edge case where an operator joins during reward finalization for an epoch,

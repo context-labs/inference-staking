@@ -409,6 +409,7 @@ export class InferenceStakingProgramSdk {
       description: null,
       websiteUrl: null,
       avatarImageUrl: null,
+      operatorAuthKeys: null,
     };
     return empty;
   }

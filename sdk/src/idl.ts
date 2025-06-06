@@ -1481,56 +1481,61 @@ const _IDL = {
     },
     {
       code: 6018,
+      name: "operatorAuthKeysLengthInvalid",
+      msg: "Invalid operator auth keys length",
+    },
+    {
+      code: 6019,
       name: "accountNotEmpty",
       msg: "Account not empty",
     },
     {
-      code: 6019,
+      code: 6020,
       name: "poolCreationDisabled",
       msg: "Pool creation is disabled",
     },
     {
-      code: 6020,
+      code: 6021,
       name: "invalidUsdcMint",
       msg: "Could not initialize USDC mint",
     },
     {
-      code: 6021,
+      code: 6022,
       name: "invalidUsdcPayoutDestination",
       msg: "Invalid USDC payout destination",
     },
     {
-      code: 6022,
+      code: 6023,
       name: "epochMustBeFinalizing",
       msg: "Epoch must be finalizing when calling CreateRewardRecord",
     },
     {
-      code: 6023,
+      code: 6024,
       name: "nameTooLong",
       msg: "Name is too long, max length is 64 characters",
     },
     {
-      code: 6024,
+      code: 6025,
       name: "descriptionTooLong",
       msg: "Description is too long, max length is 200 characters",
     },
     {
-      code: 6025,
+      code: 6026,
       name: "websiteUrlTooLong",
       msg: "Website URL is too long, max length is 64 characters",
     },
     {
-      code: 6026,
+      code: 6027,
       name: "avatarImageUrlTooLong",
       msg: "Avatar image URL is too long, max length is 128 characters",
     },
     {
-      code: 6027,
+      code: 6028,
       name: "invalidWebsiteUrl",
       msg: "Website URL is invalid",
     },
     {
-      code: 6028,
+      code: 6029,
       name: "invalidAvatarImageUrl",
       msg: "Avatar image URL is invalid",
     },
@@ -1666,6 +1671,14 @@ const _IDL = {
               option: "string",
             },
           },
+          {
+            name: "operatorAuthKeys",
+            type: {
+              option: {
+                vec: "pubkey",
+              },
+            },
+          },
         ],
       },
     },
@@ -1775,6 +1788,15 @@ const _IDL = {
             name: "operatorStakingRecord",
             docs: ["StakingRecord owned by Operator."],
             type: "pubkey",
+          },
+          {
+            name: "operatorAuthKeys",
+            docs: [
+              "Operator auth keys. Used to authenticate operator GPU workers.",
+            ],
+            type: {
+              vec: "pubkey",
+            },
           },
           {
             name: "autoStakeFees",
@@ -2251,6 +2273,14 @@ const _IDL = {
             name: "avatarImageUrl",
             type: {
               option: "string",
+            },
+          },
+          {
+            name: "operatorAuthKeys",
+            type: {
+              option: {
+                vec: "pubkey",
+              },
             },
           },
         ],

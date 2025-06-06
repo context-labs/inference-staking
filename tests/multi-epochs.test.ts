@@ -512,6 +512,7 @@ describe("multi-epoch lifecycle tests", () => {
           description: pool.description,
           websiteUrl: pool.websiteUrl,
           avatarImageUrl: pool.avatarImageUrl,
+          operatorAuthKeys: null,
         })
         .accountsStrict({
           payer: setup.payer,

@@ -39,6 +39,10 @@ pub struct OperatorPool {
     /// StakingRecord owned by Operator.
     pub operator_staking_record: Pubkey,
 
+    /// Operator auth keys. Used to authenticate operator GPU workers.
+    #[max_len(3)]
+    pub operator_auth_keys: Vec<Pubkey>,
+
     /// If commission fees received by Operator should be staked at the end of the epoch.
     pub auto_stake_fees: bool,
 

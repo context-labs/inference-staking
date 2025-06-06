@@ -99,6 +99,7 @@ describe("inference-staking program tests", () => {
           description: setup.pool1.description,
           websiteUrl: setup.pool1.websiteUrl,
           avatarImageUrl: setup.pool1.avatarImageUrl,
+          operatorAuthKeys: null,
         })
         .accountsStrict({
           payer: setup.payer,
@@ -314,6 +315,7 @@ describe("inference-staking program tests", () => {
         description: setup.pool1.description,
         websiteUrl: setup.pool1.websiteUrl,
         avatarImageUrl: setup.pool1.avatarImageUrl,
+        operatorAuthKeys: null,
       })
       .accountsStrict({
         payer: setup.payer,
@@ -605,6 +607,7 @@ describe("inference-staking program tests", () => {
         description: newDescription,
         websiteUrl: newWebsiteUrl,
         avatarImageUrl: newAvatarImageUrl,
+        operatorAuthKeys: null,
       })
       .accountsStrict({
         admin: setup.pool1.admin,
@@ -1375,6 +1378,7 @@ describe("inference-staking program tests", () => {
       description: setup.pool2.description,
       websiteUrl: setup.pool2.websiteUrl,
       avatarImageUrl: setup.pool2.avatarImageUrl,
+      operatorAuthKeys: null,
     } as const;
 
     const accounts = {
@@ -1484,6 +1488,7 @@ describe("inference-staking program tests", () => {
         description: setup.pool2.description,
         websiteUrl: setup.pool2.websiteUrl,
         avatarImageUrl: setup.pool2.avatarImageUrl,
+        operatorAuthKeys: null,
       })
       .accountsStrict({
         payer: setup.payer,
@@ -2837,6 +2842,7 @@ describe("inference-staking program tests", () => {
         description: setup.pool3.description,
         websiteUrl: setup.pool3.websiteUrl,
         avatarImageUrl: setup.pool3.avatarImageUrl,
+        operatorAuthKeys: null,
       })
       .accountsStrict({
         payer: setup.payer,
@@ -2883,6 +2889,7 @@ describe("inference-staking program tests", () => {
         description: mockDescription,
         websiteUrl: setup.pool4.websiteUrl,
         avatarImageUrl: setup.pool4.avatarImageUrl,
+        operatorAuthKeys: null,
       })
       .accountsStrict({
         payer: setup.payer,
