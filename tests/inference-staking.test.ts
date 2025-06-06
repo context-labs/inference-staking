@@ -674,6 +674,144 @@ describe("inference-staking program tests", () => {
     );
   });
 
+  it("Fail to update OperatorPool with invalid operator auth keys", async () => {
+    try {
+      const tooManyAuthKeys = [
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+      ];
+
+      await program.methods
+        .updateOperatorPool({
+          ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
+          operatorAuthKeys: tooManyAuthKeys,
+        })
+        .accountsStrict({
+          admin: setup.pool1.admin,
+          operatorPool: setup.pool1.pool,
+          usdcPayoutDestination: null,
+        })
+        .signers([setup.pool1.adminKp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "operatorAuthKeysLengthInvalid");
+    }
+  });
+
+  it("Update operator pool auth keys successfully", async () => {
+    const newAuthKeys = [
+      Keypair.generate().publicKey,
+      Keypair.generate().publicKey,
+      Keypair.generate().publicKey,
+    ];
+
+    const operatorPoolPre = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    await program.methods
+      .updateOperatorPool({
+        ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
+        operatorAuthKeys: newAuthKeys,
+      })
+      .accountsStrict({
+        admin: setup.pool1.admin,
+        operatorPool: setup.pool1.pool,
+        usdcPayoutDestination: null,
+      })
+      .signers([setup.pool1.adminKp])
+      .rpc();
+
+    const operatorPoolPost = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    assert.equal(
+      operatorPoolPost.operatorAuthKeys.length,
+      3,
+      "Should have 3 auth keys"
+    );
+
+    for (const newAuthKey of newAuthKeys) {
+      const authKey = operatorPoolPost.operatorAuthKeys.find((key) =>
+        key.equals(newAuthKey)
+      );
+      assert(authKey, `Auth key ${newAuthKey.toString()} should exist`);
+    }
+
+    assert(
+      operatorPoolPost.poolId.eq(operatorPoolPre.poolId),
+      "Pool ID should remain unchanged"
+    );
+    assert(
+      operatorPoolPost.admin.equals(operatorPoolPre.admin),
+      "Admin should remain unchanged"
+    );
+    assert.equal(
+      operatorPoolPost.name,
+      operatorPoolPre.name,
+      "Name should remain unchanged"
+    );
+
+    const singleAuthKey = Keypair.generate();
+
+    await program.methods
+      .updateOperatorPool({
+        ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
+        operatorAuthKeys: [singleAuthKey.publicKey],
+      })
+      .accountsStrict({
+        admin: setup.pool1.admin,
+        operatorPool: setup.pool1.pool,
+        usdcPayoutDestination: null,
+      })
+      .signers([setup.pool1.adminKp])
+      .rpc();
+
+    const operatorPoolSingle = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    assert.equal(
+      operatorPoolSingle.operatorAuthKeys.length,
+      1,
+      "Should have 1 auth key after second update"
+    );
+    const singleAuthKeyFromPool = operatorPoolSingle.operatorAuthKeys[0];
+    assert(singleAuthKeyFromPool, "Single auth key should exist");
+    assert(
+      singleAuthKeyFromPool.equals(singleAuthKey.publicKey),
+      "Single auth key should match the provided key"
+    );
+
+    await program.methods
+      .updateOperatorPool({
+        ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
+        operatorAuthKeys: [],
+      })
+      .accountsStrict({
+        admin: setup.pool1.admin,
+        operatorPool: setup.pool1.pool,
+        usdcPayoutDestination: null,
+      })
+      .signers([setup.pool1.adminKp])
+      .rpc();
+
+    const operatorPoolEmpty = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+
+    assert.equal(
+      operatorPoolEmpty.operatorAuthKeys.length,
+      0,
+      "Should have 0 auth keys after clearing"
+    );
+  });
+
   it("Create StakingRecord successfully", async () => {
     await program.methods
       .createStakingRecord()
