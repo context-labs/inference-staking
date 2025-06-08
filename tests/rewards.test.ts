@@ -208,7 +208,7 @@ describe("Reward creation and accrual tests", () => {
         mint: setup.tokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-        usdcPayoutDestination: setup.pool1.usdcPayoutDestination,
+        usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
       })
       .signers([setup.payerKp, setup.pool1.adminKp])
       .rpc();
@@ -276,7 +276,7 @@ describe("Reward creation and accrual tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutDestination: null,
+        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();

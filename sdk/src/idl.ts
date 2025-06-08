@@ -533,7 +533,7 @@ const _IDL = {
           },
         },
         {
-          name: "usdcPayoutDestination",
+          name: "usdcPayoutWallet",
         },
         {
           name: "mint",
@@ -1189,7 +1189,7 @@ const _IDL = {
           },
         },
         {
-          name: "usdcPayoutDestination",
+          name: "usdcPayoutWallet",
           optional: true,
         },
       ],
@@ -1888,8 +1888,10 @@ const _IDL = {
             type: "u64",
           },
           {
-            name: "usdcPayoutDestination",
-            docs: ["Destination for USDC payouts for this operator pool."],
+            name: "usdcPayoutWallet",
+            docs: [
+              "Destination wallet for USDC payouts for this operator pool.",
+            ],
             type: "pubkey",
           },
         ],

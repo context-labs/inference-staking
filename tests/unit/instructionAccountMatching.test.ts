@@ -52,7 +52,7 @@ describe("Instruction Account Matching", () => {
         case "systemProgram":
         case "tokenProgram":
         case "usdcMint":
-        case "usdcPayoutDestination":
+        case "usdcPayoutWallet":
         case "usdcPayoutTokenAccount":
         case "usdcTokenAccount":
           assert.ok(seen.get(account) === 1);

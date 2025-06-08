@@ -41,7 +41,7 @@ export type SetupPoolType = {
   pool: PublicKey;
   stakedTokenAccount: PublicKey;
   stakingRecord: PublicKey;
-  usdcPayoutDestination: PublicKey;
+  usdcPayoutWallet: PublicKey;
   usdcTokenAccount: PublicKey;
   delegatorStakingRecord: PublicKey;
   autoStakeFees: boolean;
@@ -236,7 +236,7 @@ export async function setupTests() {
           operatorPool,
           adminKeypair.publicKey
         ),
-        usdcPayoutDestination: adminKeypair.publicKey,
+        usdcPayoutWallet: adminKeypair.publicKey,
         usdcTokenAccount: adminUsdcTokenAccount.address,
         delegatorStakingRecord: sdk.stakingRecordPda(
           operatorPool,

@@ -84,8 +84,8 @@ pub struct OperatorPool {
     /// Used to optimize compute.
     pub accrued_commission: u64,
 
-    /// Destination for USDC payouts for this operator pool.
-    pub usdc_payout_destination: Pubkey,
+    /// Destination wallet for USDC payouts for this operator pool.
+    pub usdc_payout_wallet: Pubkey,
 }
 
 /// Notes on shared based accounting mechanism:

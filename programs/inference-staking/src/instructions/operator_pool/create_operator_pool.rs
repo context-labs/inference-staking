@@ -69,7 +69,7 @@ pub struct CreateOperatorPool<'info> {
     pub fee_token_account: Box<Account<'info, TokenAccount>>,
 
     /// CHECK: This is the wallet address that should receive USDC payouts
-    pub usdc_payout_destination: UncheckedAccount<'info>,
+    pub usdc_payout_wallet: UncheckedAccount<'info>,
 
     pub mint: Box<Account<'info, Mint>>,
 
@@ -120,7 +120,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.auto_stake_fees = auto_stake_fees;
     operator_pool.commission_rate_bps = commission_rate_bps;
     operator_pool.allow_delegation = allow_delegation;
-    operator_pool.usdc_payout_destination = ctx.accounts.usdc_payout_destination.key();
+    operator_pool.usdc_payout_wallet = ctx.accounts.usdc_payout_wallet.key();
 
     if let Some(operator_auth_keys) = operator_auth_keys {
         require_gte!(

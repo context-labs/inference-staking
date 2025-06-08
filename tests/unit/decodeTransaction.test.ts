@@ -273,7 +273,7 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
         case "systemProgram":
         case "tokenProgram":
         case "usdcMint":
-        case "usdcPayoutDestination":
+        case "usdcPayoutWallet":
         case "usdcTokenAccount":
         default: {
           assert.fail(`Unhandled case reached: ${account.name}`);
@@ -339,7 +339,7 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
         case "stakingRecord":
         case "systemProgram":
         case "usdcMint":
-        case "usdcPayoutDestination":
+        case "usdcPayoutWallet":
         case "usdcTokenAccount":
         default: {
           assert.fail(`Unhandled case reached: ${account.name}`);

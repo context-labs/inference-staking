@@ -45,8 +45,8 @@ pub struct AccrueReward<'info> {
     #[account(
         mut,
         token::mint = constants::USDC_MINT_PUBKEY,
-        token::authority = operator_pool.usdc_payout_destination,
-        constraint = usdc_payout_token_account.owner == operator_pool.usdc_payout_destination @ ErrorCode::InvalidUsdcPayoutDestination
+        token::authority = operator_pool.usdc_payout_wallet,
+        constraint = usdc_payout_token_account.owner == operator_pool.usdc_payout_wallet @ ErrorCode::InvalidUsdcPayoutDestination
     )]
     pub usdc_payout_token_account: Account<'info, TokenAccount>,
 

@@ -523,7 +523,7 @@ describe("multi-epoch lifecycle tests", () => {
           feeTokenAccount: pool.feeTokenAccount,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
-          usdcPayoutDestination: pool.usdcPayoutDestination,
+          usdcPayoutWallet: pool.usdcPayoutWallet,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
