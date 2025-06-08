@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::{
-    constants,
     error::ErrorCode,
     state::{OperatorPool, StakingRecord},
     PoolOverview,
@@ -69,10 +68,8 @@ pub struct CreateOperatorPool<'info> {
     )]
     pub fee_token_account: Box<Account<'info, TokenAccount>>,
 
-    #[account(
-        token::mint = constants::USDC_MINT_PUBKEY,
-    )]
-    pub usdc_payout_destination: Account<'info, TokenAccount>,
+    /// CHECK: This is the wallet address that should receive USDC payouts
+    pub usdc_payout_destination: UncheckedAccount<'info>,
 
     pub mint: Box<Account<'info, Mint>>,
 

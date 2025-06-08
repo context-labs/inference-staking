@@ -275,7 +275,7 @@ describe("Additional tests for instruction constraints", () => {
           mint: setup.tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
-          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcPayoutDestination: setup.pool1.usdcPayoutDestination,
         })
         .signers([setup.payerKp, setup.pool1.adminKp])
         .rpc();

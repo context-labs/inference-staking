@@ -1,7 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::TokenAccount;
 
-use crate::constants;
 use crate::error::ErrorCode;
 use crate::state::OperatorPool;
 
@@ -20,10 +18,8 @@ pub struct UpdateOperatorPool<'info> {
     )]
     pub operator_pool: Account<'info, OperatorPool>,
 
-    #[account(
-        token::mint = constants::USDC_MINT_PUBKEY,
-    )]
-    pub usdc_payout_destination: Option<Account<'info, TokenAccount>>,
+    /// CHECK: This is the wallet address that should receive USDC payouts
+    pub usdc_payout_destination: Option<UncheckedAccount<'info>>,
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]

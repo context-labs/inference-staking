@@ -208,7 +208,7 @@ describe("Reward creation and accrual tests", () => {
         mint: setup.tokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-        usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+        usdcPayoutDestination: setup.pool1.usdcPayoutDestination,
       })
       .signers([setup.payerKp, setup.pool1.adminKp])
       .rpc();
@@ -577,7 +577,7 @@ describe("Reward creation and accrual tests", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
@@ -633,7 +633,7 @@ describe("Reward creation and accrual tests", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
@@ -665,7 +665,7 @@ describe("Reward creation and accrual tests", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
@@ -699,7 +699,7 @@ describe("Reward creation and accrual tests", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
@@ -733,7 +733,7 @@ describe("Reward creation and accrual tests", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
@@ -783,7 +783,7 @@ describe("Reward creation and accrual tests", () => {
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         feeTokenAccount: setup.pool1.feeTokenAccount,
-        usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+        usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -855,7 +855,7 @@ describe("Reward creation and accrual tests", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
@@ -916,7 +916,7 @@ describe("Reward creation and accrual tests", () => {
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         feeTokenAccount: setup.pool1.feeTokenAccount,
-        usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+        usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -1106,7 +1106,7 @@ describe("Reward creation and accrual tests", () => {
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         feeTokenAccount: setup.pool1.feeTokenAccount,
-        usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+        usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -1203,7 +1203,7 @@ describe("Reward creation and accrual tests", () => {
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutDestination: setup.pool1.usdcTokenAccount,
+          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
