@@ -75,7 +75,7 @@ const _IDL = {
           relations: ["operatorPool"],
         },
         {
-          name: "usdcPayoutDestination",
+          name: "usdcPayoutTokenAccount",
           writable: true,
         },
         {

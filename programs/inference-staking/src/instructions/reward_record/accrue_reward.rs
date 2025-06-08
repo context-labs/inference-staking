@@ -45,9 +45,10 @@ pub struct AccrueReward<'info> {
     #[account(
         mut,
         token::mint = constants::USDC_MINT_PUBKEY,
-        constraint = usdc_payout_destination.key() == operator_pool.usdc_payout_destination.key() @ ErrorCode::InvalidUsdcPayoutDestination
+        token::authority = operator_pool.usdc_payout_destination,
+        constraint = usdc_payout_token_account.owner == operator_pool.usdc_payout_destination @ ErrorCode::InvalidUsdcPayoutDestination
     )]
-    pub usdc_payout_destination: Account<'info, TokenAccount>,
+    pub usdc_payout_token_account: Account<'info, TokenAccount>,
 
     #[account(
         mut,
@@ -101,7 +102,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
 
     let reward_record = &ctx.accounts.reward_record;
     let operator_pool = &mut ctx.accounts.operator_pool;
-    let usdc_payout_destination = &ctx.accounts.usdc_payout_destination;
+    let usdc_payout_token_account = &ctx.accounts.usdc_payout_token_account;
     reward_record.verify_proof(
         merkle_index,
         operator_pool.key(),
@@ -200,7 +201,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
                     from: ctx.accounts.usdc_token_account.to_account_info(),
-                    to: usdc_payout_destination.to_account_info(),
+                    to: usdc_payout_token_account.to_account_info(),
                     authority: ctx.accounts.pool_overview.to_account_info(),
                 },
                 &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],
