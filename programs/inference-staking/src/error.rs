@@ -12,7 +12,7 @@ pub enum ErrorCode {
     MinOperatorSharesNotMet,
     #[msg("No tokens to be claimed")]
     NoTokensToClaim,
-    #[msg("Pending delay duration to elapse")]
+    #[msg("Tokens are still in unstaking cooldown")]
     PendingDelay,
     #[msg("Insufficient reward tokens to issue")]
     InsufficientRewards,
