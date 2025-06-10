@@ -73,7 +73,7 @@ async function getRewardClaimInputs({
       merkleUsdcAmount,
       proof,
       proofPath,
-    } = response.claim;
+    } = response;
 
     assert(
       merkleRewardAmount != null,

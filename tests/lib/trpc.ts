@@ -39,10 +39,6 @@ type RewardEmissionApiResponse = {
   totalRewards: bigint;
 };
 
-type CheckRewardClaimEligibilityResponse = ServiceResponse & {
-  claim: OperatorPoolRewardClaimApiResponse;
-};
-
 type GetRewardClaimsForEpochResponse = ServiceResponse & {
   rewardClaims: OperatorPoolRewardClaimApiResponse[];
 };
@@ -182,19 +178,28 @@ export class TrpcHttpClient {
   public async checkRewardClaimEligibility(
     operatorPoolPda: string,
     epoch: bigint
-  ): Promise<CheckRewardClaimEligibilityResponse> {
+  ): Promise<OperatorPoolRewardClaimApiResponse> {
     try {
       const params = {
-        operatorPoolPda,
         epoch,
       };
 
-      const result = await this.mutate(
-        "staking.checkRewardClaimEligibility",
+      const result = await this.query(
+        "staking.getRewardClaimsForEpoch",
         params
       );
+      const response = result as GetRewardClaimsForEpochResponse;
 
-      return result as CheckRewardClaimEligibilityResponse;
+      const operatorPoolRewardClaim = response.rewardClaims.find(
+        (claim: OperatorPoolRewardClaimApiResponse) =>
+          claim.operatorPoolPda === operatorPoolPda
+      );
+
+      if (!operatorPoolRewardClaim) {
+        throw new Error("Operator pool reward claim not found");
+      }
+
+      return operatorPoolRewardClaim;
     } catch (error) {
       console.error("Error checking reward claim eligibility:", error);
       throw error;
