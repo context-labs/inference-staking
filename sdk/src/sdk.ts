@@ -458,6 +458,18 @@ export class InferenceStakingProgramSdk {
     return error?.msg;
   }
 
+  static getProgramErrorFromTransactionError(
+    error: unknown
+  ): InferenceStakingErrors | undefined {
+    const message = error instanceof Error ? error.message : null;
+    if (message == null) {
+      return undefined;
+    }
+
+    const matchedError = IDL.errors.find((e) => message.includes(e.msg));
+    return matchedError?.name;
+  }
+
   static getErrorMsgFromTransactionError(error: unknown): string | undefined {
     const errorName = this.getErrorNameFromTransactionError(error);
     return this.getErrorMsgFromErrorName(errorName);
