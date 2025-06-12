@@ -121,6 +121,10 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.commission_rate_bps = commission_rate_bps;
     operator_pool.allow_delegation = allow_delegation;
     operator_pool.usdc_payout_wallet = ctx.accounts.usdc_payout_wallet.key();
+    operator_pool.joined_at = operator_pool
+        .reward_last_claimed_epoch
+        .checked_add(1)
+        .unwrap();
 
     if let Some(operator_auth_keys) = operator_auth_keys {
         require_gte!(

@@ -1,12 +1,19 @@
 use anchor_lang::prelude::*;
 
-use crate::state::OperatorPool;
+use crate::{error::ErrorCode, state::OperatorPool, PoolOverview};
 
 #[derive(Accounts)]
 pub struct ChangeOperatorAdmin<'info> {
     pub admin: Signer<'info>,
 
     pub new_admin: Signer<'info>,
+
+    #[account(
+        seeds = [b"PoolOverview".as_ref()],
+        bump = pool_overview.bump,
+        constraint = !pool_overview.is_epoch_finalizing @ ErrorCode::EpochMustNotBeFinalizing,
+    )]
+    pub pool_overview: Account<'info, PoolOverview>,
 
     #[account(
         mut,

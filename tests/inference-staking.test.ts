@@ -370,6 +370,7 @@ describe("inference-staking program tests", () => {
         admin: setup.pool1.admin,
         newAdmin: setup.signer,
         operatorPool: setup.pool1.pool,
+        poolOverview: setup.poolOverview,
       })
       .signers([setup.pool1.adminKp, setup.signerKp])
       .rpc();
@@ -386,6 +387,7 @@ describe("inference-staking program tests", () => {
         admin: setup.signer,
         newAdmin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
+        poolOverview: setup.poolOverview,
       })
       .signers([setup.signerKp, setup.pool1.adminKp])
       .rpc();

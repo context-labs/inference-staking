@@ -188,6 +188,19 @@ const _IDL = {
           signer: true,
         },
         {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+        {
           name: "operatorPool",
           writable: true,
           pda: {
@@ -1417,7 +1430,7 @@ const _IDL = {
     {
       code: 6005,
       name: "pendingDelay",
-      msg: "Pending delay duration to elapse",
+      msg: "Tokens are still in unstaking cooldown",
     },
     {
       code: 6006,
@@ -1511,31 +1524,36 @@ const _IDL = {
     },
     {
       code: 6024,
+      name: "epochMustNotBeFinalizing",
+      msg: "Epoch must not be finalizing during operator pool admin change",
+    },
+    {
+      code: 6025,
       name: "nameTooLong",
       msg: "Name is too long, max length is 64 characters",
     },
     {
-      code: 6025,
+      code: 6026,
       name: "descriptionTooLong",
       msg: "Description is too long, max length is 200 characters",
     },
     {
-      code: 6026,
+      code: 6027,
       name: "websiteUrlTooLong",
       msg: "Website URL is too long, max length is 64 characters",
     },
     {
-      code: 6027,
+      code: 6028,
       name: "avatarImageUrlTooLong",
       msg: "Avatar image URL is too long, max length is 128 characters",
     },
     {
-      code: 6028,
+      code: 6029,
       name: "invalidWebsiteUrl",
       msg: "Website URL is invalid",
     },
     {
-      code: 6029,
+      code: 6030,
       name: "invalidAvatarImageUrl",
       msg: "Avatar image URL is invalid",
     },
@@ -1843,6 +1861,11 @@ const _IDL = {
           {
             name: "totalUnstaking",
             docs: ["Total amount of tokens being unstaked."],
+            type: "u64",
+          },
+          {
+            name: "joinedAt",
+            docs: ["Epoch that pool was created."],
             type: "u64",
           },
           {

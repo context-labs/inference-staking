@@ -64,6 +64,9 @@ pub struct OperatorPool {
     /// Total amount of tokens being unstaked.
     pub total_unstaking: u64,
 
+    /// Epoch that pool was created.
+    pub joined_at: u64,
+
     /// Epoch that pool was permanently closed at, if set. Once a pool is closed, the pool will stop accruing
     /// any rewards starting from that epoch.
     pub closed_at: Option<u64>,

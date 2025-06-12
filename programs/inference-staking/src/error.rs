@@ -50,6 +50,8 @@ pub enum ErrorCode {
     InvalidUsdcPayoutDestination,
     #[msg("Epoch must be finalizing when calling CreateRewardRecord")]
     EpochMustBeFinalizing,
+    #[msg("Epoch must not be finalizing during operator pool admin change")]
+    EpochMustNotBeFinalizing,
     #[msg("Name is too long, max length is 64 characters")]
     NameTooLong,
     #[msg("Description is too long, max length is 200 characters")]
