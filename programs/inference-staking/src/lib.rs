@@ -13,7 +13,7 @@ use state::*;
 
 use anchor_lang::prelude::*;
 
-declare_id!("dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm");
+declare_id!("stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG");
 
 #[program]
 pub mod inference_staking {

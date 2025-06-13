@@ -3,10 +3,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-inference_staking = "dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm"
+inference_staking = "stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG"
 
 [programs.devnet]
-inference_staking = "dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm"
+inference_staking = "stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG"
 
 [registry]
 url = "https://api.apr.dev"

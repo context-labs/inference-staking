@@ -120,7 +120,7 @@ task deploy-localnet-full
 
 Run the following to deploy or upgrade the program on devnet:
 
-> **Program ID:** `dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm`
+> **Program ID:** `stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG`
 
 Note that the devnet program and deployer keypairs are stored locally in the repo under `keys/devnet`.
 

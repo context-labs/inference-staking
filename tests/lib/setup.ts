@@ -49,7 +49,7 @@ export type SetupPoolType = {
 };
 
 export const TEST_PROGRAM_ID = new PublicKey(
-  "dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm"
+  "stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG"
 );
 
 // kzoeucJHZCmr5orQ3hqhrYshHtusmS1psZtzSYECZph

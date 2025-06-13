@@ -3,8 +3,8 @@ set -e
 set -o pipefail
 
 # Constants
-DEVNET_PROGRAM_ID="dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm"
-MAINNET_PROGRAM_ID="dinfV1dqxfSJYCRV2QY4yREdgcdoEkzynZXZs6kxeSm"
+DEVNET_PROGRAM_ID="stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG"
+MAINNET_PROGRAM_ID="stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG"
 
 # Use devnet configuration
 cp scripts/anchor-configs/Anchor.dev.toml Anchor.toml
