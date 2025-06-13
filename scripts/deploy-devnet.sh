@@ -23,9 +23,9 @@ read -p "Press ENTER to confirm and proceed with the devnet program deployment t
 echo
 
 if [[ -z $REPLY ]]; then
-  printf "Running solana program deploy target/deploy/inference_airdrop.so -u devnet -k ./keys/devnet/deployer-keypair.json --program-id ./keys/devnet/program-keypair.json\n"
+  printf "Running solana program deploy target/deploy/inference_staking.so -u devnet -k ./keys/devnet/deployer-keypair.json --program-id ./keys/devnet/program-keypair.json\n"
   printf "This will take a moment...\n"
-  solana program deploy ./target/deploy/inference_airdrop.so -u devnet -k ./keys/devnet/deployer-keypair.json --program-id ./keys/devnet/program-keypair.json
+  solana program deploy ./target/deploy/inference_staking.so -u devnet -k ./keys/devnet/deployer-keypair.json --program-id ./keys/devnet/program-keypair.json
   echo -e "Program deploy to devnet finished successfully!\n"
 else
   printf "Deployment cancelled.\n"

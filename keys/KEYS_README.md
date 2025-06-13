@@ -4,14 +4,14 @@ This directory includes keypairs we use for development and testings.
 
 ## Localnet
 
-- Deployer address: `KB6Nr5jbzNxBhWsrwLhUNfFrmBQtRBWvHJ8t3z92kSw`
+- Deployer address: `dpyLHhG8bWcgVTy5Jrucjfa6wY1WnZ4RALvCgFuBx6r`
 - Program address: `stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG`
 - Token mint address: `kzoYhD6RXkQK8NGgxaBNNFhieLQpUMMMEThNnH67YWj`
 - USDC mint address: `usdEkK5GbzC22bd2gKMFpt6sY2YETm2eaCiu7bBheZV`
 
 ## Devnet
 
-- Deployer address: `KB6Nr5jbzNxBhWsrwLhUNfFrmBQtRBWvHJ8t3z92kSw`
+- Deployer address: `dpyLHhG8bWcgVTy5Jrucjfa6wY1WnZ4RALvCgFuBx6r`
 - Program address: `stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG`
 - Token mint address: `kzoYhD6RXkQK8NGgxaBNNFhieLQpUMMMEThNnH67YWj`
 
