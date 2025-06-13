@@ -58,9 +58,17 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
         operator_pool.name = name;
     }
 
-    operator_pool.description = description;
-    operator_pool.website_url = website_url;
-    operator_pool.avatar_image_url = avatar_image_url;
+    if let Some(description) = description {
+        operator_pool.description = Some(description);
+    }
+
+    if let Some(website_url) = website_url {
+        operator_pool.website_url = Some(website_url);
+    }
+
+    if let Some(avatar_image_url) = avatar_image_url {
+        operator_pool.avatar_image_url = Some(avatar_image_url);
+    }
 
     if let Some(allow_delegation) = allow_delegation {
         operator_pool.allow_delegation = allow_delegation;
