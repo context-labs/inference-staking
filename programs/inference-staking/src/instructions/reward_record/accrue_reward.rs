@@ -118,11 +118,6 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
 
     let is_most_recent = pool_overview.completed_reward_epoch == reward_record.epoch;
 
-    if operator_pool.closed_at.is_some() {
-        let closed_at = operator_pool.closed_at.unwrap();
-        require_gt!(closed_at, reward_record.epoch, ErrorCode::ClosedPool);
-    }
-
     let commission = u64::try_from(
         u128::from(reward_amount)
             .checked_mul(operator_pool.commission_rate_bps.into())
