@@ -14,8 +14,7 @@ sed -i '' "s/$MAINNET_PROGRAM_ID/$DEVNET_PROGRAM_ID/" programs/inference-staking
 
 echo -e "\n🚀 Deploying program ID $DEVNET_PROGRAM_ID to Solana devnet.\n"
 
-# Build the program
-anchor build
+anchor build -- --features devnet
 echo -e "\nBuild finished!\n"
 
 # Confirm deployment
