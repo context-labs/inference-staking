@@ -54,11 +54,26 @@ type ExtractInstructionNames<T> = T extends {
 export type InferenceStakingInstructions = ExtractInstructionNames<typeof IDL>;
 
 /** ******************************************************************************
- *  Decoded Instructions
+ *  Decoded Instructions - Fixed for nested args
  ******************************************************************************* */
 
+// Helper to check if an instruction has an "args" parameter
+type HasArgsParameter<T extends InferenceStakingInstructions> = Extract<
+  InferenceStaking["instructions"][number],
+  { name: T }
+>["args"][0] extends { name: "args" }
+  ? true
+  : false;
+
+// Original args type (what the method expects)
+type RawInstructionArgs<T extends InferenceStakingInstructions> =
+  InstructionArgs<T>;
+
+// The actual decoded args structure
 export type InstructionArgsMap = {
-  [K in InferenceStakingInstructions]: InstructionArgs<K>;
+  [K in InferenceStakingInstructions]: HasArgsParameter<K> extends true
+    ? { args: RawInstructionArgs<K> }
+    : RawInstructionArgs<K>;
 };
 
 export type InstructionAccountNames<T extends InferenceStakingInstructions> =

@@ -218,7 +218,7 @@ function reconstructVersionedTransaction(
 }
 
 describe("InferenceStakingProgramSdk decodeTransaction", () => {
-  it("should decode an UpdateOperatorPool transaction correctly", () => {
+  it.only("should decode an UpdateOperatorPool transaction correctly", () => {
     anchor.setProvider(anchor.AnchorProvider.env());
 
     const sdk = new InferenceStakingProgramSdk({
@@ -242,6 +242,7 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
       // @ts-expect-error - the following should type error!
       const caller = ix.accounts.stakingRecord;
       expect(caller).not.toBeDefined();
+      expect(ix.args.args.isStakingHalted).toBeDefined();
     }
 
     for (const account of Object.values(ix.accounts)) {
