@@ -287,9 +287,18 @@ describe("Additional tests for instruction constraints", () => {
 
   it("Fail to update epoch is finalizing state with invalid authority", async () => {
     try {
+      const poolOverview = await program.account.poolOverview.fetch(
+        setup.poolOverview
+      );
+
+      const expectedEpoch = new anchor.BN(
+        poolOverview.completedRewardEpoch.toNumber() + 1
+      );
+
       await program.methods
         .updateIsEpochFinalizing({
           isEpochFinalizing: true,
+          expectedEpoch,
         })
         .accountsStrict({
           poolOverview: setup.poolOverview,

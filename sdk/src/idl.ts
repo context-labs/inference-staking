@@ -1529,31 +1529,36 @@ const _IDL = {
     },
     {
       code: 6025,
+      name: "epochIsFinalizingEpochInvalid",
+      msg: "Invalid expected epoch provided for epoch finalizing update",
+    },
+    {
+      code: 6026,
       name: "nameTooLong",
       msg: "Name is too long, max length is 64 characters",
     },
     {
-      code: 6026,
+      code: 6027,
       name: "descriptionTooLong",
       msg: "Description is too long, max length is 200 characters",
     },
     {
-      code: 6027,
+      code: 6028,
       name: "websiteUrlTooLong",
       msg: "Website URL is too long, max length is 64 characters",
     },
     {
-      code: 6028,
+      code: 6029,
       name: "avatarImageUrlTooLong",
       msg: "Avatar image URL is too long, max length is 128 characters",
     },
     {
-      code: 6029,
+      code: 6030,
       name: "invalidWebsiteUrl",
       msg: "Website URL is invalid",
     },
     {
-      code: 6030,
+      code: 6031,
       name: "invalidAvatarImageUrl",
       msg: "Avatar image URL is invalid",
     },
@@ -2239,6 +2244,10 @@ const _IDL = {
       type: {
         kind: "struct",
         fields: [
+          {
+            name: "expectedEpoch",
+            type: "u64",
+          },
           {
             name: "isEpochFinalizing",
             type: "bool",

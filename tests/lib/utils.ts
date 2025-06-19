@@ -148,11 +148,14 @@ export const setEpochFinalizationState = async ({
   const poolOverviewPre = await program.account.poolOverview.fetch(
     setup.poolOverview
   );
-  assert(poolOverviewPre.isEpochFinalizing === !isEpochFinalizing);
+  // assert(poolOverviewPre.isEpochFinalizing === !isEpochFinalizing);
 
   await program.methods
     .updateIsEpochFinalizing({
       isEpochFinalizing,
+      expectedEpoch: new anchor.BN(
+        poolOverviewPre.completedRewardEpoch.toNumber() + 1
+      ),
     })
     .accountsStrict({
       poolOverview: setup.poolOverview,

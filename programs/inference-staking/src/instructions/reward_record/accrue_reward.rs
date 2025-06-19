@@ -116,6 +116,10 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
     let operator_staking_record: &mut Box<Account<'_, StakingRecord>> =
         &mut ctx.accounts.operator_staking_record;
 
+    if let Some(closed_at) = operator_pool.closed_at {
+        require_gte!(closed_at, reward_record.epoch, ErrorCode::ClosedPool);
+    }
+
     let is_most_recent_epoch = pool_overview.completed_reward_epoch == reward_record.epoch;
     let is_pool_closure_epoch = operator_pool.closed_at.is_some()
         && operator_pool.closed_at.unwrap() == reward_record.epoch;

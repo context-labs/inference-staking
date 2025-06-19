@@ -123,12 +123,6 @@ describe("Reward creation and accrual tests", () => {
       assert(false);
     } catch (error) {
       assertError(error, "ConstraintSeeds");
-    } finally {
-      await setEpochFinalizationState({
-        program,
-        setup,
-        isEpochFinalizing: false,
-      });
     }
   });
 
@@ -155,12 +149,6 @@ describe("Reward creation and accrual tests", () => {
       assert(false);
     } catch (error) {
       assertError(error, "RequireEqViolated");
-    } finally {
-      await setEpochFinalizationState({
-        program,
-        setup,
-        isEpochFinalizing: false,
-      });
     }
   });
 
@@ -308,12 +296,6 @@ describe("Reward creation and accrual tests", () => {
       assert(false);
     } catch (error) {
       assertError(error, "ConstraintSeeds");
-    } finally {
-      await setEpochFinalizationState({
-        program,
-        setup,
-        isEpochFinalizing: false,
-      });
     }
   });
 
@@ -343,12 +325,6 @@ describe("Reward creation and accrual tests", () => {
       assert(false);
     } catch (error) {
       assertStakingProgramError(error, "insufficientRewards");
-    } finally {
-      await setEpochFinalizationState({
-        program,
-        setup,
-        isEpochFinalizing: false,
-      });
     }
   });
 
@@ -388,12 +364,6 @@ describe("Reward creation and accrual tests", () => {
       assert(false);
     } catch (error) {
       assertStakingProgramError(error, "insufficientRewards");
-    } finally {
-      await setEpochFinalizationState({
-        program,
-        setup,
-        isEpochFinalizing: false,
-      });
     }
 
     // Fund rewardTokenAccount
@@ -428,12 +398,6 @@ describe("Reward creation and accrual tests", () => {
       assert(false);
     } catch (error) {
       assertStakingProgramError(error, "insufficientUsdc");
-    } finally {
-      await setEpochFinalizationState({
-        program,
-        setup,
-        isEpochFinalizing: false,
-      });
     }
 
     // Fund usdcTokenAccount
@@ -1114,7 +1078,6 @@ describe("Reward creation and accrual tests", () => {
   });
 
   it("Create another RewardRecord after pool closure", async () => {
-    // Close OperatorPool
     await program.methods
       .closeOperatorPool()
       .accountsStrict({
