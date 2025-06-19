@@ -1270,7 +1270,7 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
-  it("Verify token accounting and token vault balances", async () => {
+  it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
     const poolOverview = await program.account.poolOverview.fetch(
       setup.poolOverview
     );
