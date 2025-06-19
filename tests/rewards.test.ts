@@ -710,6 +710,71 @@ describe("Reward creation and accrual tests", () => {
     }
   });
 
+  it("Fail to accrue rewards when accrue reward is halted", async () => {
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        isAccrueRewardHalted: true,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    try {
+      const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+      const nodeIndex = setup.rewardEpochs[2].findIndex(
+        (x) => x.address == setup.pool1.pool.toString()
+      );
+      const proofInputs = {
+        ...setup.rewardEpochs[2][nodeIndex],
+        index: nodeIndex,
+        merkleTree,
+      } as GenerateMerkleProofInput;
+      const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+      const rewardAmount = new anchor.BN(proofInputs.tokenAmount.toString());
+      const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
+      await program.methods
+        .accrueReward({
+          merkleIndex: 0,
+          proof: proof.map((arr) => Array.from(arr)),
+          proofPath,
+          rewardAmount,
+          usdcAmount,
+        })
+        .accountsStrict({
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[2],
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.stakingRecord,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+      assert(false);
+    } catch (err) {
+      assertStakingProgramError(err, "accrueRewardHalted");
+    }
+
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        isAccrueRewardHalted: false,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
   it("Accrue Rewards for epoch 2 successfully", async () => {
     const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
     const nodeIndex = setup.rewardEpochs[2].findIndex(
