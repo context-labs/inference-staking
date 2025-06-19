@@ -296,8 +296,7 @@ describe("Additional tests for instruction constraints", () => {
       );
 
       await program.methods
-        .updateIsEpochFinalizing({
-          isEpochFinalizing: true,
+        .markEpochAsFinalizing({
           expectedEpoch,
         })
         .accountsStrict({

@@ -139,20 +139,16 @@ export const confirmTransaction = async (
 export const setEpochFinalizationState = async ({
   setup,
   program,
-  isEpochFinalizing = true,
 }: {
   setup: SetupTestResult;
   program: Program<InferenceStaking>;
-  isEpochFinalizing?: boolean;
 }) => {
   const poolOverviewPre = await program.account.poolOverview.fetch(
     setup.poolOverview
   );
-  // assert(poolOverviewPre.isEpochFinalizing === !isEpochFinalizing);
 
   await program.methods
-    .updateIsEpochFinalizing({
-      isEpochFinalizing,
+    .markEpochAsFinalizing({
       expectedEpoch: new anchor.BN(
         poolOverviewPre.completedRewardEpoch.toNumber() + 1
       ),
@@ -167,7 +163,7 @@ export const setEpochFinalizationState = async ({
   const poolOverviewPost = await program.account.poolOverview.fetch(
     setup.poolOverview
   );
-  assert(poolOverviewPost.isEpochFinalizing === isEpochFinalizing);
+  assert(poolOverviewPost.isEpochFinalizing === true);
 };
 
 export const setStakingHalted = async ({

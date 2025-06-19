@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{error::ErrorCode, PoolOverview};
 
 #[derive(Accounts)]
-pub struct UpdateIsEpochFinalizing<'info> {
+pub struct MarkEpochIsFinalizing<'info> {
     pub authority: Signer<'info>,
 
     #[account(
@@ -17,16 +17,12 @@ pub struct UpdateIsEpochFinalizing<'info> {
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
-pub struct UpdateIsEpochFinalizingArgs {
+pub struct MarkEpochIsFinalizingArgs {
     pub expected_epoch: u64,
-    pub is_epoch_finalizing: bool,
 }
 
-/// Instruction to update PoolOverview is_epoch_finalizing state.
-pub fn handler(
-    ctx: Context<UpdateIsEpochFinalizing>,
-    args: UpdateIsEpochFinalizingArgs,
-) -> Result<()> {
+/// Instruction to mark an epoch as finalizing.
+pub fn handler(ctx: Context<MarkEpochIsFinalizing>, args: MarkEpochIsFinalizingArgs) -> Result<()> {
     let pool_overview = &mut ctx.accounts.pool_overview;
 
     // We explicitly check the epoch that are marking as finalizing, to avoid
@@ -37,7 +33,7 @@ pub fn handler(
         ErrorCode::EpochIsFinalizingEpochInvalid
     );
 
-    pool_overview.is_epoch_finalizing = args.is_epoch_finalizing;
+    pool_overview.is_epoch_finalizing = true;
 
     Ok(())
 }

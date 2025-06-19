@@ -40,11 +40,11 @@ pub mod inference_staking {
         update_pool_overview_authorities::handler(ctx, args)
     }
 
-    pub fn update_is_epoch_finalizing(
-        ctx: Context<UpdateIsEpochFinalizing>,
-        args: UpdateIsEpochFinalizingArgs,
+    pub fn mark_epoch_as_finalizing(
+        ctx: Context<MarkEpochIsFinalizing>,
+        args: MarkEpochIsFinalizingArgs,
     ) -> Result<()> {
-        update_is_epoch_finalizing::handler(ctx, args)
+        mark_epoch_as_finalizing::handler(ctx, args)
     }
 
     /** -----------------------------------------------------------------------

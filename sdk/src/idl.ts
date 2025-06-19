@@ -779,6 +779,40 @@ const _IDL = {
       args: [],
     },
     {
+      name: "markEpochAsFinalizing",
+      discriminator: [184, 57, 145, 48, 57, 204, 105, 240],
+      accounts: [
+        {
+          name: "authority",
+          signer: true,
+        },
+        {
+          name: "poolOverview",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+      ],
+      args: [
+        {
+          name: "args",
+          type: {
+            defined: {
+              name: "markEpochIsFinalizingArgs",
+            },
+          },
+        },
+      ],
+    },
+    {
       name: "modifyRewardRecord",
       discriminator: [16, 109, 128, 67, 141, 121, 47, 186],
       accounts: [
@@ -1136,40 +1170,6 @@ const _IDL = {
         {
           name: "shareAmount",
           type: "u64",
-        },
-      ],
-    },
-    {
-      name: "updateIsEpochFinalizing",
-      discriminator: [57, 35, 17, 239, 103, 135, 109, 125],
-      accounts: [
-        {
-          name: "authority",
-          signer: true,
-        },
-        {
-          name: "poolOverview",
-          writable: true,
-          pda: {
-            seeds: [
-              {
-                kind: "const",
-                value: [
-                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
-                ],
-              },
-            ],
-          },
-        },
-      ],
-      args: [
-        {
-          name: "args",
-          type: {
-            defined: {
-              name: "updateIsEpochFinalizingArgs",
-            },
-          },
         },
       ],
     },
@@ -1730,6 +1730,18 @@ const _IDL = {
       },
     },
     {
+      name: "markEpochIsFinalizingArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "expectedEpoch",
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
       name: "modifyRewardRecordArgs",
       type: {
         kind: "struct",
@@ -2235,22 +2247,6 @@ const _IDL = {
               "Total amount of remaining tokens being unstaked in the pool.",
             ],
             type: "u64",
-          },
-        ],
-      },
-    },
-    {
-      name: "updateIsEpochFinalizingArgs",
-      type: {
-        kind: "struct",
-        fields: [
-          {
-            name: "expectedEpoch",
-            type: "u64",
-          },
-          {
-            name: "isEpochFinalizing",
-            type: "bool",
           },
         ],
       },
