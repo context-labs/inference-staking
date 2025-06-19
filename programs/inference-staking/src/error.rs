@@ -50,6 +50,8 @@ pub enum ErrorCode {
     InvalidUsdcMint,
     #[msg("Invalid USDC payout destination")]
     InvalidUsdcPayoutDestination,
+    #[msg("Invalid registration fee payout destination")]
+    InvalidRegistrationFeePayoutDestination,
     #[msg("Epoch must be finalizing when calling CreateRewardRecord")]
     EpochMustBeFinalizing,
     #[msg("Epoch must not be finalizing during operator pool admin change")]

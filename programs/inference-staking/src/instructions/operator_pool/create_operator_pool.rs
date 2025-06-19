@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
 use crate::{
     error::ErrorCode,
@@ -12,6 +12,7 @@ pub struct CreateOperatorPool<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
+    #[account(mut)]
     pub admin: Signer<'info>,
 
     #[account(
@@ -71,6 +72,21 @@ pub struct CreateOperatorPool<'info> {
     /// CHECK: This is the wallet address that should receive USDC payouts
     pub usdc_payout_wallet: UncheckedAccount<'info>,
 
+    #[account(
+        mut,
+        token::mint = mint,
+        token::authority = admin,
+    )]
+    pub admin_token_account: Box<Account<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        token::mint = mint,
+        token::authority = pool_overview.registration_fee_payout_wallet,
+        constraint = registration_fee_payout_token_account.owner == pool_overview.registration_fee_payout_wallet @ ErrorCode::InvalidRegistrationFeePayoutDestination
+    )]
+    pub registration_fee_payout_token_account: Box<Account<'info, TokenAccount>>,
+
     pub mint: Box<Account<'info, Mint>>,
 
     pub token_program: Program<'info, Token>,
@@ -106,6 +122,26 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     require_gte!(10_000, commission_rate_bps);
 
     let pool_overview = &mut ctx.accounts.pool_overview;
+
+    // Transfer registration fee if it's set above zero.
+    let registration_fee = pool_overview.operator_pool_registration_fee;
+    if registration_fee > 0 {
+        token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.admin_token_account.to_account_info(),
+                    to: ctx
+                        .accounts
+                        .registration_fee_payout_token_account
+                        .to_account_info(),
+                    authority: ctx.accounts.admin.to_account_info(),
+                },
+            ),
+            registration_fee,
+        )?;
+    }
+
     pool_overview.total_pools = pool_overview.total_pools.checked_add(1).unwrap();
 
     let operator_pool = &mut ctx.accounts.operator_pool;
