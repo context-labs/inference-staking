@@ -116,7 +116,13 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
     let operator_staking_record: &mut Box<Account<'_, StakingRecord>> =
         &mut ctx.accounts.operator_staking_record;
 
-    let is_most_recent = pool_overview.completed_reward_epoch == reward_record.epoch;
+    let is_most_recent_epoch = pool_overview.completed_reward_epoch == reward_record.epoch;
+    let is_pool_closure_epoch = operator_pool.closed_at.is_some()
+        && operator_pool.closed_at.unwrap() == reward_record.epoch;
+
+    // Rewards should be transferred if it's the most recent epoch or if this is the epoch
+    // in which the pool was closed.
+    let should_transfer_rewards = is_most_recent_epoch || is_pool_closure_epoch;
 
     let commission = u64::try_from(
         u128::from(reward_amount)
@@ -141,7 +147,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         .checked_add(1)
         .unwrap();
 
-    if is_most_recent {
+    if should_transfer_rewards {
         operator_pool.total_staked_amount = operator_pool
             .total_staked_amount
             .checked_add(operator_pool.accrued_rewards)

@@ -189,6 +189,24 @@ impl OperatorPool {
             .unwrap();
         u64::try_from(shares_amount_u128).unwrap()
     }
+
+    /// Check that all rewards have been claimed for pool closure conditions.
+    /// Returns an error if rewards are unclaimed and conditions are not met.
+    pub fn check_unclaimed_rewards(&self, completed_reward_epoch: u64) -> Result<()> {
+        if completed_reward_epoch > self.reward_last_claimed_epoch {
+            if self.closed_at.is_some() {
+                let closed_at = self.closed_at.unwrap();
+                require_gte!(
+                    self.reward_last_claimed_epoch,
+                    closed_at,
+                    ErrorCode::UnclaimedRewards
+                );
+            } else {
+                return err!(ErrorCode::UnclaimedRewards);
+            }
+        }
+        Ok(())
+    }
 }
 
 impl OperatorPool {

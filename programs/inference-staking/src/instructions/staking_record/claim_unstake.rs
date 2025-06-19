@@ -80,20 +80,8 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
         ErrorCode::WithdrawalsHalted
     );
 
-    // Check that all rewards have been claimed, unless pool is closed and all rewards
-    // up to (but excluding) epoch in which pool was closed at have been claimed.
-    if pool_overview.completed_reward_epoch > operator_pool.reward_last_claimed_epoch {
-        if operator_pool.closed_at.is_some() {
-            let closed_at = operator_pool.closed_at.unwrap();
-            require_gte!(
-                operator_pool.reward_last_claimed_epoch,
-                closed_at - 1,
-                ErrorCode::UnclaimedRewards
-            );
-        } else {
-            return err!(ErrorCode::UnclaimedRewards);
-        }
-    }
+    // Check that all rewards have been claimed for pool closure conditions.
+    operator_pool.check_unclaimed_rewards(pool_overview.completed_reward_epoch)?;
 
     let staking_record = &mut ctx.accounts.owner_staking_record;
     let tokens_unstake_amount = staking_record.tokens_unstake_amount;
