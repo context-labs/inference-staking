@@ -51,15 +51,15 @@ pub struct ChangeOperatorStakingRecord<'info> {
 /// be unable to withdraw their stake because it would move them below the minimum operator share
 /// requirement.
 pub fn handler(ctx: Context<ChangeOperatorStakingRecord>) -> Result<()> {
-    let min_operator_share_bps = ctx.accounts.pool_overview.min_operator_share_bps;
-    let min_operator_shares = ctx
+    let min_operator_token_stake = ctx.accounts.pool_overview.min_operator_token_stake;
+    let operator_stake = ctx
         .accounts
         .operator_pool
-        .calc_min_operator_shares(min_operator_share_bps);
+        .calc_tokens_for_share_amount(ctx.accounts.new_staking_record.shares);
     require_gte!(
-        ctx.accounts.new_staking_record.shares,
-        min_operator_shares,
-        ErrorCode::MinOperatorSharesNotMet
+        operator_stake,
+        min_operator_token_stake,
+        ErrorCode::MinOperatorTokenStakeNotMet
     );
 
     let operator_pool = &mut ctx.accounts.operator_pool;

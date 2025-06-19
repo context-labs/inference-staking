@@ -106,18 +106,19 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
         token_amount,
     )?;
 
-    // Check that operator still maintains min. share percentage of pool.
-    let min_operator_share_bps = pool_overview.min_operator_share_bps;
-    let min_operator_shares = operator_pool.calc_min_operator_shares(min_operator_share_bps);
+    // Check that operator still maintains min. token stake.
     let operator_shares = if is_operator_staking {
         staking_record.shares
     } else {
         operator_staking_record.shares
     };
+
+    let operator_stake = operator_pool.calc_tokens_for_share_amount(operator_shares);
+    let min_operator_token_stake = pool_overview.min_operator_token_stake;
     require_gte!(
-        operator_shares,
-        min_operator_shares,
-        ErrorCode::MinOperatorSharesNotMet
+        operator_stake,
+        min_operator_token_stake,
+        ErrorCode::MinOperatorTokenStakeNotMet
     );
 
     emit!(StakeEvent {

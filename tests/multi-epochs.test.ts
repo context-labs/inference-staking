@@ -376,7 +376,7 @@ describe("multi-epoch lifecycle tests", () => {
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
   const allowDelegation = true;
-  const minOperatorShareBps = 1_000;
+  const minOperatorTokenStake = new anchor.BN(1_000);
   const allowPoolCreation = true;
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
@@ -420,7 +420,7 @@ describe("multi-epoch lifecycle tests", () => {
     assert.isEmpty(poolOverview.haltAuthorities);
     assert(!poolOverview.isWithdrawalHalted);
     assert(!poolOverview.allowPoolCreation);
-    assert.equal(poolOverview.minOperatorShareBps, 0);
+    assert(poolOverview.minOperatorTokenStake.isZero());
     assert(poolOverview.delegatorUnstakeDelaySeconds.isZero());
     assert(poolOverview.operatorUnstakeDelaySeconds.isZero());
     assert(poolOverview.totalPools.isZero());
@@ -435,7 +435,7 @@ describe("multi-epoch lifecycle tests", () => {
         isWithdrawalHalted,
         isAccrueRewardHalted,
         allowPoolCreation,
-        minOperatorShareBps,
+        minOperatorTokenStake,
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
       })
@@ -452,7 +452,7 @@ describe("multi-epoch lifecycle tests", () => {
 
     assert.equal(poolOverview.isWithdrawalHalted, isWithdrawalHalted);
     assert.equal(poolOverview.allowPoolCreation, allowPoolCreation);
-    assert.equal(poolOverview.minOperatorShareBps, minOperatorShareBps);
+    assert(poolOverview.minOperatorTokenStake.eq(minOperatorTokenStake));
     assert(
       poolOverview.delegatorUnstakeDelaySeconds.eq(delegatorUnstakeDelaySeconds)
     );

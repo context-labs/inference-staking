@@ -33,7 +33,7 @@ describe("Reward creation and accrual tests", () => {
   const commissionRateBps = 1_500;
   const newCommissionRateBps = 0;
   const allowDelegation = true;
-  const minOperatorShareBps = 0;
+  const minOperatorTokenStake = new anchor.BN(0);
   const allowPoolCreation = true;
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
@@ -87,7 +87,7 @@ describe("Reward creation and accrual tests", () => {
         isWithdrawalHalted,
         isAccrueRewardHalted,
         allowPoolCreation,
-        minOperatorShareBps,
+        minOperatorTokenStake,
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
       })

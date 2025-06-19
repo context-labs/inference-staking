@@ -39,9 +39,9 @@ pub struct PoolOverview {
     /// If creation of OperatorPool is allowed.
     pub allow_pool_creation: bool,
 
-    /// Min. % of total share in pool that the Operator must maintain. If value falls below this minimum, Operators
-    /// would not be allowed to reduce their stake and no further delegations are allowed (unless pool is closed).
-    pub min_operator_share_bps: u16,
+    /// Min. amount of token stake that the Operator must maintain staked in their pool.
+    /// If the value is below this minimum, no delegations are allowed (unless pool is closed).
+    pub min_operator_token_stake: u64,
 
     /// Delay for unstaking in seconds for Delegators.
     pub delegator_unstake_delay_seconds: u64,

@@ -94,12 +94,12 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
     // If Operator is unstaking and pool is not closed, check that they still
     // maintain min. share percentage of pool after.
     if is_operator_unstaking && operator_pool.closed_at.is_none() {
-        let min_operator_share_bps = pool_overview.min_operator_share_bps;
-        let min_operator_shares = operator_pool.calc_min_operator_shares(min_operator_share_bps);
+        let min_operator_token_stake = pool_overview.min_operator_token_stake;
+        let operator_stake = operator_pool.calc_tokens_for_share_amount(staking_record.shares);
         require_gte!(
-            staking_record.shares,
-            min_operator_shares,
-            ErrorCode::MinOperatorSharesNotMet
+            operator_stake,
+            min_operator_token_stake,
+            ErrorCode::MinOperatorTokenStakeNotMet
         );
     }
 

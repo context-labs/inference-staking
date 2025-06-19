@@ -8,8 +8,8 @@ pub enum ErrorCode {
     UnstakingNotAllowed,
     #[msg("Rewards have to be claimed first")]
     UnclaimedRewards,
-    #[msg("Min. operator shares % in pool violated")]
-    MinOperatorSharesNotMet,
+    #[msg("Min. operator token stake not met")]
+    MinOperatorTokenStakeNotMet,
     #[msg("No tokens to be claimed")]
     NoTokensToClaim,
     #[msg("Tokens are still in unstaking cooldown")]

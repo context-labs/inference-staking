@@ -21,7 +21,7 @@ pub struct UpdatePoolOverviewArgs {
     pub is_withdrawal_halted: Option<bool>,
     pub is_accrue_reward_halted: Option<bool>,
     pub allow_pool_creation: Option<bool>,
-    pub min_operator_share_bps: Option<u16>,
+    pub min_operator_token_stake: Option<u64>,
     pub delegator_unstake_delay_seconds: Option<u64>,
     pub operator_unstake_delay_seconds: Option<u64>,
 }
@@ -33,16 +33,15 @@ pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -
         is_withdrawal_halted,
         is_accrue_reward_halted,
         allow_pool_creation,
-        min_operator_share_bps,
+        min_operator_token_stake,
         delegator_unstake_delay_seconds,
         operator_unstake_delay_seconds,
     } = args;
 
     let pool_overview = &mut ctx.accounts.pool_overview;
 
-    if let Some(min_operator_share_bps) = min_operator_share_bps {
-        require_gte!(10_000, min_operator_share_bps);
-        pool_overview.min_operator_share_bps = min_operator_share_bps;
+    if let Some(min_operator_token_stake) = min_operator_token_stake {
+        pool_overview.min_operator_token_stake = min_operator_token_stake;
     }
 
     if let Some(is_staking_halted) = is_staking_halted {

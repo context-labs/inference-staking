@@ -1433,8 +1433,8 @@ const _IDL = {
     },
     {
       code: 6003,
-      name: "minOperatorSharesNotMet",
-      msg: "Min. operator shares % in pool violated",
+      name: "minOperatorTokenStakeNotMet",
+      msg: "Min. operator token stake not met",
     },
     {
       code: 6004,
@@ -2041,12 +2041,12 @@ const _IDL = {
             type: "bool",
           },
           {
-            name: "minOperatorShareBps",
+            name: "minOperatorTokenStake",
             docs: [
-              "Min. % of total share in pool that the Operator must maintain. If value falls below this minimum, Operators",
-              "would not be allowed to reduce their stake and no further delegations are allowed (unless pool is closed).",
+              "Min. amount of token stake that the Operator must maintain staked in their pool.",
+              "If the value is below this minimum, no delegations are allowed (unless pool is closed).",
             ],
-            type: "u16",
+            type: "u64",
           },
           {
             name: "delegatorUnstakeDelaySeconds",
@@ -2380,9 +2380,9 @@ const _IDL = {
             },
           },
           {
-            name: "minOperatorShareBps",
+            name: "minOperatorTokenStake",
             type: {
-              option: "u16",
+              option: "u64",
             },
           },
           {

@@ -41,7 +41,7 @@ describe("inference-staking program tests", () => {
   const autoStakeFees = false;
   const commissionRateBps = 1_500;
   const allowDelegation = true;
-  const minOperatorShareBps = 1_000;
+  const minOperatorTokenStake = new anchor.BN(1_000);
   const allowPoolCreation = true;
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
@@ -80,7 +80,7 @@ describe("inference-staking program tests", () => {
     assert.isEmpty(poolOverview.haltAuthorities);
     assert(!poolOverview.isWithdrawalHalted);
     assert(!poolOverview.allowPoolCreation);
-    assert.equal(poolOverview.minOperatorShareBps, 0);
+    assert(poolOverview.minOperatorTokenStake.isZero());
     assert(poolOverview.delegatorUnstakeDelaySeconds.isZero());
     assert(poolOverview.operatorUnstakeDelaySeconds.isZero());
     assert(poolOverview.totalPools.isZero());
@@ -129,7 +129,7 @@ describe("inference-staking program tests", () => {
         isWithdrawalHalted,
         isAccrueRewardHalted,
         allowPoolCreation,
-        minOperatorShareBps,
+        minOperatorTokenStake,
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
       })
@@ -146,7 +146,7 @@ describe("inference-staking program tests", () => {
 
     assert.equal(poolOverview.isWithdrawalHalted, isWithdrawalHalted);
     assert.equal(poolOverview.allowPoolCreation, allowPoolCreation);
-    assert.equal(poolOverview.minOperatorShareBps, minOperatorShareBps);
+    assert(poolOverview.minOperatorTokenStake.eq(minOperatorTokenStake));
     assert(
       poolOverview.delegatorUnstakeDelaySeconds.eq(delegatorUnstakeDelaySeconds)
     );
@@ -831,7 +831,7 @@ describe("inference-staking program tests", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "minOperatorSharesNotMet");
+      assertStakingProgramError(error, "minOperatorTokenStakeNotMet");
     }
   });
 
@@ -948,7 +948,7 @@ describe("inference-staking program tests", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "minOperatorSharesNotMet");
+      assertStakingProgramError(error, "minOperatorTokenStakeNotMet");
     }
   });
 
@@ -1221,11 +1221,11 @@ describe("inference-staking program tests", () => {
       .rpc();
   });
 
-  it("Fail to unstake for operator if operator falls below min share", async () => {
+  it("Fail to unstake for operator if operator falls below min token stake", async () => {
     await program.methods
       .updatePoolOverview({
         ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
-        minOperatorShareBps: 99_00,
+        minOperatorTokenStake: new anchor.BN(10_000_000),
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
@@ -1248,7 +1248,7 @@ describe("inference-staking program tests", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "minOperatorSharesNotMet");
+      assertStakingProgramError(error, "minOperatorTokenStakeNotMet");
     }
   });
 
@@ -1322,7 +1322,7 @@ describe("inference-staking program tests", () => {
     await program.methods
       .updatePoolOverview({
         ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
-        minOperatorShareBps,
+        minOperatorTokenStake,
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
@@ -2078,12 +2078,12 @@ describe("inference-staking program tests", () => {
       .rpc();
   });
 
-  it("Fail to claim unstake for operator if operator falls below min share", async () => {
-    // Change min share to 99%
+  it("Fail to claim unstake for operator if operator falls below min token stake", async () => {
+    // Change min token stake to 10M
     await program.methods
       .updatePoolOverview({
         ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
-        minOperatorShareBps: 9900,
+        minOperatorTokenStake: new anchor.BN(10_000_000),
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
@@ -2111,14 +2111,14 @@ describe("inference-staking program tests", () => {
         .rpc();
       assert(false);
     } catch (error) {
-      assertStakingProgramError(error, "minOperatorSharesNotMet");
+      assertStakingProgramError(error, "minOperatorTokenStakeNotMet");
     }
 
     // Revert min share to default.
     await program.methods
       .updatePoolOverview({
         ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
-        minOperatorShareBps,
+        minOperatorTokenStake,
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,

@@ -17,7 +17,7 @@ describe("Additional tests for instruction constraints", () => {
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
   const autoStakeFees = false;
   const allowDelegation = true;
-  const minOperatorShareBps = 1_000;
+  const minOperatorTokenStake = new anchor.BN(1_000);
   const allowPoolCreation = true;
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
@@ -73,7 +73,7 @@ describe("Additional tests for instruction constraints", () => {
         isWithdrawalHalted,
         isAccrueRewardHalted,
         allowPoolCreation,
-        minOperatorShareBps,
+        minOperatorTokenStake,
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
       })
@@ -177,26 +177,6 @@ describe("Additional tests for instruction constraints", () => {
     );
 
     assert(poolOverviewPost.programAdmin.equals(setup.signerKp.publicKey));
-  });
-
-  it("Fail to update PoolOverview with with invalid min operator share", async () => {
-    try {
-      // Expect failure as min operator share cannot exceed 100%
-      await program.methods
-        .updatePoolOverview({
-          ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
-          minOperatorShareBps: 100_01,
-        })
-        .accountsStrict({
-          programAdmin: setup.signer,
-          poolOverview: setup.poolOverview,
-        })
-        .signers([setup.signerKp])
-        .rpc();
-      assert(false);
-    } catch (error) {
-      assertError(error, "RequireGteViolated");
-    }
   });
 
   it("Fail to update PoolOverview authorities with invalid admin", async () => {

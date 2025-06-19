@@ -184,16 +184,6 @@ impl OperatorPool {
         }
     }
 
-    /// Calculate the discrete amount of shares an Operator must own of it's pool.
-    pub fn calc_min_operator_shares(&self, min_operator_share_bps: u16) -> u64 {
-        let shares_amount_u128 = u128::from(self.total_shares)
-            .checked_mul(min_operator_share_bps.into())
-            .unwrap()
-            .checked_div(10_000)
-            .unwrap();
-        u64::try_from(shares_amount_u128).unwrap()
-    }
-
     /// Check that all rewards have been claimed for pool closure conditions.
     /// Returns an error if rewards are unclaimed and conditions are not met.
     pub fn check_unclaimed_rewards(&self, completed_reward_epoch: u64) -> Result<()> {
