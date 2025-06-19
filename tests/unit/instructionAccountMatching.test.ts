@@ -45,6 +45,7 @@ describe("Instruction Account Matching", () => {
         case "poolOverview":
         case "programAdmin":
         case "receiver":
+        case "registrationFeePayoutWallet":
         case "rewardRecord":
         case "rewardTokenAccount":
         case "stakedTokenAccount":
@@ -52,8 +53,8 @@ describe("Instruction Account Matching", () => {
         case "systemProgram":
         case "tokenProgram":
         case "usdcMint":
-        case "usdcPayoutWallet":
         case "usdcPayoutTokenAccount":
+        case "usdcPayoutWallet":
         case "usdcTokenAccount":
           assert.ok(seen.get(account) === 1);
           break;

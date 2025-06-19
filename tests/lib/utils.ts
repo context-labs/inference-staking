@@ -188,6 +188,7 @@ export const setStakingHalted = async ({
     .accountsStrict({
       poolOverview: setup.poolOverview,
       programAdmin: setup.poolOverviewAdminKp.publicKey,
+      registrationFeePayoutWallet: null,
     })
     .signers([setup.poolOverviewAdminKp])
     .rpc();

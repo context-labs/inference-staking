@@ -33,8 +33,9 @@ describe("Reward creation and accrual tests", () => {
   const commissionRateBps = 1_500;
   const newCommissionRateBps = 0;
   const allowDelegation = true;
-  const minOperatorTokenStake = new anchor.BN(0);
   const allowPoolCreation = true;
+  const operatorPoolRegistrationFee = new anchor.BN(1_000);
+  const minOperatorTokenStake = new anchor.BN(0);
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const isAccrueRewardHalted = false;
@@ -53,7 +54,7 @@ describe("Reward creation and accrual tests", () => {
       .createPoolOverview()
       .accountsStrict({
         payer: setup.payer,
-        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
         rewardTokenAccount: setup.rewardTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
@@ -61,6 +62,7 @@ describe("Reward creation and accrual tests", () => {
         usdcMint: setup.usdcTokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
+        registrationFeePayoutWallet: setup.poolOverviewAdmin,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
@@ -90,10 +92,12 @@ describe("Reward creation and accrual tests", () => {
         minOperatorTokenStake,
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
+        operatorPoolRegistrationFee,
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -719,6 +723,7 @@ describe("Reward creation and accrual tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -770,6 +775,7 @@ describe("Reward creation and accrual tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();

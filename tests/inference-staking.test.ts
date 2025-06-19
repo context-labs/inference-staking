@@ -41,8 +41,9 @@ describe("inference-staking program tests", () => {
   const autoStakeFees = false;
   const commissionRateBps = 1_500;
   const allowDelegation = true;
-  const minOperatorTokenStake = new anchor.BN(1_000);
   const allowPoolCreation = true;
+  const operatorPoolRegistrationFee = new anchor.BN(1_000);
+  const minOperatorTokenStake = new anchor.BN(1_000);
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const isAccrueRewardHalted = false;
@@ -66,6 +67,7 @@ describe("inference-staking program tests", () => {
         usdcMint: setup.usdcTokenMint,
         usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
+        registrationFeePayoutWallet: setup.poolOverviewAdmin,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
@@ -132,10 +134,12 @@ describe("inference-staking program tests", () => {
         minOperatorTokenStake,
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
+        operatorPoolRegistrationFee,
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -1187,6 +1191,7 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -1216,6 +1221,7 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -1230,6 +1236,7 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -1327,6 +1334,7 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2038,6 +2046,7 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2073,6 +2082,7 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2088,6 +2098,7 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2123,6 +2134,7 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2595,6 +2607,7 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2629,6 +2642,7 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();

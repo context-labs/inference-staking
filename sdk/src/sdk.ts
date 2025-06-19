@@ -388,6 +388,7 @@ export class InferenceStakingProgramSdk {
       isWithdrawalHalted: null,
       isAccrueRewardHalted: null,
       allowPoolCreation: null,
+      operatorPoolRegistrationFee: null,
       minOperatorTokenStake: null,
       delegatorUnstakeDelaySeconds: null,
       operatorUnstakeDelaySeconds: null,

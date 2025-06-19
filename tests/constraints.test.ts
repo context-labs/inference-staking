@@ -17,8 +17,9 @@ describe("Additional tests for instruction constraints", () => {
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
   const autoStakeFees = false;
   const allowDelegation = true;
-  const minOperatorTokenStake = new anchor.BN(1_000);
   const allowPoolCreation = true;
+  const operatorPoolRegistrationFee = new anchor.BN(1_000);
+  const minOperatorTokenStake = new anchor.BN(1_000);
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const isAccrueRewardHalted = false;
@@ -42,6 +43,7 @@ describe("Additional tests for instruction constraints", () => {
           mint: setup.tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
+          registrationFeePayoutWallet: setup.poolOverviewAdmin,
         })
         .signers([setup.payerKp, setup.signerKp])
         .rpc();
@@ -63,6 +65,7 @@ describe("Additional tests for instruction constraints", () => {
         mint: setup.tokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
+        registrationFeePayoutWallet: setup.poolOverviewAdmin,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
@@ -76,10 +79,12 @@ describe("Additional tests for instruction constraints", () => {
         minOperatorTokenStake,
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
+        operatorPoolRegistrationFee,
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -95,6 +100,7 @@ describe("Additional tests for instruction constraints", () => {
         .accountsStrict({
           programAdmin: setup.haltingAuthorityKp.publicKey,
           poolOverview: setup.poolOverview,
+          registrationFeePayoutWallet: null,
         })
         .signers([setup.haltingAuthorityKp])
         .rpc();
