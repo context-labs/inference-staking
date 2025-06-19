@@ -406,6 +406,44 @@ describe("inference-staking program tests", () => {
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
 
+  it("Fail to create duplicate OperatorPool with same admin", async () => {
+    try {
+      // Try to create another pool with the same admin - should fail since PDA is derived from admin key
+      await program.methods
+        .createOperatorPool({
+          autoStakeFees: true,
+          commissionRateBps: 2000,
+          allowDelegation: false,
+          name: "Different Pool Name",
+          description: "Different description",
+          websiteUrl: "https://different.com",
+          avatarImageUrl: "https://different.com/avatar.png",
+          operatorAuthKeys: null,
+        })
+        .accountsStrict({
+          payer: setup.payer,
+          admin: setup.pool1.admin,
+          operatorPool: setup.pool1.pool,
+          stakingRecord: setup.pool1.stakingRecord,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          feeTokenAccount: setup.pool1.feeTokenAccount,
+          poolOverview: setup.poolOverview,
+          mint: setup.tokenMint,
+          usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          adminTokenAccount: setup.pool1.adminTokenAccount,
+          registrationFeePayoutTokenAccount:
+            setup.registrationFeePayoutTokenAccount,
+        })
+        .signers([setup.payerKp, setup.pool1.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertError(error, "already in use");
+    }
+  });
+
   it("OperatorPool change admin successfully", async () => {
     const operatorPoolPre = await program.account.operatorPool.fetch(
       setup.pool1.pool
