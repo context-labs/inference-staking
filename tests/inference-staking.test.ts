@@ -2909,7 +2909,9 @@ describe("inference-staking program tests", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch));
+    assert(
+      operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch.addn(1))
+    );
   });
 
   it("Fail to close OperatorPool when it's already closed", async () => {

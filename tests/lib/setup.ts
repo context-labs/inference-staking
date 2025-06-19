@@ -318,6 +318,7 @@ export async function setupTests() {
     3: sdk.rewardRecordPda(new BN(3)),
     4: sdk.rewardRecordPda(new BN(4)),
     5: sdk.rewardRecordPda(new BN(5)),
+    6: sdk.rewardRecordPda(new BN(6)),
   };
 
   const fixedPoolIds = [

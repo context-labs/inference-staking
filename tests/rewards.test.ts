@@ -1156,7 +1156,7 @@ describe("Reward creation and accrual tests", () => {
       .rpc();
   });
 
-  it("Create another RewardRecord after pool closure", async () => {
+  it("Create more RewardRecords after pool closure", async () => {
     await program.methods
       .closeOperatorPool()
       .accountsStrict({
@@ -1167,57 +1167,94 @@ describe("Reward creation and accrual tests", () => {
       .signers([setup.pool1.adminKp])
       .rpc();
 
-    // Use same reward values as epoch 2
-    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
-    const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
-    let totalRewards = new anchor.BN(0);
-    for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
-    }
-    let totalUsdcAmount = new anchor.BN(0);
-    for (const addressInput of setup.rewardEpochs[2]) {
-      totalUsdcAmount = totalUsdcAmount.addn(Number(addressInput.usdcAmount));
-    }
+    const createRewardRecord = async (epoch: 5 | 6) => {
+      // Use same reward values as epoch 2
+      const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+      const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
+      let totalRewards = new anchor.BN(0);
+      for (const addressInput of setup.rewardEpochs[2]) {
+        totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
+      }
+      let totalUsdcAmount = new anchor.BN(0);
+      for (const addressInput of setup.rewardEpochs[2]) {
+        totalUsdcAmount = totalUsdcAmount.addn(Number(addressInput.usdcAmount));
+      }
 
-    await mintTo(
-      connection,
-      setup.payerKp,
-      setup.tokenMint,
-      setup.rewardTokenAccount,
-      setup.tokenHolderKp,
-      totalRewards.toNumber()
-    );
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        setup.rewardTokenAccount,
+        setup.tokenHolderKp,
+        totalRewards.toNumber()
+      );
 
-    await mintTo(
-      connection,
-      setup.payerKp,
-      setup.usdcTokenMint,
-      setup.usdcTokenAccount,
-      setup.tokenHolderKp,
-      totalUsdcAmount.toNumber()
-    );
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.usdcTokenMint,
+        setup.usdcTokenAccount,
+        setup.tokenHolderKp,
+        totalUsdcAmount.toNumber()
+      );
 
-    await setEpochFinalizationState({ program, setup });
-    await program.methods
-      .createRewardRecord({
-        merkleRoots,
-        totalRewards,
-        totalUsdcPayout: totalUsdcAmount,
-      })
-      .accountsStrict({
-        payer: setup.payer,
-        authority: setup.rewardDistributionAuthority,
-        poolOverview: setup.poolOverview,
-        rewardRecord: setup.rewardRecords[5],
-        rewardTokenAccount: setup.rewardTokenAccount,
-        usdcTokenAccount: setup.usdcTokenAccount,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
-      .rpc();
+      await setEpochFinalizationState({ program, setup });
+      await program.methods
+        .createRewardRecord({
+          merkleRoots,
+          totalRewards,
+          totalUsdcPayout: totalUsdcAmount,
+        })
+        .accountsStrict({
+          payer: setup.payer,
+          authority: setup.rewardDistributionAuthority,
+          poolOverview: setup.poolOverview,
+          rewardRecord: setup.rewardRecords[epoch],
+          rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
+        .rpc();
+    };
+
+    await createRewardRecord(5);
+    await createRewardRecord(6);
   });
 
   it("Fail to accrue reward after pool closure", async () => {
+    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+    const nodeIndex = setup.rewardEpochs[2].findIndex(
+      (x) => x.address == setup.pool1.pool.toString()
+    );
+    const proofInputs = {
+      ...setup.rewardEpochs[2][nodeIndex],
+      index: nodeIndex,
+      merkleTree,
+    } as GenerateMerkleProofInput;
+    const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+    await program.methods
+      .accrueReward({
+        merkleIndex: 0,
+        proof: proof.map((arr) => Array.from(arr)),
+        proofPath,
+        rewardAmount: new anchor.BN(proofInputs.tokenAmount.toString()),
+        usdcAmount: new anchor.BN(proofInputs.usdcAmount.toString()),
+      })
+      .accountsStrict({
+        poolOverview: setup.poolOverview,
+        rewardRecord: setup.rewardRecords[5],
+        operatorPool: setup.pool1.pool,
+        operatorStakingRecord: setup.pool1.stakingRecord,
+        rewardTokenAccount: setup.rewardTokenAccount,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        feeTokenAccount: setup.pool1.feeTokenAccount,
+        usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+        usdcTokenAccount: setup.usdcTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
     try {
       const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
       const nodeIndex = setup.rewardEpochs[2].findIndex(
@@ -1239,7 +1276,7 @@ describe("Reward creation and accrual tests", () => {
         })
         .accountsStrict({
           poolOverview: setup.poolOverview,
-          rewardRecord: setup.rewardRecords[5],
+          rewardRecord: setup.rewardRecords[6],
           operatorPool: setup.pool1.pool,
           operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
