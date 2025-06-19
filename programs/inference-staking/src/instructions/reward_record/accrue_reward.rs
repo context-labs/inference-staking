@@ -30,7 +30,7 @@ pub struct AccrueReward<'info> {
         mut,
         seeds = [
             b"OperatorPool".as_ref(),
-            &operator_pool.pool_id.to_le_bytes()
+            operator_pool.initial_pool_admin.as_ref(),
         ],
         bump = operator_pool.bump,
         has_one = operator_staking_record,

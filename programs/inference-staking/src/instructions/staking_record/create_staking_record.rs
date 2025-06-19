@@ -10,7 +10,7 @@ pub struct CreateStakingRecord<'info> {
     pub owner: Signer<'info>,
 
     #[account(
-        seeds = [b"OperatorPool".as_ref(), &operator_pool.pool_id.to_le_bytes()],
+        seeds = [b"OperatorPool".as_ref(), operator_pool.initial_pool_admin.as_ref()],
         bump,
     )]
     pub operator_pool: Box<Account<'info, OperatorPool>>,

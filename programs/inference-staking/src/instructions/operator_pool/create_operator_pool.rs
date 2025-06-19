@@ -18,7 +18,7 @@ pub struct CreateOperatorPool<'info> {
         init,
         seeds = [
             b"OperatorPool".as_ref(),
-            &(pool_overview.total_pools + 1).to_le_bytes()
+            admin.key().as_ref(),
         ],
         bump,
         payer = payer,
@@ -109,13 +109,13 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     pool_overview.total_pools = pool_overview.total_pools.checked_add(1).unwrap();
 
     let operator_pool = &mut ctx.accounts.operator_pool;
-    operator_pool.pool_id = pool_overview.total_pools;
     operator_pool.bump = ctx.bumps.operator_pool;
     operator_pool.name = name;
     operator_pool.description = description;
     operator_pool.website_url = website_url;
     operator_pool.avatar_image_url = avatar_image_url;
     operator_pool.admin = ctx.accounts.admin.key();
+    operator_pool.initial_pool_admin = ctx.accounts.admin.key();
     operator_pool.operator_staking_record = ctx.accounts.staking_record.key();
     operator_pool.auto_stake_fees = auto_stake_fees;
     operator_pool.commission_rate_bps = commission_rate_bps;

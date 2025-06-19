@@ -11,11 +11,11 @@ const MAX_AVATAR_IMAGE_URL_LENGTH: usize = 128;
 #[derive(InitSpace)]
 #[account]
 pub struct OperatorPool {
-    /// ID of Pool. Equal to (PoolOverview.totalPools + 1) at time of creation.
-    pub pool_id: u64,
-
     /// PDA Bump
     pub bump: u8,
+
+    /// Initial pool admin. This is stored for the PDA derivation.
+    pub initial_pool_admin: Pubkey,
 
     /// Authority allowed to configure settings for this account.
     pub admin: Pubkey,

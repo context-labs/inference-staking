@@ -3,6 +3,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCode;
 use crate::events::ClaimUnstakeEvent;
+use crate::operator_pool_signer_seeds;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 
 #[derive(Accounts)]
@@ -18,7 +19,7 @@ pub struct ClaimUnstake<'info> {
 
     #[account(
         mut,
-        seeds = [b"OperatorPool".as_ref(), &operator_pool.pool_id.to_le_bytes()],
+        seeds = [b"OperatorPool".as_ref(), operator_pool.initial_pool_admin.as_ref()],
         bump = operator_pool.bump,
         has_one = operator_staking_record,
     )]
@@ -103,11 +104,7 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
                 to: ctx.accounts.owner_token_account.to_account_info(),
                 authority: ctx.accounts.operator_pool.to_account_info(),
             },
-            &[&[
-                b"OperatorPool".as_ref(),
-                &operator_pool.pool_id.to_le_bytes(),
-                &[operator_pool.bump],
-            ]],
+            &[operator_pool_signer_seeds!(operator_pool)],
         ),
         tokens_unstake_amount,
     )?;

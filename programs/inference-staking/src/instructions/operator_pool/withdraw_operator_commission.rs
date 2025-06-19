@@ -18,7 +18,7 @@ pub struct WithdrawOperatorCommission<'info> {
     pub pool_overview: Account<'info, PoolOverview>,
 
     #[account(
-        seeds = [b"OperatorPool".as_ref(), &operator_pool.pool_id.to_le_bytes()],
+        seeds = [b"OperatorPool".as_ref(), operator_pool.initial_pool_admin.as_ref()],
         bump = operator_pool.bump,
         // Admin must sign to invoke this instruction
         has_one = admin,
