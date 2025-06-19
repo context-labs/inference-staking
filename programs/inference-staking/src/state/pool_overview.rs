@@ -42,6 +42,9 @@ pub struct PoolOverview {
     /// Token fee required to register an OperatorPool.
     pub operator_pool_registration_fee: u64,
 
+    /// Wallet that receives the operator pool registration fees.
+    pub registration_fee_payout_wallet: Pubkey,
+
     /// Min. amount of token stake that the Operator must maintain staked in their pool.
     /// If the value is below this minimum, no delegations are allowed (unless pool is closed).
     pub min_operator_token_stake: u64,

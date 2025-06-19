@@ -13,6 +13,9 @@ pub struct UpdatePoolOverview<'info> {
         has_one = program_admin @ ErrorCode::InvalidProgramAdmin
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
+
+    /// CHECK: This is the wallet address that receives the operator pool registration fees.
+    pub registration_fee_payout_wallet: Option<UncheckedAccount<'info>>,
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
@@ -72,6 +75,11 @@ pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -
 
     if let Some(operator_unstake_delay_seconds) = operator_unstake_delay_seconds {
         pool_overview.operator_unstake_delay_seconds = operator_unstake_delay_seconds;
+    }
+
+    let registration_fee_payout_wallet = &ctx.accounts.registration_fee_payout_wallet;
+    if let Some(registration_fee_payout_wallet) = registration_fee_payout_wallet {
+        pool_overview.registration_fee_payout_wallet = registration_fee_payout_wallet.key();
     }
 
     Ok(())

@@ -10,6 +10,9 @@ pub struct CreatePoolOverview<'info> {
 
     pub program_admin: Signer<'info>,
 
+    /// CHECK: This is the wallet address that receives the operator pool registration fees.
+    pub registration_fee_payout_wallet: UncheckedAccount<'info>,
+
     #[account(
         init,
         seeds = [b"PoolOverview".as_ref()],
@@ -54,9 +57,12 @@ pub struct CreatePoolOverview<'info> {
 /// Instruction to setup a PoolOverview singleton. To be called after initial program deployment.
 pub fn handler(ctx: Context<CreatePoolOverview>) -> Result<()> {
     let pool_overview = &mut ctx.accounts.pool_overview;
-    pool_overview.program_admin = ctx.accounts.program_admin.key();
-    pool_overview.mint = ctx.accounts.mint.key();
+
     pool_overview.bump = ctx.bumps.pool_overview;
+    pool_overview.mint = ctx.accounts.mint.key();
+    pool_overview.program_admin = ctx.accounts.program_admin.key();
+    pool_overview.registration_fee_payout_wallet =
+        ctx.accounts.registration_fee_payout_wallet.key();
 
     Ok(())
 }

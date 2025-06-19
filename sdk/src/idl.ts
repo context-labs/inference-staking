@@ -603,6 +603,9 @@ const _IDL = {
           signer: true,
         },
         {
+          name: "registrationFeePayoutWallet",
+        },
+        {
           name: "poolOverview",
           writable: true,
           pda: {
@@ -1253,6 +1256,10 @@ const _IDL = {
               },
             ],
           },
+        },
+        {
+          name: "registrationFeePayoutWallet",
+          optional: true,
         },
       ],
       args: [
@@ -2041,6 +2048,16 @@ const _IDL = {
             type: "bool",
           },
           {
+            name: "operatorPoolRegistrationFee",
+            docs: ["Token fee required to register an OperatorPool."],
+            type: "u64",
+          },
+          {
+            name: "registrationFeePayoutWallet",
+            docs: ["Wallet that receives the operator pool registration fees."],
+            type: "pubkey",
+          },
+          {
             name: "minOperatorTokenStake",
             docs: [
               "Min. amount of token stake that the Operator must maintain staked in their pool.",
@@ -2377,6 +2394,12 @@ const _IDL = {
             name: "allowPoolCreation",
             type: {
               option: "bool",
+            },
+          },
+          {
+            name: "operatorPoolRegistrationFee",
+            type: {
+              option: "u64",
             },
           },
           {
