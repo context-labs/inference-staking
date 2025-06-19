@@ -511,6 +511,22 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Create OperatorPools", async () => {
     for (const pool of setup.pools) {
+      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        pool.admin
+      );
+
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        ownerTokenAccount.address,
+        setup.tokenHolderKp,
+        operatorPoolRegistrationFee.toNumber()
+      );
+
       await program.methods
         .createOperatorPool({
           autoStakeFees: pool.autoStakeFees,
