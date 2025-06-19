@@ -63,7 +63,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "operator_pool.pool_id",
+                path: "operator_pool.initial_pool_admin",
                 account: "operatorPool",
               },
             ],
@@ -213,7 +213,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "operator_pool.pool_id",
+                path: "operator_pool.initial_pool_admin",
                 account: "operatorPool",
               },
             ],
@@ -266,7 +266,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "operator_pool.pool_id",
+                path: "operator_pool.initial_pool_admin",
                 account: "operatorPool",
               },
             ],
@@ -334,7 +334,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "operator_pool.pool_id",
+                path: "operator_pool.initial_pool_admin",
                 account: "operatorPool",
               },
             ],
@@ -476,6 +476,20 @@ const _IDL = {
         {
           name: "operatorPool",
           writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+              {
+                kind: "account",
+                path: "admin",
+              },
+            ],
+          },
         },
         {
           name: "stakingRecord",
@@ -743,7 +757,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "operator_pool.pool_id",
+                path: "operator_pool.initial_pool_admin",
                 account: "operatorPool",
               },
             ],
@@ -899,7 +913,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "operator_pool.pool_id",
+                path: "operator_pool.initial_pool_admin",
                 account: "operatorPool",
               },
             ],
@@ -951,7 +965,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "operator_pool.pool_id",
+                path: "operator_pool.initial_pool_admin",
                 account: "operatorPool",
               },
             ],
@@ -1032,7 +1046,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "operator_pool.pool_id",
+                path: "operator_pool.initial_pool_admin",
                 account: "operatorPool",
               },
             ],
@@ -1132,7 +1146,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "operator_pool.pool_id",
+                path: "operator_pool.initial_pool_admin",
                 account: "operatorPool",
               },
             ],
@@ -1195,7 +1209,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "operator_pool.pool_id",
+                path: "operator_pool.initial_pool_admin",
                 account: "operatorPool",
               },
             ],
@@ -1326,7 +1340,7 @@ const _IDL = {
               },
               {
                 kind: "account",
-                path: "operator_pool.pool_id",
+                path: "operator_pool.initial_pool_admin",
                 account: "operatorPool",
               },
             ],
@@ -1782,16 +1796,16 @@ const _IDL = {
         kind: "struct",
         fields: [
           {
-            name: "poolId",
-            docs: [
-              "ID of Pool. Equal to (PoolOverview.totalPools + 1) at time of creation.",
-            ],
-            type: "u64",
-          },
-          {
             name: "bump",
             docs: ["PDA Bump"],
             type: "u8",
+          },
+          {
+            name: "initialPoolAdmin",
+            docs: [
+              "Initial pool admin. This is stored for the PDA derivation.",
+            ],
+            type: "pubkey",
           },
           {
             name: "admin",

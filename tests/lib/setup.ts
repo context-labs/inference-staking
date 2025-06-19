@@ -200,11 +200,11 @@ export async function setupTests() {
   const poolOverview = sdk.poolOverviewPda();
   const rewardTokenAccount = sdk.rewardTokenPda();
   const usdcTokenAccount = sdk.usdcTokenPda();
-  const operatorPool1 = sdk.operatorPoolPda(new BN(1));
-  const operatorPool2 = sdk.operatorPoolPda(new BN(2));
-  const operatorPool3 = sdk.operatorPoolPda(new BN(3));
-  const operatorPool4 = sdk.operatorPoolPda(new BN(4));
-  const operatorPool5 = sdk.operatorPoolPda(new BN(5));
+  const operatorPool1 = sdk.operatorPoolPda(admin1Kp.publicKey);
+  const operatorPool2 = sdk.operatorPoolPda(admin2Kp.publicKey);
+  const operatorPool3 = sdk.operatorPoolPda(admin3Kp.publicKey);
+  const operatorPool4 = sdk.operatorPoolPda(admin4Kp.publicKey);
+  const operatorPool5 = sdk.operatorPoolPda(admin5Kp.publicKey);
 
   const getPoolSetup = async ({
     adminKeypair,
@@ -280,15 +280,14 @@ export async function setupTests() {
     }),
   ]);
 
-  const poolIds = range(OPERATOR_POOL_SIZE).map((i) =>
-    sdk.operatorPoolPda(new BN(i + 1))
-  );
   const pools = await limitConcurrency(
-    poolIds,
-    async (poolId) => {
+    range(OPERATOR_POOL_SIZE),
+    async () => {
+      const adminKeypair = Keypair.generate();
+      const operatorPool = sdk.operatorPoolPda(adminKeypair.publicKey);
       return getPoolSetup({
-        operatorPool: poolId,
-        adminKeypair: Keypair.generate(),
+        operatorPool,
+        adminKeypair,
         delegatorKeypair: Keypair.generate(),
       });
     },

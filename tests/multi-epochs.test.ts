@@ -502,9 +502,7 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Create OperatorPools", async () => {
-    for (let i = 0; i < setup.pools.length; i++) {
-      const pool = setup.pools[i];
-      assert(pool != null);
+    for (const pool of setup.pools) {
       await program.methods
         .createOperatorPool({
           autoStakeFees: pool.autoStakeFees,
@@ -533,8 +531,8 @@ describe("multi-epoch lifecycle tests", () => {
         .rpc();
 
       const operatorPool = await program.account.operatorPool.fetch(pool.pool);
-      assert(operatorPool.poolId.eqn(i + 1));
       assert(operatorPool.admin.equals(pool.admin));
+      assert(operatorPool.initialPoolAdmin.equals(pool.admin));
       assert(operatorPool.operatorStakingRecord.equals(pool.stakingRecord));
       assert.equal(operatorPool.autoStakeFees, pool.autoStakeFees);
       assert.equal(operatorPool.commissionRateBps, pool.commissionRateBps);

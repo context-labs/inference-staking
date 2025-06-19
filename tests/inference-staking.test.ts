@@ -337,8 +337,8 @@ describe("inference-staking program tests", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(operatorPool.poolId.eqn(1));
     assert(operatorPool.admin.equals(setup.pool1.admin));
+    assert(operatorPool.initialPoolAdmin.equals(setup.pool1.admin));
     assert(
       operatorPool.operatorStakingRecord.equals(setup.pool1.stakingRecord)
     );
@@ -366,6 +366,9 @@ describe("inference-staking program tests", () => {
   });
 
   it("OperatorPool change admin successfully", async () => {
+    const operatorPoolPre = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
     await program.methods
       .changeOperatorAdmin()
       .accountsStrict({
@@ -381,6 +384,9 @@ describe("inference-staking program tests", () => {
       setup.pool1.pool
     );
     assert(operatorPool.admin.equals(setup.signer));
+    assert(
+      operatorPool.initialPoolAdmin.equals(operatorPoolPre.initialPoolAdmin)
+    );
 
     // Set back to original pool admin
     await program.methods
@@ -710,8 +716,10 @@ describe("inference-staking program tests", () => {
     }
 
     assert(
-      operatorPoolPost.poolId.eq(operatorPoolPre.poolId),
-      "Pool ID should remain unchanged"
+      operatorPoolPost.initialPoolAdmin.equals(
+        operatorPoolPre.initialPoolAdmin
+      ),
+      "Initial admin should remain unchanged"
     );
     assert(
       operatorPoolPost.admin.equals(operatorPoolPre.admin),
@@ -1613,7 +1621,7 @@ describe("inference-staking program tests", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool2.pool
     );
-    assert(operatorPool.poolId.eqn(2));
+    assert(operatorPool.initialPoolAdmin.equals(setup.pool2.admin));
     assert(operatorPool.admin.equals(setup.pool2.admin));
     assert(
       operatorPool.operatorStakingRecord.equals(setup.pool2.stakingRecord)
@@ -2860,7 +2868,7 @@ describe("inference-staking program tests", () => {
     }
   });
 
-  it("Unstake for operator below min. share is successful when pool is closed.", async () => {
+  it("Unstake for operator below min. share is successful when pool is closed", async () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
@@ -2968,7 +2976,7 @@ describe("inference-staking program tests", () => {
       setup.pool3.pool
     );
     assert(poolOverviewPre.isEpochFinalizing === true);
-    assert(operatorPool.poolId.eqn(3));
+    assert(operatorPool.initialPoolAdmin.equals(setup.pool3.admin));
     assert(operatorPool.admin.equals(setup.pool3.admin));
     assert(
       operatorPool.rewardLastClaimedEpoch.eqn(
@@ -3016,7 +3024,7 @@ describe("inference-staking program tests", () => {
     );
 
     assert(poolOverviewPre.isEpochFinalizing === true);
-    assert(operatorPool.poolId.eqn(4));
+    assert(operatorPool.initialPoolAdmin.equals(setup.pool4.admin));
     assert(operatorPool.admin.equals(setup.pool4.admin));
     assert(
       operatorPool.rewardLastClaimedEpoch.eqn(

@@ -62,12 +62,9 @@ export class InferenceStakingProgramSdk {
     return pda;
   }
 
-  operatorPoolPda(operatorPoolId: BN): PublicKey {
+  operatorPoolPda(operatorPoolAdmin: PublicKey): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("OperatorPool", "utf-8"),
-        operatorPoolId.toArrayLike(Buffer, "le", 8),
-      ],
+      [Buffer.from("OperatorPool", "utf-8"), operatorPoolAdmin.toBuffer()],
       this.program.programId
     );
     return pda;
