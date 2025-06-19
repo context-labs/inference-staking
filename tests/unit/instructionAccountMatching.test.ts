@@ -29,6 +29,7 @@ describe("Instruction Account Matching", () => {
       seen.set(account, (seen.get(account) ?? 0) + 1);
       switch (account) {
         case "admin":
+        case "adminTokenAccount":
         case "authority":
         case "destination":
         case "feeTokenAccount":
@@ -45,6 +46,7 @@ describe("Instruction Account Matching", () => {
         case "poolOverview":
         case "programAdmin":
         case "receiver":
+        case "registrationFeePayoutTokenAccount":
         case "registrationFeePayoutWallet":
         case "rewardRecord":
         case "rewardTokenAccount":

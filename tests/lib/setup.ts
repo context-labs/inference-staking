@@ -46,6 +46,7 @@ export type SetupPoolType = {
   delegatorStakingRecord: PublicKey;
   autoStakeFees: boolean;
   commissionRateBps: number;
+  adminTokenAccount: PublicKey;
 };
 
 export const TEST_PROGRAM_ID = new PublicKey(
@@ -80,6 +81,7 @@ export async function setupTests() {
   );
 
   const payerKp = PAYER_KEYPAIR ?? new Keypair();
+  const registrationFeePayoutWalletKp = new Keypair();
   const signerKp = new Keypair();
   const tokenHolderKp = TOKEN_MINT_OWNER_KEYPAIR ?? new Keypair();
   const poolOverviewAdminKp = PROGRAM_ADMIN_KEYPAIR ?? new Keypair();
@@ -92,11 +94,13 @@ export async function setupTests() {
   const admin3Kp = new Keypair();
   const admin4Kp = new Keypair();
   const admin5Kp = new Keypair();
+  const admin6Kp = new Keypair();
   const delegator1Kp = new Keypair();
   const delegator2Kp = new Keypair();
   const delegator3Kp = new Keypair();
   const delegator4Kp = new Keypair();
   const delegator5Kp = new Keypair();
+  const delegator6Kp = new Keypair();
   const delegatorKeypairs = range(DELEGATOR_COUNT).map(() => new Keypair());
 
   const provider = getProvider();
@@ -114,6 +118,7 @@ export async function setupTests() {
       admin3Kp,
       admin4Kp,
       admin5Kp,
+      admin6Kp,
       delegator1Kp,
       delegator2Kp,
       delegator3Kp,
@@ -205,6 +210,7 @@ export async function setupTests() {
   const operatorPool3 = sdk.operatorPoolPda(admin3Kp.publicKey);
   const operatorPool4 = sdk.operatorPoolPda(admin4Kp.publicKey);
   const operatorPool5 = sdk.operatorPoolPda(admin5Kp.publicKey);
+  const operatorPool6 = sdk.operatorPoolPda(admin6Kp.publicKey);
 
   const getPoolSetup = async ({
     adminKeypair,
@@ -220,6 +226,12 @@ export async function setupTests() {
         provider.connection,
         payerKp,
         usdcTokenMint,
+        adminKeypair.publicKey
+      );
+      const adminTokenAccount = await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        payerKp,
+        tokenMint,
         adminKeypair.publicKey
       );
       return {
@@ -244,6 +256,7 @@ export async function setupTests() {
         ),
         autoStakeFees: false,
         commissionRateBps: randomIntInRange(0, 100) * 100,
+        adminTokenAccount: adminTokenAccount.address,
       };
     } catch (err) {
       console.log(`Error getting pool setup for ${operatorPool.toBase58()}`);
@@ -252,7 +265,7 @@ export async function setupTests() {
     }
   };
 
-  const [pool1, pool2, pool3, pool4, pool5] = await Promise.all([
+  const [pool1, pool2, pool3, pool4, pool5, pool6] = await Promise.all([
     getPoolSetup({
       operatorPool: operatorPool1,
       adminKeypair: admin1Kp,
@@ -277,6 +290,11 @@ export async function setupTests() {
       operatorPool: operatorPool5,
       adminKeypair: admin5Kp,
       delegatorKeypair: delegator5Kp,
+    }),
+    getPoolSetup({
+      operatorPool: operatorPool6,
+      adminKeypair: admin6Kp,
+      delegatorKeypair: delegator6Kp,
     }),
   ]);
 
@@ -314,6 +332,14 @@ export async function setupTests() {
     3: generateRewardsForEpoch(fixedPoolIds),
   };
 
+  const registrationFeePayoutTokenAccount =
+    await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      payerKp,
+      tokenMint,
+      registrationFeePayoutWalletKp.publicKey
+    );
+
   debug(`- Test setup complete\n`);
 
   return {
@@ -322,6 +348,10 @@ export async function setupTests() {
     payer: payerKp.publicKey,
     poolOverviewAdminKp,
     poolOverviewAdmin: poolOverviewAdminKp.publicKey,
+    registrationFeePayoutWalletKp,
+    registrationFeePayoutWallet: registrationFeePayoutWalletKp.publicKey,
+    registrationFeePayoutTokenAccount:
+      registrationFeePayoutTokenAccount.address,
     rewardDistributionAuthorityKp,
     rewardDistributionAuthority: rewardDistributionAuthorityKp.publicKey,
     haltingAuthorityKp,
@@ -347,6 +377,7 @@ export async function setupTests() {
     pool3,
     pool4,
     pool5,
+    pool6,
     pools,
     rewardTokenAccount,
     rewardRecords,

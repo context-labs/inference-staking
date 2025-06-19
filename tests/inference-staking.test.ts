@@ -67,7 +67,7 @@ describe("inference-staking program tests", () => {
         usdcMint: setup.usdcTokenMint,
         usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
-        registrationFeePayoutWallet: setup.poolOverviewAdmin,
+        registrationFeePayoutWallet: setup.registrationFeePayoutWallet,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
@@ -115,6 +115,9 @@ describe("inference-staking program tests", () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
           systemProgram: SystemProgram.programId,
+          adminTokenAccount: setup.pool1.adminTokenAccount,
+          registrationFeePayoutTokenAccount:
+            setup.registrationFeePayoutTokenAccount,
         })
         .signers([setup.payerKp, setup.pool1.adminKp])
         .rpc();
@@ -311,6 +314,14 @@ describe("inference-staking program tests", () => {
   });
 
   it("Create OperatorPool 1 successfully", async () => {
+    const adminTokenBalancePre = await connection.getTokenAccountBalance(
+      setup.pool1.adminTokenAccount
+    );
+    const registrationFeePayoutBalancePre =
+      await connection.getTokenAccountBalance(
+        setup.registrationFeePayoutTokenAccount
+      );
+
     await program.methods
       .createOperatorPool({
         autoStakeFees,
@@ -334,9 +345,35 @@ describe("inference-staking program tests", () => {
         usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
+        adminTokenAccount: setup.pool1.adminTokenAccount,
+        registrationFeePayoutTokenAccount:
+          setup.registrationFeePayoutTokenAccount,
       })
       .signers([setup.payerKp, setup.pool1.adminKp])
       .rpc();
+
+    // Verify registration fee transfer occurred
+    const adminTokenBalancePost = await connection.getTokenAccountBalance(
+      setup.pool1.adminTokenAccount
+    );
+    const registrationFeePayoutBalancePost =
+      await connection.getTokenAccountBalance(
+        setup.registrationFeePayoutTokenAccount
+      );
+
+    assert(
+      new anchor.BN(adminTokenBalancePre.value.amount)
+        .sub(operatorPoolRegistrationFee)
+        .eq(new anchor.BN(adminTokenBalancePost.value.amount)),
+      "Admin token balance should decrease by registration fee amount"
+    );
+
+    assert(
+      new anchor.BN(registrationFeePayoutBalancePost.value.amount)
+        .sub(new anchor.BN(registrationFeePayoutBalancePre.value.amount))
+        .eq(operatorPoolRegistrationFee),
+      "Registration fee payout account should increase by registration fee amount"
+    );
 
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
@@ -1513,6 +1550,9 @@ describe("inference-staking program tests", () => {
       usdcPayoutWallet: setup.pool2.usdcTokenAccount,
       tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
+      adminTokenAccount: setup.pool2.adminTokenAccount,
+      registrationFeePayoutTokenAccount:
+        setup.registrationFeePayoutTokenAccount,
     } as const;
 
     const signers = [setup.payerKp, setup.pool2.adminKp];
@@ -1599,6 +1639,14 @@ describe("inference-staking program tests", () => {
   });
 
   it("Create OperatorPool 2 successfully", async () => {
+    const adminTokenBalancePre = await connection.getTokenAccountBalance(
+      setup.pool2.adminTokenAccount
+    );
+    const registrationFeePayoutBalancePre =
+      await connection.getTokenAccountBalance(
+        setup.registrationFeePayoutTokenAccount
+      );
+
     await program.methods
       .createOperatorPool({
         autoStakeFees,
@@ -1622,9 +1670,35 @@ describe("inference-staking program tests", () => {
         usdcPayoutWallet: setup.pool2.usdcPayoutWallet,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
+        adminTokenAccount: setup.pool2.adminTokenAccount,
+        registrationFeePayoutTokenAccount:
+          setup.registrationFeePayoutTokenAccount,
       })
       .signers([setup.payerKp, setup.pool2.adminKp])
       .rpc();
+
+    // Verify registration fee transfer occurred
+    const adminTokenBalancePost = await connection.getTokenAccountBalance(
+      setup.pool2.adminTokenAccount
+    );
+    const registrationFeePayoutBalancePost =
+      await connection.getTokenAccountBalance(
+        setup.registrationFeePayoutTokenAccount
+      );
+
+    assert(
+      new anchor.BN(adminTokenBalancePre.value.amount)
+        .sub(operatorPoolRegistrationFee)
+        .eq(new anchor.BN(adminTokenBalancePost.value.amount)),
+      "Admin token balance should decrease by registration fee amount"
+    );
+
+    assert(
+      new anchor.BN(registrationFeePayoutBalancePost.value.amount)
+        .sub(new anchor.BN(registrationFeePayoutBalancePre.value.amount))
+        .eq(operatorPoolRegistrationFee),
+      "Registration fee payout account should increase by registration fee amount"
+    );
 
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool2.pool
@@ -2959,6 +3033,14 @@ describe("inference-staking program tests", () => {
       setup.poolOverview
     );
 
+    const adminTokenBalancePre = await connection.getTokenAccountBalance(
+      setup.pool3.adminTokenAccount
+    );
+    const registrationFeePayoutBalancePre =
+      await connection.getTokenAccountBalance(
+        setup.registrationFeePayoutTokenAccount
+      );
+
     await program.methods
       .createOperatorPool({
         autoStakeFees,
@@ -2982,9 +3064,35 @@ describe("inference-staking program tests", () => {
         usdcPayoutWallet: setup.pool3.usdcPayoutWallet,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
+        adminTokenAccount: setup.pool3.adminTokenAccount,
+        registrationFeePayoutTokenAccount:
+          setup.registrationFeePayoutTokenAccount,
       })
       .signers([setup.payerKp, setup.pool3.adminKp])
       .rpc();
+
+    // Verify registration fee transfer occurred
+    const adminTokenBalancePost = await connection.getTokenAccountBalance(
+      setup.pool3.adminTokenAccount
+    );
+    const registrationFeePayoutBalancePost =
+      await connection.getTokenAccountBalance(
+        setup.registrationFeePayoutTokenAccount
+      );
+
+    assert(
+      new anchor.BN(adminTokenBalancePre.value.amount)
+        .sub(operatorPoolRegistrationFee)
+        .eq(new anchor.BN(adminTokenBalancePost.value.amount)),
+      "Admin token balance should decrease by registration fee amount"
+    );
+
+    assert(
+      new anchor.BN(registrationFeePayoutBalancePost.value.amount)
+        .sub(new anchor.BN(registrationFeePayoutBalancePre.value.amount))
+        .eq(operatorPoolRegistrationFee),
+      "Registration fee payout account should increase by registration fee amount"
+    );
 
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool3.pool
@@ -3005,6 +3113,14 @@ describe("inference-staking program tests", () => {
     );
 
     const mockDescription = `NodeOperator-XYZ: High-performance validator with 99.8% uptime. Specialized in Solana infrastructure since 2021. Our setup includes redundant systems and 24/7 monitoring. We are good. #ReliableStaking`;
+
+    const adminTokenBalancePre = await connection.getTokenAccountBalance(
+      setup.pool4.adminTokenAccount
+    );
+    const registrationFeePayoutBalancePre =
+      await connection.getTokenAccountBalance(
+        setup.registrationFeePayoutTokenAccount
+      );
 
     await program.methods
       .createOperatorPool({
@@ -3029,9 +3145,35 @@ describe("inference-staking program tests", () => {
         usdcPayoutWallet: setup.pool4.usdcPayoutWallet,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
+        adminTokenAccount: setup.pool4.adminTokenAccount,
+        registrationFeePayoutTokenAccount:
+          setup.registrationFeePayoutTokenAccount,
       })
       .signers([setup.payerKp, setup.pool4.adminKp])
       .rpc();
+
+    // Verify registration fee transfer occurred
+    const adminTokenBalancePost = await connection.getTokenAccountBalance(
+      setup.pool4.adminTokenAccount
+    );
+    const registrationFeePayoutBalancePost =
+      await connection.getTokenAccountBalance(
+        setup.registrationFeePayoutTokenAccount
+      );
+
+    assert(
+      new anchor.BN(adminTokenBalancePre.value.amount)
+        .sub(operatorPoolRegistrationFee)
+        .eq(new anchor.BN(adminTokenBalancePost.value.amount)),
+      "Admin token balance should decrease by registration fee amount"
+    );
+
+    assert(
+      new anchor.BN(registrationFeePayoutBalancePost.value.amount)
+        .sub(new anchor.BN(registrationFeePayoutBalancePre.value.amount))
+        .eq(operatorPoolRegistrationFee),
+      "Registration fee payout account should increase by registration fee amount"
+    );
 
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool4.pool
@@ -3045,5 +3187,160 @@ describe("inference-staking program tests", () => {
         poolOverviewPre.completedRewardEpoch.addn(1).toNumber()
       )
     );
+  });
+
+  it("Should not transfer registration fee when fee is set to zero", async () => {
+    // Temporarily set registration fee to 0
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        operatorPoolRegistrationFee: new anchor.BN(0),
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    const pool5 = {
+      name: `Test Operator ${setup.pool5.name.slice(-8)}`,
+      description: `Test Description ${
+        setup.pool5.description?.slice(-8) || ""
+      }`,
+      websiteUrl: setup.pool5.websiteUrl,
+      avatarImageUrl: setup.pool5.avatarImageUrl,
+      admin: setup.pool5.admin,
+      adminKp: setup.pool5.adminKp,
+      pool: setup.pool5.pool,
+      stakingRecord: setup.pool5.stakingRecord,
+      stakedTokenAccount: setup.pool5.stakedTokenAccount,
+      feeTokenAccount: setup.pool5.feeTokenAccount,
+      usdcPayoutWallet: setup.pool5.usdcPayoutWallet,
+      adminTokenAccount: setup.pool5.adminTokenAccount,
+    };
+
+    const adminTokenBalancePre = await connection.getTokenAccountBalance(
+      pool5.adminTokenAccount
+    );
+    const registrationFeePayoutBalancePre =
+      await connection.getTokenAccountBalance(
+        setup.registrationFeePayoutTokenAccount
+      );
+
+    await program.methods
+      .createOperatorPool({
+        autoStakeFees,
+        commissionRateBps,
+        allowDelegation,
+        name: pool5.name,
+        description: pool5.description,
+        websiteUrl: pool5.websiteUrl,
+        avatarImageUrl: pool5.avatarImageUrl,
+        operatorAuthKeys: null,
+      })
+      .accountsStrict({
+        payer: setup.payer,
+        admin: pool5.admin,
+        operatorPool: pool5.pool,
+        stakingRecord: pool5.stakingRecord,
+        stakedTokenAccount: pool5.stakedTokenAccount,
+        feeTokenAccount: pool5.feeTokenAccount,
+        poolOverview: setup.poolOverview,
+        mint: setup.tokenMint,
+        usdcPayoutWallet: pool5.usdcPayoutWallet,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        adminTokenAccount: pool5.adminTokenAccount,
+        registrationFeePayoutTokenAccount:
+          setup.registrationFeePayoutTokenAccount,
+      })
+      .signers([setup.payerKp, pool5.adminKp])
+      .rpc();
+
+    // Verify no registration fee transfer occurred
+    const adminTokenBalancePost = await connection.getTokenAccountBalance(
+      pool5.adminTokenAccount
+    );
+    const registrationFeePayoutBalancePost =
+      await connection.getTokenAccountBalance(
+        setup.registrationFeePayoutTokenAccount
+      );
+
+    assert(
+      new anchor.BN(adminTokenBalancePre.value.amount).eq(
+        new anchor.BN(adminTokenBalancePost.value.amount)
+      ),
+      "Admin token balance should remain unchanged when registration fee is zero"
+    );
+
+    assert(
+      new anchor.BN(registrationFeePayoutBalancePost.value.amount).eq(
+        new anchor.BN(registrationFeePayoutBalancePre.value.amount)
+      ),
+      "Registration fee payout account should remain unchanged when registration fee is zero"
+    );
+
+    // Reset registration fee back to original value
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        operatorPoolRegistrationFee,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
+  it("Should fail to create operator pool when admin has insufficient tokens for registration fee", async () => {
+    const adminTokenBalance = await connection.getTokenAccountBalance(
+      setup.pool6.adminTokenAccount
+    );
+
+    assert(
+      new anchor.BN(adminTokenBalance.value.amount).isZero(),
+      "Pool6 admin should have zero token balance for this test"
+    );
+
+    try {
+      await program.methods
+        .createOperatorPool({
+          autoStakeFees,
+          commissionRateBps,
+          allowDelegation,
+          name: setup.pool6.name,
+          description: setup.pool6.description,
+          websiteUrl: setup.pool6.websiteUrl,
+          avatarImageUrl: setup.pool6.avatarImageUrl,
+          operatorAuthKeys: null,
+        })
+        .accountsStrict({
+          payer: setup.payer,
+          admin: setup.pool6.admin,
+          operatorPool: setup.pool6.pool,
+          stakingRecord: setup.pool6.stakingRecord,
+          stakedTokenAccount: setup.pool6.stakedTokenAccount,
+          feeTokenAccount: setup.pool6.feeTokenAccount,
+          poolOverview: setup.poolOverview,
+          mint: setup.tokenMint,
+          usdcPayoutWallet: setup.pool6.usdcPayoutWallet,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          adminTokenAccount: setup.pool6.adminTokenAccount,
+          registrationFeePayoutTokenAccount:
+            setup.registrationFeePayoutTokenAccount,
+        })
+        .signers([setup.payerKp, setup.pool6.adminKp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      assertError(error, "Error: insufficient funds");
+    }
   });
 });

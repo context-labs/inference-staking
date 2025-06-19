@@ -43,7 +43,7 @@ describe("Additional tests for instruction constraints", () => {
           mint: setup.tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
-          registrationFeePayoutWallet: setup.poolOverviewAdmin,
+          registrationFeePayoutWallet: setup.registrationFeePayoutWallet,
         })
         .signers([setup.payerKp, setup.signerKp])
         .rpc();
@@ -264,6 +264,9 @@ describe("Additional tests for instruction constraints", () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+          adminTokenAccount: setup.pool1.adminTokenAccount,
+          registrationFeePayoutTokenAccount:
+            setup.registrationFeePayoutTokenAccount,
         })
         .signers([setup.payerKp, setup.pool1.adminKp])
         .rpc();

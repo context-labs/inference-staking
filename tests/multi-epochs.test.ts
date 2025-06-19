@@ -408,7 +408,7 @@ describe("multi-epoch lifecycle tests", () => {
         usdcMint: setup.usdcTokenMint,
         usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
-        registrationFeePayoutWallet: setup.poolOverviewAdmin,
+        registrationFeePayoutWallet: setup.registrationFeePayoutWallet,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
@@ -534,6 +534,9 @@ describe("multi-epoch lifecycle tests", () => {
           usdcPayoutWallet: pool.usdcPayoutWallet,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
+          adminTokenAccount: pool.adminTokenAccount,
+          registrationFeePayoutTokenAccount:
+            setup.registrationFeePayoutTokenAccount,
         })
         .signers([setup.payerKp, pool.adminKp])
         .rpc();

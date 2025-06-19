@@ -62,7 +62,7 @@ describe("Reward creation and accrual tests", () => {
         usdcMint: setup.usdcTokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-        registrationFeePayoutWallet: setup.poolOverviewAdmin,
+        registrationFeePayoutWallet: setup.registrationFeePayoutWallet,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
@@ -203,6 +203,9 @@ describe("Reward creation and accrual tests", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+        adminTokenAccount: setup.pool1.adminTokenAccount,
+        registrationFeePayoutTokenAccount:
+          setup.registrationFeePayoutTokenAccount,
       })
       .signers([setup.payerKp, setup.pool1.adminKp])
       .rpc();

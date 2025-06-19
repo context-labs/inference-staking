@@ -471,6 +471,7 @@ const _IDL = {
         },
         {
           name: "admin",
+          writable: true,
           signer: true,
         },
         {
@@ -561,6 +562,14 @@ const _IDL = {
         },
         {
           name: "usdcPayoutWallet",
+        },
+        {
+          name: "adminTokenAccount",
+          writable: true,
+        },
+        {
+          name: "registrationFeePayoutTokenAccount",
+          writable: true,
         },
         {
           name: "mint",
@@ -1545,46 +1554,51 @@ const _IDL = {
     },
     {
       code: 6024,
+      name: "invalidRegistrationFeePayoutDestination",
+      msg: "Invalid registration fee payout destination",
+    },
+    {
+      code: 6025,
       name: "epochMustBeFinalizing",
       msg: "Epoch must be finalizing when calling CreateRewardRecord",
     },
     {
-      code: 6025,
+      code: 6026,
       name: "epochMustNotBeFinalizing",
       msg: "Epoch must not be finalizing during operator pool admin change",
     },
     {
-      code: 6026,
+      code: 6027,
       name: "epochIsFinalizingEpochInvalid",
       msg: "Invalid expected epoch provided for epoch finalizing update",
     },
     {
-      code: 6027,
+      code: 6028,
       name: "nameTooLong",
       msg: "Name is too long, max length is 64 characters",
     },
     {
-      code: 6028,
+      code: 6029,
       name: "descriptionTooLong",
       msg: "Description is too long, max length is 200 characters",
     },
     {
-      code: 6029,
+      code: 6030,
       name: "websiteUrlTooLong",
       msg: "Website URL is too long, max length is 64 characters",
     },
     {
-      code: 6030,
+      code: 6031,
       name: "avatarImageUrlTooLong",
       msg: "Avatar image URL is too long, max length is 128 characters",
     },
     {
-      code: 6031,
+      code: 6032,
       name: "invalidWebsiteUrl",
       msg: "Website URL is invalid",
     },
     {
-      code: 6032,
+      code: 6033,
       name: "invalidAvatarImageUrl",
       msg: "Avatar image URL is invalid",
     },
