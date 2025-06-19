@@ -12,6 +12,7 @@ pub struct AccrueReward<'info> {
         mut,
         seeds = [b"PoolOverview".as_ref()],
         bump = pool_overview.bump,
+        constraint = !pool_overview.is_accrue_reward_halted @ ErrorCode::AccrueRewardHalted,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
 

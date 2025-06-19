@@ -21,6 +21,7 @@ describe("Additional tests for instruction constraints", () => {
   const allowPoolCreation = true;
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
+  const isAccrueRewardHalted = false;
 
   before(async () => {
     setup = await setupTests();
@@ -70,6 +71,7 @@ describe("Additional tests for instruction constraints", () => {
       .updatePoolOverview({
         isStakingHalted,
         isWithdrawalHalted,
+        isAccrueRewardHalted,
         allowPoolCreation,
         minOperatorShareBps,
         delegatorUnstakeDelaySeconds,

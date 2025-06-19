@@ -33,6 +33,9 @@ pub struct PoolOverview {
     /// Halts all withdrawal instructions when true. Used as a security backstop.
     pub is_withdrawal_halted: bool,
 
+    /// Halts all accrue reward instructions when true. Used as a security backstop.
+    pub is_accrue_reward_halted: bool,
+
     /// If creation of OperatorPool is allowed.
     pub allow_pool_creation: bool,
 

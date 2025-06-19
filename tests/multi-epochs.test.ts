@@ -376,6 +376,7 @@ describe("multi-epoch lifecycle tests", () => {
   const allowPoolCreation = true;
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
+  const isAccrueRewardHalted = false;
 
   const trpc = new TrpcHttpClient();
 
@@ -428,6 +429,7 @@ describe("multi-epoch lifecycle tests", () => {
       .updatePoolOverview({
         isStakingHalted,
         isWithdrawalHalted,
+        isAccrueRewardHalted,
         allowPoolCreation,
         minOperatorShareBps,
         delegatorUnstakeDelaySeconds,

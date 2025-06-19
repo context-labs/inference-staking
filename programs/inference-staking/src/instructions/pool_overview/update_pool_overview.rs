@@ -19,6 +19,7 @@ pub struct UpdatePoolOverview<'info> {
 pub struct UpdatePoolOverviewArgs {
     pub is_staking_halted: Option<bool>,
     pub is_withdrawal_halted: Option<bool>,
+    pub is_accrue_reward_halted: Option<bool>,
     pub allow_pool_creation: Option<bool>,
     pub min_operator_share_bps: Option<u16>,
     pub delegator_unstake_delay_seconds: Option<u64>,
@@ -30,6 +31,7 @@ pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -
     let UpdatePoolOverviewArgs {
         is_staking_halted,
         is_withdrawal_halted,
+        is_accrue_reward_halted,
         allow_pool_creation,
         min_operator_share_bps,
         delegator_unstake_delay_seconds,
@@ -49,6 +51,10 @@ pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -
 
     if let Some(is_withdrawal_halted) = is_withdrawal_halted {
         pool_overview.is_withdrawal_halted = is_withdrawal_halted;
+    }
+
+    if let Some(is_accrue_reward_halted) = is_accrue_reward_halted {
+        pool_overview.is_accrue_reward_halted = is_accrue_reward_halted;
     }
 
     if let Some(allow_pool_creation) = allow_pool_creation {

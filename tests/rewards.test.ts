@@ -37,6 +37,7 @@ describe("Reward creation and accrual tests", () => {
   const allowPoolCreation = true;
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
+  const isAccrueRewardHalted = false;
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
 
@@ -84,6 +85,7 @@ describe("Reward creation and accrual tests", () => {
       .updatePoolOverview({
         isStakingHalted,
         isWithdrawalHalted,
+        isAccrueRewardHalted,
         allowPoolCreation,
         minOperatorShareBps,
         delegatorUnstakeDelaySeconds,

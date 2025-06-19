@@ -45,6 +45,7 @@ describe("inference-staking program tests", () => {
   const allowPoolCreation = true;
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
+  const isAccrueRewardHalted = false;
 
   before(async () => {
     setup = await setupTests();
@@ -126,6 +127,7 @@ describe("inference-staking program tests", () => {
       .updatePoolOverview({
         isStakingHalted,
         isWithdrawalHalted,
+        isAccrueRewardHalted,
         allowPoolCreation,
         minOperatorShareBps,
         delegatorUnstakeDelaySeconds,

@@ -389,6 +389,7 @@ export class InferenceStakingProgramSdk {
     const empty: EmptyUpdateFields = {
       isStakingHalted: null,
       isWithdrawalHalted: null,
+      isAccrueRewardHalted: null,
       allowPoolCreation: null,
       minOperatorShareBps: null,
       delegatorUnstakeDelaySeconds: null,

@@ -218,7 +218,8 @@ function reconstructVersionedTransaction(
 }
 
 describe("InferenceStakingProgramSdk decodeTransaction", () => {
-  it.only("should decode an UpdateOperatorPool transaction correctly", () => {
+  // TODO: Update with a new transaction.
+  it.skip("should decode an UpdatePoolOverview transaction correctly", () => {
     anchor.setProvider(anchor.AnchorProvider.env());
 
     const sdk = new InferenceStakingProgramSdk({

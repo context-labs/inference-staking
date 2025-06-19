@@ -1469,96 +1469,101 @@ const _IDL = {
     },
     {
       code: 6013,
+      name: "accrueRewardHalted",
+      msg: "Accrue reward is halted",
+    },
+    {
+      code: 6014,
       name: "invalidProgramAdmin",
       msg: "ProgramAdmin is not valid",
     },
     {
-      code: 6014,
+      code: 6015,
       name: "invalidRewardDistributionAuthority",
       msg: "RewardDistributionAuthority is not valid",
     },
     {
-      code: 6015,
+      code: 6016,
       name: "invalidHaltAuthority",
       msg: "HaltAuthority is not valid",
     },
     {
-      code: 6016,
+      code: 6017,
       name: "invalidSlashingAuthority",
       msg: "SlashingAuthority is not valid",
     },
     {
-      code: 6017,
+      code: 6018,
       name: "authoritiesExceeded",
       msg: "Exceeded allowed authorities length",
     },
     {
-      code: 6018,
+      code: 6019,
       name: "operatorAuthKeysLengthInvalid",
       msg: "Invalid operator auth keys length",
     },
     {
-      code: 6019,
+      code: 6020,
       name: "accountNotEmpty",
       msg: "Account not empty",
     },
     {
-      code: 6020,
+      code: 6021,
       name: "poolCreationDisabled",
       msg: "Pool creation is disabled",
     },
     {
-      code: 6021,
+      code: 6022,
       name: "invalidUsdcMint",
       msg: "Could not initialize USDC mint",
     },
     {
-      code: 6022,
+      code: 6023,
       name: "invalidUsdcPayoutDestination",
       msg: "Invalid USDC payout destination",
     },
     {
-      code: 6023,
+      code: 6024,
       name: "epochMustBeFinalizing",
       msg: "Epoch must be finalizing when calling CreateRewardRecord",
     },
     {
-      code: 6024,
+      code: 6025,
       name: "epochMustNotBeFinalizing",
       msg: "Epoch must not be finalizing during operator pool admin change",
     },
     {
-      code: 6025,
+      code: 6026,
       name: "epochIsFinalizingEpochInvalid",
       msg: "Invalid expected epoch provided for epoch finalizing update",
     },
     {
-      code: 6026,
+      code: 6027,
       name: "nameTooLong",
       msg: "Name is too long, max length is 64 characters",
     },
     {
-      code: 6027,
+      code: 6028,
       name: "descriptionTooLong",
       msg: "Description is too long, max length is 200 characters",
     },
     {
-      code: 6028,
+      code: 6029,
       name: "websiteUrlTooLong",
       msg: "Website URL is too long, max length is 64 characters",
     },
     {
-      code: 6029,
+      code: 6030,
       name: "avatarImageUrlTooLong",
       msg: "Avatar image URL is too long, max length is 128 characters",
     },
     {
-      code: 6030,
+      code: 6031,
       name: "invalidWebsiteUrl",
       msg: "Website URL is invalid",
     },
     {
-      code: 6031,
+      code: 6032,
       name: "invalidAvatarImageUrl",
       msg: "Avatar image URL is invalid",
     },
@@ -2002,6 +2007,13 @@ const _IDL = {
             type: "bool",
           },
           {
+            name: "isAccrueRewardHalted",
+            docs: [
+              "Halts all accrue reward instructions when true. Used as a security backstop.",
+            ],
+            type: "bool",
+          },
+          {
             name: "allowPoolCreation",
             docs: ["If creation of OperatorPool is allowed."],
             type: "bool",
@@ -2329,6 +2341,12 @@ const _IDL = {
           },
           {
             name: "isWithdrawalHalted",
+            type: {
+              option: "bool",
+            },
+          },
+          {
+            name: "isAccrueRewardHalted",
             type: {
               option: "bool",
             },

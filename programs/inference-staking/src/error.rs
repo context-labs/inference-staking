@@ -28,6 +28,8 @@ pub enum ErrorCode {
     StakingHalted,
     #[msg("Withdrawals are halted")]
     WithdrawalsHalted,
+    #[msg("Accrue reward is halted")]
+    AccrueRewardHalted,
     #[msg("ProgramAdmin is not valid")]
     InvalidProgramAdmin,
     #[msg("RewardDistributionAuthority is not valid")]
