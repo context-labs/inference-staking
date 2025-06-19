@@ -961,6 +961,8 @@ describe("Reward creation and accrual tests", () => {
       .add(operatorPre.accruedCommission)
       .add(operatorPre.accruedRewards);
 
+    const totalUsdcTransferred = operatorPre.accruedUsdcPayout.add(usdcAmount);
+
     const amountToStakedAccount = operatorPre.totalStakedAmount.add(
       operatorPre.accruedRewards.add(delegatorRewards)
     );
@@ -991,6 +993,7 @@ describe("Reward creation and accrual tests", () => {
     assert(operatorPool.totalUnstaking.eq(operatorPre.totalUnstaking));
     assert(operatorPool.accruedRewards.isZero());
     assert(operatorPool.accruedCommission.isZero());
+    assert(operatorPool.accruedUsdcPayout.isZero());
 
     // Check that operator's stake has increased.
     const operatorStakingRecord = await program.account.stakingRecord.fetch(
@@ -1035,13 +1038,13 @@ describe("Reward creation and accrual tests", () => {
 
     assert(
       new anchor.BN(usdcTokenAccountPost.value.amount)
-        .sub(usdcAmount)
+        .sub(totalUsdcTransferred)
         .eq(new anchor.BN(usdcTokenAccountPre.value.amount))
     );
 
     assert(
       new anchor.BN(usdcBalancePost.value.amount).eq(
-        usdcAmount.addn(Number(usdcBalancePre.value.amount))
+        totalUsdcTransferred.addn(Number(usdcBalancePre.value.amount))
       )
     );
   });
