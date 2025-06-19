@@ -18,6 +18,7 @@ pub struct UpdateIsEpochFinalizing<'info> {
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
 pub struct UpdateIsEpochFinalizingArgs {
+    pub expected_epoch: u64,
     pub is_epoch_finalizing: bool,
 }
 
@@ -27,6 +28,15 @@ pub fn handler(
     args: UpdateIsEpochFinalizingArgs,
 ) -> Result<()> {
     let pool_overview = &mut ctx.accounts.pool_overview;
+
+    // We explicitly check the epoch that are marking as finalizing, to avoid
+    // accidentally setting the epoch is finalizing state.
+    require_eq!(
+        pool_overview.completed_reward_epoch.checked_add(1).unwrap(),
+        args.expected_epoch,
+        ErrorCode::EpochIsFinalizingEpochInvalid
+    );
+
     pool_overview.is_epoch_finalizing = args.is_epoch_finalizing;
 
     Ok(())

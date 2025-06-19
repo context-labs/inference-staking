@@ -52,6 +52,8 @@ pub enum ErrorCode {
     EpochMustBeFinalizing,
     #[msg("Epoch must not be finalizing during operator pool admin change")]
     EpochMustNotBeFinalizing,
+    #[msg("Invalid expected epoch provided for epoch finalizing update")]
+    EpochIsFinalizingEpochInvalid,
     #[msg("Name is too long, max length is 64 characters")]
     NameTooLong,
     #[msg("Description is too long, max length is 200 characters")]
