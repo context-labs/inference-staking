@@ -147,6 +147,11 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         .accrued_commission
         .checked_add(commission)
         .unwrap();
+    operator_pool.accrued_usdc_payout = operator_pool
+        .accrued_usdc_payout
+        .checked_add(usdc_amount)
+        .unwrap();
+
     operator_pool.reward_last_claimed_epoch = operator_pool
         .reward_last_claimed_epoch
         .checked_add(1)
@@ -212,7 +217,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
                 },
                 &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],
             ),
-            usdc_amount,
+            operator_pool.accrued_usdc_payout,
         )?;
 
         // Subtract claimed rewards and commission from unclaimed amount.
@@ -225,7 +230,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
             .unwrap();
         pool_overview.unclaimed_usdc_payout = pool_overview
             .unclaimed_usdc_payout
-            .checked_sub(usdc_amount)
+            .checked_sub(operator_pool.accrued_usdc_payout)
             .unwrap();
 
         // Update commission rate if new rate is set.
@@ -234,6 +239,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         // Reset accrued rewards and commission.
         operator_pool.accrued_rewards = 0;
         operator_pool.accrued_commission = 0;
+        operator_pool.accrued_usdc_payout = 0;
 
         emit!(CompleteAccrueRewardEvent {
             operator_pool: operator_pool.key(),

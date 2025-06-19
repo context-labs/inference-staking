@@ -87,6 +87,10 @@ pub struct OperatorPool {
     /// Used to optimize compute.
     pub accrued_commission: u64,
 
+    /// USDC that have been calculated in `accrueRewards`, that are yet to be physically transferred to payout wallet.
+    /// Used to optimize compute.
+    pub accrued_usdc_payout: u64,
+
     /// Destination wallet for USDC payouts for this operator pool.
     pub usdc_payout_wallet: Pubkey,
 }

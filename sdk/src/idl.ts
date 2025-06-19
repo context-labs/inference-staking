@@ -1947,6 +1947,14 @@ const _IDL = {
             type: "u64",
           },
           {
+            name: "accruedUsdcPayout",
+            docs: [
+              "USDC that have been calculated in `accrueRewards`, that are yet to be physically transferred to payout wallet.",
+              "Used to optimize compute.",
+            ],
+            type: "u64",
+          },
+          {
             name: "usdcPayoutWallet",
             docs: [
               "Destination wallet for USDC payouts for this operator pool.",

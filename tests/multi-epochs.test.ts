@@ -340,6 +340,10 @@ async function handleAccrueRewardForEpochs({
           operatorPool.accruedCommission.isZero(),
           `Accrued commission should be zero, was ${operatorPool.accruedCommission.toString()}`
         );
+        assert(
+          operatorPool.accruedUsdcPayout.isZero(),
+          `Accrued USDC payout should be zero, was ${operatorPool.accruedUsdcPayout.toString()}`
+        );
 
         // Verify token balances
         const feeBalanceDiff = new anchor.BN(feeBalance.value.amount).sub(
@@ -1264,6 +1268,34 @@ describe("multi-epoch lifecycle tests", () => {
       );
       counter++;
     }
+  });
+
+  it("Verify token accounting and token vault balances", async () => {
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    assert(
+      poolOverview.unclaimedRewards.isZero(),
+      `Unclaimed rewards should be zero, was ${poolOverview.unclaimedRewards.toString()}`
+    );
+    assert(
+      poolOverview.unclaimedUsdcPayout.isZero(),
+      `Unclaimed USDC payout should be zero, was ${poolOverview.unclaimedUsdcPayout.toString()}`
+    );
+
+    const tokenVault = setup.sdk.rewardTokenPda();
+    const tokenBalance = await connection.getTokenAccountBalance(tokenVault);
+    assert(
+      new anchor.BN(tokenBalance.value.amount).isZero(),
+      `Token balance should be zero, was ${tokenBalance.value.amount}`
+    );
+
+    const usdcVault = setup.sdk.usdcTokenPda();
+    const usdcBalance = await connection.getTokenAccountBalance(usdcVault);
+    assert(
+      new anchor.BN(usdcBalance.value.amount).isZero(),
+      `USDC balance should be zero, was ${usdcBalance.value.amount}`
+    );
   });
 
   it("Unstake for all operator admins successfully", async () => {
