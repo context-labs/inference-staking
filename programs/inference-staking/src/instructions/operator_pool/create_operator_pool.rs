@@ -121,10 +121,6 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.commission_rate_bps = commission_rate_bps;
     operator_pool.allow_delegation = allow_delegation;
     operator_pool.usdc_payout_wallet = ctx.accounts.usdc_payout_wallet.key();
-    operator_pool.joined_at = operator_pool
-        .reward_last_claimed_epoch
-        .checked_add(1)
-        .unwrap();
 
     if let Some(operator_auth_keys) = operator_auth_keys {
         require_gte!(
@@ -141,15 +137,13 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     // in the epoch they joined, which is why we bump their epoch to the next one here
     // if the epoch is currently finalizing. For this to work, we must always initiate
     // the epoch finalization process first, before calculating the reward distribution.
-    match pool_overview.is_epoch_finalizing {
-        true => {
-            operator_pool.reward_last_claimed_epoch =
-                pool_overview.completed_reward_epoch.checked_add(1).unwrap();
-        }
-        false => {
-            operator_pool.reward_last_claimed_epoch = pool_overview.completed_reward_epoch;
-        }
-    }
+    let current_epoch = match pool_overview.is_epoch_finalizing {
+        true => pool_overview.completed_reward_epoch.checked_add(1).unwrap(),
+        false => pool_overview.completed_reward_epoch,
+    };
+
+    operator_pool.joined_at = current_epoch;
+    operator_pool.reward_last_claimed_epoch = current_epoch;
 
     let staking_record = &mut ctx.accounts.staking_record;
     staking_record.owner = ctx.accounts.admin.key();
