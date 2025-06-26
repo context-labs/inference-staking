@@ -26,10 +26,13 @@ pub fn handler(ctx: Context<CloseOperatorPool>) -> Result<()> {
     require!(!operator_pool.is_halted, ErrorCode::OperatorPoolHalted);
     require!(operator_pool.closed_at.is_none(), ErrorCode::ClosedPool);
 
-    // The closed_at field is set to the next epoch after the completed_reward_epoch,
-    // which is the current epoch that is in progress. This allows pools to still be
-    // distributed and claimed rewards for the current epoch.
-    operator_pool.closed_at = Some(pool_overview.completed_reward_epoch.checked_add(1).unwrap());
+    // The closed_at field is set to the next epoch after the current epoch.
+    // This allows pools to still be distributed and claim rewards for the current epoch.
+    let current_epoch = match pool_overview.is_epoch_finalizing {
+        true => pool_overview.completed_reward_epoch.checked_add(1).unwrap(),
+        false => pool_overview.completed_reward_epoch,
+    };
+    operator_pool.closed_at = Some(current_epoch.checked_add(1).unwrap());
 
     Ok(())
 }
