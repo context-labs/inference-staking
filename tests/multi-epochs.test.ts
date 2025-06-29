@@ -324,7 +324,6 @@ async function handleAccrueRewardForEpochs({
         assert(commissionFees != null, "Commission fees should be tracked");
         const delegatorRewards = totalClaimedRewardsForPool.sub(commissionFees);
 
-        // Verify that claimed delegator rewards are added to OperatorPool
         const stakedAmountDiff = operatorPool.totalStakedAmount.sub(
           operatorPre.totalStakedAmount
         );
@@ -346,7 +345,6 @@ async function handleAccrueRewardForEpochs({
           `Accrued USDC payout should be zero, was ${operatorPool.accruedUsdcPayout.toString()}`
         );
 
-        // Verify token balances
         const feeBalanceDiff = new anchor.BN(feeBalance.value.amount).sub(
           new anchor.BN(feeBalancePre.value.amount)
         );

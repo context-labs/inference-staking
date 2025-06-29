@@ -258,7 +258,7 @@ export async function setupTests() {
         ),
         autoStakeFees: false,
         commissionRateBps: randomIntInRange(0, 100) * 100,
-        usdcCommissionRateBps: 10_000,
+        usdcCommissionRateBps: randomIntInRange(0, 100) * 100,
         adminTokenAccount: adminTokenAccount.address,
         poolUsdcVault: sdk.operatorUsdcVaultPda(operatorPool),
       };
