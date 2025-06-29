@@ -31,6 +31,7 @@ pub struct NewCommissionRateSetting {
 pub struct UpdateOperatorPoolArgs {
     /// If set, the new commission rate will become active next epoch
     pub new_commission_rate_bps: Option<NewCommissionRateSetting>,
+    pub new_usdc_commission_rate_bps: Option<u16>,
     pub allow_delegation: Option<bool>,
     pub auto_stake_fees: Option<bool>,
     pub name: Option<String>,
@@ -43,6 +44,7 @@ pub struct UpdateOperatorPoolArgs {
 pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -> Result<()> {
     let UpdateOperatorPoolArgs {
         new_commission_rate_bps,
+        new_usdc_commission_rate_bps,
         allow_delegation,
         auto_stake_fees,
         name,
@@ -83,6 +85,11 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
             require_gte!(10_000, new_commission_rate_bps);
         }
         operator_pool.new_commission_rate_bps = new_commission_rate_setting.rate_bps;
+    }
+
+    if let Some(new_usdc_rate) = new_usdc_commission_rate_bps {
+        require_gte!(10_000, new_usdc_rate, ErrorCode::InvalidUsdcCommissionRate);
+        operator_pool.new_usdc_commission_rate_bps = Some(new_usdc_rate);
     }
 
     let usdc_payout_wallet = &ctx.accounts.usdc_payout_wallet;

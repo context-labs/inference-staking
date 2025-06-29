@@ -93,6 +93,18 @@ pub struct OperatorPool {
 
     /// Destination wallet for USDC payouts for this operator pool.
     pub usdc_payout_wallet: Pubkey,
+
+    /// USDC commission rate in basis points (0-10000)
+    pub usdc_commission_rate_bps: u16,
+
+    /// Pending USDC commission rate for next epoch
+    pub new_usdc_commission_rate_bps: Option<u16>,
+
+    /// Cumulative USDC per share (scaled by USDC_PRECISION_FACTOR)
+    pub cumulative_usdc_per_share: u128,
+
+    /// USDC earned by delegators, yet to be transferred to the pool vault. Used to optimize compute.
+    pub accrued_delegator_usdc: u64,
 }
 
 /// Notes on shared based accounting mechanism:
@@ -200,6 +212,57 @@ impl OperatorPool {
             }
         }
         Ok(())
+    }
+
+    /// Settle USDC rewards for a staking record
+    /// Must be called before any share modifications
+    pub fn settle_usdc_rewards(
+        &self,
+        staking_record: &mut crate::state::StakingRecord,
+    ) -> Result<()> {
+        // Calculate earned USDC since last settlement
+        let usdc_per_share_settlement_delta = self
+            .cumulative_usdc_per_share
+            .saturating_sub(staking_record.last_settled_usdc_per_share);
+
+        let earned_usdc = (staking_record.shares as u128)
+            .checked_mul(usdc_per_share_settlement_delta)
+            .unwrap()
+            .checked_div(crate::constants::USDC_PRECISION_FACTOR)
+            .unwrap();
+
+        // Add to accrued balance
+        staking_record.accrued_usdc = staking_record
+            .accrued_usdc
+            .checked_add(earned_usdc as u64)
+            .unwrap();
+
+        // Update settlement checkpoint
+        staking_record.last_settled_usdc_per_share = self.cumulative_usdc_per_share;
+
+        Ok(())
+    }
+
+    /// Check if a staking record has unclaimed USDC
+    pub fn has_unclaimed_usdc(&self, staking_record: &crate::state::StakingRecord) -> bool {
+        // Check accrued balance
+        if staking_record.accrued_usdc > 0 {
+            return true;
+        }
+
+        // Check unsettled rewards
+        let usdc_per_share_settlement_delta = self
+            .cumulative_usdc_per_share
+            .saturating_sub(staking_record.last_settled_usdc_per_share);
+
+        if usdc_per_share_settlement_delta > 0 && staking_record.shares > 0 {
+            let unsettled = (staking_record.shares as u128)
+                .saturating_mul(usdc_per_share_settlement_delta)
+                .saturating_div(crate::constants::USDC_PRECISION_FACTOR);
+            return unsettled > 0;
+        }
+
+        false
     }
 }
 

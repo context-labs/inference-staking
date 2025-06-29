@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::{
+    constants::USDC_MINT_PUBKEY,
     error::ErrorCode,
     events::SlashStakeEvent,
     operator_pool_signer_seeds,
@@ -44,6 +45,20 @@ pub struct SlashStake<'info> {
     #[account(mut)]
     pub destination: Account<'info, TokenAccount>,
 
+    #[account(
+        mut,
+        seeds = [b"OperatorPoolUSDCVault", operator_pool.key().as_ref()],
+        bump,
+    )]
+    pub pool_usdc_vault: Account<'info, TokenAccount>,
+
+    // No owner validation needed as the admin is a signer
+    #[account(
+        mut,
+        constraint = destination_usdc_account.mint == USDC_MINT_PUBKEY,
+    )]
+    pub destination_usdc_account: Account<'info, TokenAccount>,
+
     pub token_program: Program<'info, Token>,
 }
 
@@ -57,6 +72,34 @@ pub struct SlashStakeArgs {
 pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
     let operator_staking_record = &mut ctx.accounts.operator_staking_record;
+
+    // First settle USDC to get clean accounting
+    operator_pool.settle_usdc_rewards(operator_staking_record)?;
+
+    // Confiscate any accrued USDC the operator may have
+    if operator_staking_record.accrued_usdc > 0 {
+        let usdc_amount = operator_staking_record.accrued_usdc;
+
+        require!(
+            ctx.accounts.pool_usdc_vault.amount >= usdc_amount,
+            ErrorCode::InsufficientPoolUsdcVaultBalance
+        );
+
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.pool_usdc_vault.to_account_info(),
+                    to: ctx.accounts.destination_usdc_account.to_account_info(),
+                    authority: operator_pool.to_account_info(),
+                },
+                &[operator_pool_signer_seeds!(operator_pool)],
+            ),
+            usdc_amount,
+        )?;
+
+        operator_staking_record.accrued_usdc = 0;
+    }
 
     let token_amount = operator_pool.calc_tokens_for_share_amount(args.shares_amount);
 

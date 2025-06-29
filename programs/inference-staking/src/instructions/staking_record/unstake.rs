@@ -69,6 +69,9 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
     let staking_record = &mut ctx.accounts.owner_staking_record;
     require_gte!(staking_record.shares, share_amount);
 
+    // First settle any unsettled USDC
+    operator_pool.settle_usdc_rewards(staking_record)?;
+
     // Calculate number of tokens to unstake, and update token and share amounts on OperatorPool.
     let tokens_unstaked = operator_pool.unstake_tokens(share_amount);
 

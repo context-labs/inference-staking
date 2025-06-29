@@ -3,6 +3,7 @@ pub mod change_operator_staking_record;
 pub mod close_operator_pool;
 pub mod create_operator_pool;
 pub mod slash_stake;
+pub mod sweep_closed_pool_usdc_dust;
 pub mod update_operator_pool;
 pub mod withdraw_operator_commission;
 
@@ -11,5 +12,6 @@ pub use change_operator_staking_record::*;
 pub use close_operator_pool::*;
 pub use create_operator_pool::*;
 pub use slash_stake::*;
+pub use sweep_closed_pool_usdc_dust::*;
 pub use update_operator_pool::*;
 pub use withdraw_operator_commission::*;

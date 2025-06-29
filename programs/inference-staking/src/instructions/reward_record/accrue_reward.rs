@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
-use crate::constants;
+use crate::constants::{self, USDC_PRECISION_FACTOR};
 use crate::error::ErrorCode;
 use crate::events::CompleteAccrueRewardEvent;
 use crate::state::{OperatorPool, PoolOverview, RewardRecord, StakingRecord};
@@ -50,6 +50,13 @@ pub struct AccrueReward<'info> {
         constraint = usdc_payout_token_account.owner == operator_pool.usdc_payout_wallet @ ErrorCode::InvalidUsdcPayoutDestination
     )]
     pub usdc_payout_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"OperatorPoolUSDCVault", operator_pool.key().as_ref()],
+        bump,
+    )]
+    pub pool_usdc_vault: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -103,7 +110,6 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
 
     let reward_record = &ctx.accounts.reward_record;
     let operator_pool = &mut ctx.accounts.operator_pool;
-    let usdc_payout_token_account = &ctx.accounts.usdc_payout_token_account;
     reward_record.verify_proof(
         merkle_index,
         operator_pool.key(),
@@ -139,6 +145,19 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
     .unwrap();
     let delegator_rewards = reward_amount.checked_sub(commission).unwrap();
 
+    // Calculate USDC split
+    let usdc_commission = u64::try_from(
+        u128::from(usdc_amount)
+            .checked_mul(operator_pool.usdc_commission_rate_bps.into())
+            .unwrap()
+            .checked_div(10_000)
+            .unwrap(),
+    )
+    .unwrap();
+
+    let usdc_delegator_amount = usdc_amount.checked_sub(usdc_commission).unwrap();
+
+    // Accumulate rewards on EVERY call, outside the if block
     operator_pool.accrued_rewards = operator_pool
         .accrued_rewards
         .checked_add(delegator_rewards)
@@ -149,7 +168,11 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         .unwrap();
     operator_pool.accrued_usdc_payout = operator_pool
         .accrued_usdc_payout
-        .checked_add(usdc_amount)
+        .checked_add(usdc_commission)
+        .unwrap();
+    operator_pool.accrued_delegator_usdc = operator_pool
+        .accrued_delegator_usdc
+        .checked_add(usdc_delegator_amount)
         .unwrap();
 
     operator_pool.reward_last_claimed_epoch = operator_pool
@@ -158,6 +181,10 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         .unwrap();
 
     if should_transfer_rewards {
+        // Use the accumulated balances for transfers and updates
+        let total_operator_usdc_to_transfer = operator_pool.accrued_usdc_payout;
+        let total_delegator_usdc_to_transfer = operator_pool.accrued_delegator_usdc;
+
         operator_pool.total_staked_amount = operator_pool
             .total_staked_amount
             .checked_add(operator_pool.accrued_rewards)
@@ -206,21 +233,62 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
             amount_to_staked_account,
         )?;
 
-        // Transfer USDC to payout destination for this operator pool.
-        token::transfer(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.usdc_token_account.to_account_info(),
-                    to: usdc_payout_token_account.to_account_info(),
-                    authority: ctx.accounts.pool_overview.to_account_info(),
-                },
-                &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],
-            ),
-            operator_pool.accrued_usdc_payout,
-        )?;
+        // Transfer operator's total accrued USDC commission directly
+        if total_operator_usdc_to_transfer > 0 {
+            token::transfer(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info(),
+                    Transfer {
+                        from: ctx.accounts.usdc_token_account.to_account_info(),
+                        to: ctx.accounts.usdc_payout_token_account.to_account_info(),
+                        authority: ctx.accounts.pool_overview.to_account_info(),
+                    },
+                    &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],
+                ),
+                total_operator_usdc_to_transfer,
+            )?;
+        }
 
-        // Subtract claimed rewards and commission from unclaimed amount.
+        // Transfer the total accrued delegator portion to the pool vault
+        if total_delegator_usdc_to_transfer > 0 {
+            token::transfer(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info(),
+                    Transfer {
+                        from: ctx.accounts.usdc_token_account.to_account_info(),
+                        to: ctx.accounts.pool_usdc_vault.to_account_info(),
+                        authority: ctx.accounts.pool_overview.to_account_info(),
+                    },
+                    &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],
+                ),
+                total_delegator_usdc_to_transfer,
+            )?;
+        }
+
+        // Update cumulative USDC per share index using the total transferred amount
+        if operator_pool.total_shares > 0 && total_delegator_usdc_to_transfer > 0 {
+            let usdc_per_share_increase = (total_delegator_usdc_to_transfer as u128)
+                .checked_mul(USDC_PRECISION_FACTOR)
+                .unwrap()
+                .checked_div(operator_pool.total_shares as u128)
+                .unwrap();
+
+            operator_pool.cumulative_usdc_per_share = operator_pool
+                .cumulative_usdc_per_share
+                .checked_add(usdc_per_share_increase)
+                .unwrap();
+        }
+
+        // Update USDC commission rate if new rate is pending
+        if let Some(new_rate) = operator_pool.new_usdc_commission_rate_bps {
+            operator_pool.usdc_commission_rate_bps = new_rate;
+            operator_pool.new_usdc_commission_rate_bps = None;
+        }
+
+        // Update commission rate if new rate is set.
+        operator_pool.update_commission_rate();
+
+        // 1. Update unclaimed NATIVE TOKEN rewards
         let pool_overview = &mut ctx.accounts.pool_overview;
         pool_overview.unclaimed_rewards = pool_overview
             .unclaimed_rewards
@@ -228,18 +296,22 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
             .unwrap()
             .checked_sub(operator_pool.accrued_commission)
             .unwrap();
-        pool_overview.unclaimed_usdc_payout = pool_overview
-            .unclaimed_usdc_payout
-            .checked_sub(operator_pool.accrued_usdc_payout)
+
+        // 2. Update unclaimed USDC rewards
+        let total_usdc_processed = total_operator_usdc_to_transfer
+            .checked_add(total_delegator_usdc_to_transfer)
             .unwrap();
 
-        // Update commission rate if new rate is set.
-        operator_pool.update_commission_rate();
+        pool_overview.unclaimed_usdc_payout = pool_overview
+            .unclaimed_usdc_payout
+            .checked_sub(total_usdc_processed)
+            .unwrap();
 
-        // Reset accrued rewards and commission.
+        // Reset ALL accumulators to zero after successful processing
         operator_pool.accrued_rewards = 0;
         operator_pool.accrued_commission = 0;
         operator_pool.accrued_usdc_payout = 0;
+        operator_pool.accrued_delegator_usdc = 0;
 
         emit!(CompleteAccrueRewardEvent {
             operator_pool: operator_pool.key(),

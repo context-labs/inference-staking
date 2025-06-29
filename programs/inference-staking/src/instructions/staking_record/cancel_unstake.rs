@@ -29,6 +29,9 @@ pub fn handler(ctx: Context<CancelUnstake>) -> Result<()> {
 
     let staking_record = &mut ctx.accounts.owner_staking_record;
 
+    // Settle USDC before modifying shares
+    operator_pool.settle_usdc_rewards(staking_record)?;
+
     // Calculate number of shares to create, and update token and share amounts on OperatorPool.
     let shares_created = operator_pool.stake_tokens(staking_record.tokens_unstake_amount);
     operator_pool.total_unstaking = operator_pool

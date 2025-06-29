@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
 use crate::{
+    constants::USDC_MINT_PUBKEY,
     error::ErrorCode,
     state::{OperatorPool, StakingRecord},
     PoolOverview,
@@ -73,6 +74,16 @@ pub struct CreateOperatorPool<'info> {
     pub usdc_payout_wallet: UncheckedAccount<'info>,
 
     #[account(
+        init,
+        seeds = [b"OperatorPoolUSDCVault".as_ref(), operator_pool.key().as_ref()],
+        bump,
+        payer = payer,
+        token::mint = usdc_mint,
+        token::authority = operator_pool
+    )]
+    pub operator_usdc_vault: Box<Account<'info, TokenAccount>>,
+
+    #[account(
         mut,
         token::mint = mint,
         token::authority = admin,
@@ -89,6 +100,11 @@ pub struct CreateOperatorPool<'info> {
 
     pub mint: Box<Account<'info, Mint>>,
 
+    #[account(
+        constraint = usdc_mint.key() == USDC_MINT_PUBKEY @ ErrorCode::InvalidUsdcMint
+    )]
+    pub usdc_mint: Box<Account<'info, Mint>>,
+
     pub token_program: Program<'info, Token>,
 
     pub system_program: Program<'info, System>,
@@ -104,6 +120,7 @@ pub struct CreateOperatorPoolArgs {
     pub website_url: Option<String>,
     pub avatar_image_url: Option<String>,
     pub operator_auth_keys: Option<Vec<Pubkey>>,
+    pub usdc_commission_rate_bps: u16,
 }
 
 /// Instruction to setup an OperatorPool.
@@ -117,9 +134,15 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
         website_url,
         avatar_image_url,
         operator_auth_keys,
+        usdc_commission_rate_bps,
     } = args;
 
     require_gte!(10_000, commission_rate_bps);
+    require_gte!(
+        10_000,
+        usdc_commission_rate_bps,
+        ErrorCode::InvalidUsdcCommissionRate
+    );
 
     let pool_overview = &mut ctx.accounts.pool_overview;
 
@@ -157,6 +180,9 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.commission_rate_bps = commission_rate_bps;
     operator_pool.allow_delegation = allow_delegation;
     operator_pool.usdc_payout_wallet = ctx.accounts.usdc_payout_wallet.key();
+    operator_pool.usdc_commission_rate_bps = usdc_commission_rate_bps;
+    operator_pool.cumulative_usdc_per_share = 0;
+    operator_pool.accrued_delegator_usdc = 0;
 
     if let Some(operator_auth_keys) = operator_auth_keys {
         require_gte!(
@@ -185,6 +211,8 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     let staking_record = &mut ctx.accounts.staking_record;
     staking_record.owner = ctx.accounts.admin.key();
     staking_record.operator_pool = operator_pool.key();
+    staking_record.last_settled_usdc_per_share = 0;
+    staking_record.accrued_usdc = 0;
 
     operator_pool.validate_string_fields()?;
 

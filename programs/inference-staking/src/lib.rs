@@ -74,6 +74,10 @@ pub mod inference_staking {
         close_staking_record::handler(ctx)
     }
 
+    pub fn claim_usdc_rewards(ctx: Context<ClaimUsdcRewards>) -> Result<()> {
+        claim_usdc_rewards::handler(ctx)
+    }
+
     /** -----------------------------------------------------------------------
      * Reward Distribution Instructions
      * ------------------------------------------------------------------------ */
@@ -126,6 +130,10 @@ pub mod inference_staking {
 
     pub fn close_operator_pool(ctx: Context<CloseOperatorPool>) -> Result<()> {
         close_operator_pool::handler(ctx)
+    }
+
+    pub fn sweep_closed_pool_usdc_dust(ctx: Context<SweepClosedPoolUsdcDust>) -> Result<()> {
+        sweep_closed_pool_usdc_dust::handler(ctx)
     }
 
     /** -----------------------------------------------------------------------
