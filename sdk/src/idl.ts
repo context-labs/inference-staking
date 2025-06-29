@@ -1636,12 +1636,12 @@ const _IDL = {
       discriminator: [18, 255, 161, 59, 246, 47, 255, 127],
     },
     {
-      name: "claimUsdcRewardsEvent",
-      discriminator: [111, 20, 79, 64, 199, 134, 114, 229],
-    },
-    {
       name: "completeAccrueRewardEvent",
       discriminator: [149, 158, 93, 104, 228, 19, 24, 204],
+    },
+    {
+      name: "completeClaimUsdcEarningsEvent",
+      discriminator: [194, 205, 27, 186, 218, 159, 15, 168],
     },
     {
       name: "slashStakeEvent",
@@ -1927,30 +1927,6 @@ const _IDL = {
       },
     },
     {
-      name: "claimUsdcRewardsEvent",
-      type: {
-        kind: "struct",
-        fields: [
-          {
-            name: "stakingRecord",
-            type: "pubkey",
-          },
-          {
-            name: "operatorPool",
-            type: "pubkey",
-          },
-          {
-            name: "amountClaimed",
-            type: "u64",
-          },
-          {
-            name: "totalShares",
-            type: "u64",
-          },
-        ],
-      },
-    },
-    {
       name: "completeAccrueRewardEvent",
       type: {
         kind: "struct",
@@ -1969,6 +1945,32 @@ const _IDL = {
             docs: [
               "Total amount of remaining tokens being unstaked in the pool.",
             ],
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "completeClaimUsdcEarningsEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "stakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "amountClaimed",
+            docs: ["Total amount of USDC claimed and withdrawn."],
+            type: "u64",
+          },
+          {
+            name: "totalShares",
+            docs: ["Total amount of shares remaining in the staking record."],
             type: "u64",
           },
         ],
