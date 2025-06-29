@@ -1613,6 +1613,15 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
+  it("Validate operator pool USDC vault balances", async () => {
+    for (const pool of setup.pools) {
+      const tokenBalance = await connection.getTokenAccountBalance(
+        pool.poolUsdcVault
+      );
+      assert(Number(tokenBalance.value.amount) > 0);
+    }
+  });
+
   it("Final state validation check", async () => {
     if (!TEST_WITH_RELAY) {
       debug(

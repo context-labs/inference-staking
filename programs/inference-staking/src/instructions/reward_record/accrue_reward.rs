@@ -157,7 +157,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
 
     let usdc_delegator_amount = usdc_amount.checked_sub(usdc_commission).unwrap();
 
-    // Accumulate rewards on EVERY call, outside the if block
+    // Always accumulate rewards for correct accounting regardless if fund transfers occur or not
     operator_pool.accrued_rewards = operator_pool
         .accrued_rewards
         .checked_add(delegator_rewards)
@@ -285,10 +285,10 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
             operator_pool.new_usdc_commission_rate_bps = None;
         }
 
-        // Update commission rate if new rate is set.
+        // Update commission rate if new rate is set
         operator_pool.update_commission_rate();
 
-        // 1. Update unclaimed NATIVE TOKEN rewards
+        // Update unclaimed token rewards
         let pool_overview = &mut ctx.accounts.pool_overview;
         pool_overview.unclaimed_rewards = pool_overview
             .unclaimed_rewards
@@ -297,7 +297,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
             .checked_sub(operator_pool.accrued_commission)
             .unwrap();
 
-        // 2. Update unclaimed USDC rewards
+        // Update unclaimed USDC rewards
         let total_usdc_processed = total_operator_usdc_to_transfer
             .checked_add(total_delegator_usdc_to_transfer)
             .unwrap();
