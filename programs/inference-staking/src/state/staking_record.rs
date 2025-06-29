@@ -22,5 +22,5 @@ pub struct StakingRecord {
     pub last_settled_usdc_per_share: u128,
 
     /// Accrued USDC rewards available to claim
-    pub accrued_usdc: u64,
+    pub available_usdc_earnings: u64,
 }

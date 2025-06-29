@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Accounts)]
-pub struct ClaimUsdcRewards<'info> {
+pub struct ClaimUsdcEarnings<'info> {
     pub owner: Signer<'info>,
 
     #[account(
@@ -48,7 +48,7 @@ pub struct ClaimUsdcRewards<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn handler(ctx: Context<ClaimUsdcRewards>) -> Result<()> {
+pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
     let pool_overview = &ctx.accounts.pool_overview;
     let operator_pool = &ctx.accounts.operator_pool;
     let staking_record = &mut ctx.accounts.staking_record;
@@ -69,11 +69,11 @@ pub fn handler(ctx: Context<ClaimUsdcRewards>) -> Result<()> {
     );
 
     // First settle any unsettled rewards
-    operator_pool.settle_usdc_rewards(staking_record)?;
+    operator_pool.settle_usdc_earnings(staking_record)?;
 
     // Check claimable amount
-    let claimable = staking_record.accrued_usdc;
-    require!(claimable > 0, ErrorCode::NoUsdcToClaim);
+    let claimable = staking_record.available_usdc_earnings;
+    require!(claimable > 0, ErrorCode::NoUsdcEarningsToClaim);
     require!(
         ctx.accounts.pool_usdc_vault.amount >= claimable,
         ErrorCode::InsufficientPoolUsdcVaultBalance
@@ -94,7 +94,7 @@ pub fn handler(ctx: Context<ClaimUsdcRewards>) -> Result<()> {
     )?;
 
     // Reset accrued balance
-    staking_record.accrued_usdc = 0;
+    staking_record.available_usdc_earnings = 0;
 
     emit!(ClaimUsdcRewardsEvent {
         staking_record: staking_record.key(),

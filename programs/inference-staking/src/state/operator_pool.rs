@@ -216,7 +216,7 @@ impl OperatorPool {
 
     /// Settle USDC rewards for a staking record
     /// Must be called before any share modifications
-    pub fn settle_usdc_rewards(
+    pub fn settle_usdc_earnings(
         &self,
         staking_record: &mut crate::state::StakingRecord,
     ) -> Result<()> {
@@ -232,8 +232,8 @@ impl OperatorPool {
             .unwrap();
 
         // Add to accrued balance
-        staking_record.accrued_usdc = staking_record
-            .accrued_usdc
+        staking_record.available_usdc_earnings = staking_record
+            .available_usdc_earnings
             .checked_add(earned_usdc as u64)
             .unwrap();
 
@@ -244,9 +244,12 @@ impl OperatorPool {
     }
 
     /// Check if a staking record has unclaimed USDC
-    pub fn has_unclaimed_usdc(&self, staking_record: &crate::state::StakingRecord) -> bool {
+    pub fn has_unclaimed_usdc_earnings(
+        &self,
+        staking_record: &crate::state::StakingRecord,
+    ) -> bool {
         // Check accrued balance
-        if staking_record.accrued_usdc > 0 {
+        if staking_record.available_usdc_earnings > 0 {
             return true;
         }
 

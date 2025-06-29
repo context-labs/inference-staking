@@ -46,12 +46,12 @@ pub fn handler(ctx: Context<CloseStakingRecord>) -> Result<()> {
         ErrorCode::AccountNotEmpty
     );
 
-    // Check no unsettled USDC
+    // Check no unsettled USDC earnings
     require!(
         !ctx.accounts
             .operator_pool
-            .has_unclaimed_usdc(staking_record),
-        ErrorCode::UnclaimedUsdcRewards
+            .has_unclaimed_usdc_earnings(staking_record),
+        ErrorCode::UnclaimedUsdcEarnings
     );
 
     Ok(())

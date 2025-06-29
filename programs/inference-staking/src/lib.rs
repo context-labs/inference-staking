@@ -74,8 +74,8 @@ pub mod inference_staking {
         close_staking_record::handler(ctx)
     }
 
-    pub fn claim_usdc_rewards(ctx: Context<ClaimUsdcRewards>) -> Result<()> {
-        claim_usdc_rewards::handler(ctx)
+    pub fn claim_usdc_earnings(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
+        claim_usdc_earnings::handler(ctx)
     }
 
     /** -----------------------------------------------------------------------

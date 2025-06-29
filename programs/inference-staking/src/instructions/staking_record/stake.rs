@@ -88,7 +88,7 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     require_gte!(owner_token_account.amount, token_amount);
 
     // Settle USDC rewards on existing shares before modifying
-    operator_pool.settle_usdc_rewards(&mut ctx.accounts.owner_staking_record)?;
+    operator_pool.settle_usdc_earnings(&mut ctx.accounts.owner_staking_record)?;
 
     // Calculate number of shares to create, and update token and share amounts on OperatorPool.
     let shares_created = operator_pool.stake_tokens(token_amount);

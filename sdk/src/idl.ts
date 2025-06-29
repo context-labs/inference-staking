@@ -414,8 +414,8 @@ const _IDL = {
       args: [],
     },
     {
-      name: "claimUsdcRewards",
-      discriminator: [189, 207, 62, 228, 172, 192, 66, 39],
+      name: "claimUsdcEarnings",
+      discriminator: [38, 20, 245, 41, 23, 224, 55, 153],
       accounts: [
         {
           name: "owner",
@@ -1829,13 +1829,13 @@ const _IDL = {
     },
     {
       code: 6034,
-      name: "unclaimedUsdcRewards",
-      msg: "USDC rewards must be claimed before unstaking",
+      name: "unclaimedUsdcEarnings",
+      msg: "USDC earnings must be claimed before unstaking",
     },
     {
       code: 6035,
-      name: "noUsdcToClaim",
-      msg: "No USDC rewards to claim",
+      name: "noUsdcEarningsToClaim",
+      msg: "No USDC earnings to claim",
     },
     {
       code: 6036,
@@ -2595,7 +2595,7 @@ const _IDL = {
             type: "u128",
           },
           {
-            name: "accruedUsdc",
+            name: "availableUsdcEarnings",
             docs: ["Accrued USDC rewards available to claim"],
             type: "u64",
           },
