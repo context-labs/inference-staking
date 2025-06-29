@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::error::ErrorCode;
+use crate::{constants::USDC_PRECISION_FACTOR, error::ErrorCode};
 
 // Keep numbers in sync with error codes.
 const MAX_NAME_LENGTH: usize = 64;
@@ -228,7 +228,7 @@ impl OperatorPool {
         let earned_usdc = (staking_record.shares as u128)
             .checked_mul(usdc_per_share_settlement_delta)
             .unwrap()
-            .checked_div(crate::constants::USDC_PRECISION_FACTOR)
+            .checked_div(USDC_PRECISION_FACTOR)
             .unwrap();
 
         // Add to accrued balance
@@ -261,7 +261,7 @@ impl OperatorPool {
         if usdc_per_share_settlement_delta > 0 && staking_record.shares > 0 {
             let unsettled = (staking_record.shares as u128)
                 .saturating_mul(usdc_per_share_settlement_delta)
-                .saturating_div(crate::constants::USDC_PRECISION_FACTOR);
+                .saturating_div(USDC_PRECISION_FACTOR);
             return unsettled > 0;
         }
 
