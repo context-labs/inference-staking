@@ -46,7 +46,9 @@ export type SetupPoolType = {
   delegatorStakingRecord: PublicKey;
   autoStakeFees: boolean;
   commissionRateBps: number;
+  usdcCommissionRateBps: number;
   adminTokenAccount: PublicKey;
+  poolUsdcVault: PublicKey;
 };
 
 export const TEST_PROGRAM_ID = new PublicKey(
@@ -256,7 +258,9 @@ export async function setupTests() {
         ),
         autoStakeFees: false,
         commissionRateBps: randomIntInRange(0, 100) * 100,
+        usdcCommissionRateBps: 10_000,
         adminTokenAccount: adminTokenAccount.address,
+        poolUsdcVault: sdk.operatorUsdcVaultPda(operatorPool),
       };
     } catch (err) {
       console.log(`Error getting pool setup for ${operatorPool.toBase58()}`);

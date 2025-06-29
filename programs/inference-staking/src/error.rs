@@ -76,8 +76,8 @@ pub enum ErrorCode {
     NoUsdcToClaim,
     #[msg("Insufficient USDC in pool vault")]
     InsufficientPoolUsdcVaultBalance,
-    #[msg("Invalid USDC commission rate")]
-    InvalidUsdcCommissionRate,
+    #[msg("Invalid commission rate")]
+    InvalidCommissionRate,
     #[msg("Operator pool must be closed to sweep dust")]
     PoolMustBeClosed,
     #[msg("Pool is not empty")]

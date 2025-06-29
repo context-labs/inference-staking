@@ -30,8 +30,10 @@ describe("Instruction Account Matching", () => {
       switch (account) {
         case "admin":
         case "adminTokenAccount":
+        case "adminUsdcAccount":
         case "authority":
         case "destination":
+        case "destinationUsdcAccount":
         case "feeTokenAccount":
         case "mint":
         case "newAdmin":
@@ -39,11 +41,14 @@ describe("Instruction Account Matching", () => {
         case "newStakingRecord":
         case "operatorPool":
         case "operatorStakingRecord":
+        case "operatorUsdcVault":
         case "owner":
         case "ownerStakingRecord":
         case "ownerTokenAccount":
+        case "ownerUsdcAccount":
         case "payer":
         case "poolOverview":
+        case "poolUsdcVault":
         case "programAdmin":
         case "receiver":
         case "registrationFeePayoutTokenAccount":

@@ -137,11 +137,15 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
         usdc_commission_rate_bps,
     } = args;
 
-    require_gte!(10_000, commission_rate_bps);
+    require_gte!(
+        10_000,
+        commission_rate_bps,
+        ErrorCode::InvalidCommissionRate
+    );
     require_gte!(
         10_000,
         usdc_commission_rate_bps,
-        ErrorCode::InvalidUsdcCommissionRate
+        ErrorCode::InvalidCommissionRate
     );
 
     let pool_overview = &mut ctx.accounts.pool_overview;

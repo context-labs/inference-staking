@@ -227,6 +227,7 @@ async function handleAccrueRewardForEpochs({
           feeTokenAccount: pool.feeTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
           usdcPayoutTokenAccount: pool.usdcTokenAccount,
+          poolUsdcVault: pool.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -531,6 +532,7 @@ describe("multi-epoch lifecycle tests", () => {
         .createOperatorPool({
           autoStakeFees: pool.autoStakeFees,
           commissionRateBps: pool.commissionRateBps,
+          usdcCommissionRateBps: pool.usdcCommissionRateBps,
           allowDelegation,
           name: pool.name,
           description: pool.description,
@@ -553,6 +555,8 @@ describe("multi-epoch lifecycle tests", () => {
           adminTokenAccount: pool.adminTokenAccount,
           registrationFeePayoutTokenAccount:
             setup.registrationFeePayoutTokenAccount,
+          operatorUsdcVault: setup.sdk.operatorUsdcVaultPda(pool.pool),
+          usdcMint: setup.usdcTokenMint,
         })
         .signers([setup.payerKp, pool.adminKp])
         .rpc();
@@ -563,6 +567,10 @@ describe("multi-epoch lifecycle tests", () => {
       assert(operatorPool.operatorStakingRecord.equals(pool.stakingRecord));
       assert.equal(operatorPool.autoStakeFees, pool.autoStakeFees);
       assert.equal(operatorPool.commissionRateBps, pool.commissionRateBps);
+      assert.equal(
+        operatorPool.usdcCommissionRateBps,
+        pool.usdcCommissionRateBps
+      );
       assert.isNull(operatorPool.newCommissionRateBps);
       assert.equal(operatorPool.allowDelegation, allowDelegation);
       assert(operatorPool.totalStakedAmount.isZero());
@@ -1201,6 +1209,7 @@ describe("multi-epoch lifecycle tests", () => {
           receiver: setup.payer,
           owner: delegatorKp.publicKey,
           ownerStakingRecord: stakingRecord,
+          operatorPool: pool.pool,
           systemProgram: SystemProgram.programId,
         })
         .signers([delegatorKp])
@@ -1585,6 +1594,7 @@ describe("multi-epoch lifecycle tests", () => {
           receiver: setup.payer,
           owner: pool.admin,
           ownerStakingRecord: pool.stakingRecord,
+          operatorPool: pool.pool,
           systemProgram: SystemProgram.programId,
         })
         .signers([pool.adminKp])

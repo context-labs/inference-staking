@@ -32,6 +32,8 @@ describe("Reward creation and accrual tests", () => {
   const autoStakeFees = true;
   const commissionRateBps = 1_500;
   const newCommissionRateBps = 0;
+  const usdcCommissionRateBps = 10_000;
+  const newUsdcCommissionRateBps = 10_000;
   const allowDelegation = true;
   const allowPoolCreation = true;
   const operatorPoolRegistrationFee = new anchor.BN(1_000);
@@ -184,6 +186,7 @@ describe("Reward creation and accrual tests", () => {
       .createOperatorPool({
         autoStakeFees,
         commissionRateBps,
+        usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool1.name,
         description: setup.pool1.description,
@@ -206,6 +209,8 @@ describe("Reward creation and accrual tests", () => {
         adminTokenAccount: setup.pool1.adminTokenAccount,
         registrationFeePayoutTokenAccount:
           setup.registrationFeePayoutTokenAccount,
+        operatorUsdcVault: setup.sdk.operatorUsdcVaultPda(setup.pool1.pool),
+        usdcMint: setup.usdcTokenMint,
       })
       .signers([setup.payerKp, setup.pool1.adminKp])
       .rpc();
@@ -262,6 +267,7 @@ describe("Reward creation and accrual tests", () => {
     await program.methods
       .updateOperatorPool({
         newCommissionRateBps: { rateBps: newCommissionRateBps },
+        newUsdcCommissionRateBps: { rateBps: newUsdcCommissionRateBps },
         autoStakeFees: true,
         allowDelegation: false,
         name: setup.pool1.name,
@@ -552,6 +558,7 @@ describe("Reward creation and accrual tests", () => {
           feeTokenAccount: setup.pool1.feeTokenAccount,
           usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -608,6 +615,7 @@ describe("Reward creation and accrual tests", () => {
           feeTokenAccount: setup.pool1.feeTokenAccount,
           usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -640,6 +648,7 @@ describe("Reward creation and accrual tests", () => {
           feeTokenAccount: setup.pool1.feeTokenAccount,
           usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -674,6 +683,7 @@ describe("Reward creation and accrual tests", () => {
           feeTokenAccount: setup.pool1.feeTokenAccount,
           usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -708,6 +718,7 @@ describe("Reward creation and accrual tests", () => {
           feeTokenAccount: setup.pool1.feeTokenAccount,
           usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -762,6 +773,7 @@ describe("Reward creation and accrual tests", () => {
           feeTokenAccount: setup.pool1.feeTokenAccount,
           usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -825,6 +837,7 @@ describe("Reward creation and accrual tests", () => {
         feeTokenAccount: setup.pool1.feeTokenAccount,
         usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
+        poolUsdcVault: setup.pool1.poolUsdcVault,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
@@ -897,6 +910,7 @@ describe("Reward creation and accrual tests", () => {
           feeTokenAccount: setup.pool1.feeTokenAccount,
           usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -958,6 +972,7 @@ describe("Reward creation and accrual tests", () => {
         feeTokenAccount: setup.pool1.feeTokenAccount,
         usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
+        poolUsdcVault: setup.pool1.poolUsdcVault,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
@@ -1151,6 +1166,7 @@ describe("Reward creation and accrual tests", () => {
         feeTokenAccount: setup.pool1.feeTokenAccount,
         usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
+        poolUsdcVault: setup.pool1.poolUsdcVault,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
@@ -1242,6 +1258,7 @@ describe("Reward creation and accrual tests", () => {
         usdcAmount: new anchor.BN(proofInputs.usdcAmount.toString()),
       })
       .accountsStrict({
+        poolUsdcVault: setup.pool1.poolUsdcVault,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[5],
         operatorPool: setup.pool1.pool,
@@ -1275,6 +1292,7 @@ describe("Reward creation and accrual tests", () => {
           usdcAmount: new anchor.BN(proofInputs.usdcAmount.toString()),
         })
         .accountsStrict({
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[6],
           operatorPool: setup.pool1.pool,

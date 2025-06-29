@@ -268,7 +268,7 @@ impl OperatorPool {
 
 impl OperatorPool {
     pub fn is_url_valid(&self, url: &str) -> bool {
-        return url.starts_with("https://") || url.starts_with("http://");
+        url.starts_with("https://") || url.starts_with("http://")
     }
 
     pub fn validate_name(&self) -> Result<()> {

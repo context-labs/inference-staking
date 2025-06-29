@@ -1844,8 +1844,8 @@ const _IDL = {
     },
     {
       code: 6037,
-      name: "invalidUsdcCommissionRate",
-      msg: "Invalid USDC commission rate",
+      name: "invalidCommissionRate",
+      msg: "Invalid commission rate",
     },
     {
       code: 6038,
@@ -2656,7 +2656,11 @@ const _IDL = {
           {
             name: "newUsdcCommissionRateBps",
             type: {
-              option: "u16",
+              option: {
+                defined: {
+                  name: "newCommissionRateSetting",
+                },
+              },
             },
           },
           {

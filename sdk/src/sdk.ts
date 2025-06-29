@@ -125,6 +125,17 @@ export class InferenceStakingProgramSdk {
     return pda;
   }
 
+  operatorUsdcVaultPda(operatorPoolPda: PublicKey): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("OperatorPoolUSDCVault", "utf-8"),
+        operatorPoolPda.toBuffer(),
+      ],
+      this.program.programId
+    );
+    return pda;
+  }
+
   /** ************************************************************************
    *  Account Lookup Methods
    *************************************************************************** */
@@ -402,6 +413,7 @@ export class InferenceStakingProgramSdk {
     >[0];
     const empty: EmptyUpdateFields = {
       newCommissionRateBps: null,
+      newUsdcCommissionRateBps: null,
       autoStakeFees: null,
       allowDelegation: null,
       name: null,
