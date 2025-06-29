@@ -4,6 +4,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use crate::{
     constants::USDC_MINT_PUBKEY,
     error::ErrorCode,
+    events::CompleteClaimUsdcEarningsEvent,
     operator_pool_signer_seeds,
     state::{OperatorPool, PoolOverview, StakingRecord},
 };
@@ -93,10 +94,10 @@ pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
         claimable,
     )?;
 
-    // Reset accrued balance
+    // Reset available USDC balance
     staking_record.available_usdc_earnings = 0;
 
-    emit!(ClaimUsdcRewardsEvent {
+    emit!(CompleteClaimUsdcEarningsEvent {
         staking_record: staking_record.key(),
         operator_pool: operator_pool.key(),
         amount_claimed: claimable,
@@ -104,12 +105,4 @@ pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
     });
 
     Ok(())
-}
-
-#[event]
-pub struct ClaimUsdcRewardsEvent {
-    pub staking_record: Pubkey,
-    pub operator_pool: Pubkey,
-    pub amount_claimed: u64,
-    pub total_shares: u64,
 }
