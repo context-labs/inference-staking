@@ -152,6 +152,10 @@ impl OperatorPool {
     /// Calculates number of tokens equivalent to share amount.
     /// Final result is rounded down as part of integer division.
     pub fn calc_tokens_for_share_amount(&self, share_amount: u64) -> u64 {
+        if share_amount == 0 {
+            return 0;
+        }
+
         // Tokens = (share_amount / total_shares) * total_staked_amount
         let tokens = u128::from(share_amount)
             .checked_mul(u128::from(self.total_staked_amount))

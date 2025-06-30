@@ -9,6 +9,7 @@ import type {
 } from "@solana/web3.js";
 import { PublicKey } from "@solana/web3.js";
 
+import { USDC_PRECISION_FACTOR } from "./constants";
 import {
   OPERATOR_POOL_DISCRIMINATOR,
   STAKING_RECORD_DISCRIMINATOR,
@@ -423,6 +424,43 @@ export class InferenceStakingProgramSdk {
       operatorAuthKeys: null,
     };
     return empty;
+  }
+
+  /**
+   * Calculates the total available USDC earnings for a staking record,
+   * including both settled (available_usdc_earnings) and unsettled amounts.
+   *
+   * This mirrors the calculation logic in has_unclaimed_usdc_earnings.
+   */
+  getAvailableUsdcEarningsForStakingRecord(
+    operatorPool: OperatorPoolAccountStruct,
+    stakingRecord: StakingRecordAccountStruct
+  ): BN {
+    let totalEarnings = new BN(stakingRecord.availableUsdcEarnings);
+
+    const cumulativeUsdcPerShare = new BN(
+      operatorPool.cumulativeUsdcPerShare.toString()
+    );
+    const lastSettledUsdcPerShare = new BN(
+      stakingRecord.lastSettledUsdcPerShare.toString()
+    );
+
+    const usdcPerShareSettlementDelta = cumulativeUsdcPerShare.sub(
+      lastSettledUsdcPerShare
+    );
+
+    if (
+      usdcPerShareSettlementDelta.gt(new BN(0)) &&
+      stakingRecord.shares.gt(new BN(0))
+    ) {
+      const unsettled = stakingRecord.shares
+        .mul(usdcPerShareSettlementDelta)
+        .div(USDC_PRECISION_FACTOR);
+
+      totalEarnings = totalEarnings.add(unsettled);
+    }
+
+    return totalEarnings;
   }
 
   /** ************************************************************************

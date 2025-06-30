@@ -79,7 +79,8 @@ export const generateRewardsForEpoch = (
     input.push({
       address: publicKey.toString(),
       tokenAmount: BigInt(randomIntInRange(1, 1_000_000)),
-      usdcAmount: BigInt(randomIntInRange(1, 10_000)),
+      // usdcAmount: BigInt(randomIntInRange(1, 10_000)),
+      usdcAmount: BigInt(randomIntInRange(100_000, 1_000_000)),
     });
   }
   return MerkleUtils.sortAddressList(input);

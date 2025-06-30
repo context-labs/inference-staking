@@ -28,6 +28,7 @@ import type { SetupPoolType, SetupTestResult } from "@tests/lib/setup";
 import { setupTests } from "@tests/lib/setup";
 import { TrpcHttpClient } from "@tests/lib/trpc";
 import {
+  assertError,
   assertStakingRecordCreatedState,
   convertToTokenUnitAmount,
   debug,
@@ -370,6 +371,7 @@ describe("multi-epoch lifecycle tests", () => {
   let program: Program<InferenceStaking>;
 
   let totalDistributedRewards = new anchor.BN(0);
+  let totalDistributedUsdc = new anchor.BN(0);
   const epochRewards: ConstructMerkleTreeInput[][] = [];
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
@@ -818,6 +820,7 @@ describe("multi-epoch lifecycle tests", () => {
         );
 
         totalDistributedRewards = totalDistributedRewards.add(totalRewards);
+        totalDistributedUsdc = totalDistributedUsdc.add(totalUsdcAmount);
 
         const totalRewardsString = formatBN(totalRewards);
         debug(
@@ -965,6 +968,300 @@ describe("multi-epoch lifecycle tests", () => {
       setup,
       trpc,
     });
+  });
+
+  it("Withdraw operator commissions successfully", async () => {
+    debug(`\nWithdrawing commission for ${setup.pools.length} operator pools`);
+
+    let counter = 1;
+    for (const pool of setup.pools) {
+      const feeTokenAccountPre = await connection.getTokenAccountBalance(
+        pool.feeTokenAccount
+      );
+
+      if (new anchor.BN(feeTokenAccountPre.value.amount).isZero()) {
+        debug(
+          `- No commission to withdraw for Operator Pool ${pool.pool.toString()}`
+        );
+        continue;
+      }
+
+      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        pool.admin
+      );
+
+      const ownerTokenBalancePre = await connection.getTokenAccountBalance(
+        ownerTokenAccount.address
+      );
+
+      await program.methods
+        .withdrawOperatorCommission()
+        .accountsStrict({
+          admin: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          feeTokenAccount: pool.feeTokenAccount,
+          destination: ownerTokenAccount.address,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const feeTokenAccountPost = await connection.getTokenAccountBalance(
+        pool.feeTokenAccount
+      );
+      const ownerTokenBalancePost = await connection.getTokenAccountBalance(
+        ownerTokenAccount.address
+      );
+
+      // Verify fee token account is emptied
+      assert.equal(
+        feeTokenAccountPost.value.amount,
+        "0",
+        "Fee token account should be empty after withdrawal"
+      );
+
+      // Verify tokens were received in owner's account
+      const amountWithdrawn = new anchor.BN(
+        ownerTokenBalancePost.value.amount
+      ).sub(new anchor.BN(ownerTokenBalancePre.value.amount));
+      assert(
+        amountWithdrawn.eq(new anchor.BN(feeTokenAccountPre.value.amount)),
+        "Amount withdrawn should match fee token account balance"
+      );
+
+      const amountWithdrawnString = formatBN(amountWithdrawn);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(
+        `- [${tracker}] Withdrew ${amountWithdrawnString} tokens in commission for Operator Pool ${pool.pool.toString()}`
+      );
+      counter++;
+    }
+  });
+
+  it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    assert(
+      poolOverview.unclaimedRewards.isZero(),
+      `Unclaimed rewards should be zero, was ${poolOverview.unclaimedRewards.toString()}`
+    );
+    assert(
+      poolOverview.unclaimedUsdcPayout.isZero(),
+      `Unclaimed USDC payout should be zero, was ${poolOverview.unclaimedUsdcPayout.toString()}`
+    );
+
+    const tokenVault = setup.sdk.rewardTokenPda();
+    const tokenBalance = await connection.getTokenAccountBalance(tokenVault);
+    assert(
+      new anchor.BN(tokenBalance.value.amount).isZero(),
+      `Token balance should be zero, was ${tokenBalance.value.amount}`
+    );
+
+    const usdcVault = setup.sdk.usdcTokenPda();
+    const usdcBalance = await connection.getTokenAccountBalance(usdcVault);
+    assert(
+      new anchor.BN(usdcBalance.value.amount).isZero(),
+      `USDC balance should be zero, was ${usdcBalance.value.amount}`
+    );
+  });
+
+  it("Claim USDC earnings for all delegators successfully", async () => {
+    debug(
+      `\nClaiming USDC earnings for ${setup.delegatorKeypairs.length} delegators`
+    );
+
+    let counter = 1;
+    for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
+      const delegatorKp = setup.delegatorKeypairs[i];
+      assert(delegatorKp != null);
+      const pool = setup.pools[i % setup.pools.length];
+      assert(pool != null);
+
+      const stakingRecord = setup.sdk.stakingRecordPda(
+        pool.pool,
+        delegatorKp.publicKey
+      );
+
+      const delegatorUsdcAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.usdcTokenMint,
+        delegatorKp.publicKey
+      );
+
+      const stakingRecordPre = await program.account.stakingRecord.fetch(
+        stakingRecord
+      );
+      const operatorPoolPre = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+      const poolUsdcVaultPre = await connection.getTokenAccountBalance(
+        pool.poolUsdcVault
+      );
+      const delegatorUsdcBalancePre = await connection.getTokenAccountBalance(
+        delegatorUsdcAccount.address
+      );
+
+      const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord(
+        operatorPoolPre,
+        stakingRecordPre
+      );
+
+      await program.methods
+        .claimUsdcEarnings()
+        .accountsStrict({
+          owner: delegatorKp.publicKey,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          stakingRecord: stakingRecord,
+          poolUsdcVault: pool.poolUsdcVault,
+          ownerUsdcAccount: delegatorUsdcAccount.address,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([delegatorKp])
+        .rpc();
+
+      const stakingRecordPost = await program.account.stakingRecord.fetch(
+        stakingRecord
+      );
+      const poolUsdcVaultPost = await connection.getTokenAccountBalance(
+        pool.poolUsdcVault
+      );
+      const delegatorUsdcBalancePost = await connection.getTokenAccountBalance(
+        delegatorUsdcAccount.address
+      );
+
+      // Verify USDC was transferred
+      const vaultBalanceDiff = new anchor.BN(poolUsdcVaultPre.value.amount).sub(
+        new anchor.BN(poolUsdcVaultPost.value.amount)
+      );
+      const delegatorBalanceDiff = new anchor.BN(
+        delegatorUsdcBalancePost.value.amount
+      ).sub(new anchor.BN(delegatorUsdcBalancePre.value.amount));
+
+      assert(vaultBalanceDiff.eq(delegatorBalanceDiff));
+
+      assert(
+        vaultBalanceDiff.eq(claimedAmount),
+        `Pool USDC vault balance should decrease by claimed amount: ${claimedAmount.toString()}`
+      );
+      assert(
+        delegatorBalanceDiff.eq(claimedAmount),
+        `Delegator USDC balance should increase by claimed amount: ${claimedAmount.toString()}`
+      );
+
+      // Verify staking record state
+      assert(
+        stakingRecordPost.availableUsdcEarnings.isZero(),
+        "Available USDC earnings should be zero after claim"
+      );
+      assert(
+        stakingRecordPost.lastSettledUsdcPerShare.eq(
+          operatorPoolPre.cumulativeUsdcPerShare
+        ),
+        "Last settled USDC per share should match pool's cumulative USDC per share"
+      );
+
+      const claimedAmountString = formatBN(claimedAmount);
+      const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
+      debug(
+        `- [${tracker}] Claimed ${claimedAmountString} USDC earnings for delegator ${delegatorKp.publicKey.toString()}`
+      );
+      counter++;
+    }
+  });
+
+  it("Claim USDC earnings for all operators successfully", async () => {
+    debug(`\nClaiming USDC earnings for ${setup.pools.length} operators`);
+
+    let counter = 1;
+    for (const pool of setup.pools) {
+      const stakingRecordPre = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+      const operatorPoolPre = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+      const poolUsdcVaultPre = await connection.getTokenAccountBalance(
+        pool.poolUsdcVault
+      );
+      const operatorUsdcBalancePre = await connection.getTokenAccountBalance(
+        pool.usdcTokenAccount
+      );
+
+      // Calculate the full available amount including unsettled earnings
+      const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord(
+        operatorPoolPre,
+        stakingRecordPre
+      );
+
+      await program.methods
+        .claimUsdcEarnings()
+        .accountsStrict({
+          owner: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          stakingRecord: pool.stakingRecord,
+          poolUsdcVault: pool.poolUsdcVault,
+          ownerUsdcAccount: pool.usdcTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const stakingRecordPost = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+      const poolUsdcVaultPost = await connection.getTokenAccountBalance(
+        pool.poolUsdcVault
+      );
+      const operatorUsdcBalancePost = await connection.getTokenAccountBalance(
+        pool.usdcTokenAccount
+      );
+
+      // Verify USDC was transferred
+      const vaultBalanceDiff = new anchor.BN(poolUsdcVaultPre.value.amount).sub(
+        new anchor.BN(poolUsdcVaultPost.value.amount)
+      );
+      const operatorBalanceDiff = new anchor.BN(
+        operatorUsdcBalancePost.value.amount
+      ).sub(new anchor.BN(operatorUsdcBalancePre.value.amount));
+
+      assert(vaultBalanceDiff.eq(operatorBalanceDiff));
+
+      assert(
+        vaultBalanceDiff.eq(claimedAmount),
+        `Pool USDC vault balance should decrease by claimed amount: ${claimedAmount.toString()}`
+      );
+      assert(
+        operatorBalanceDiff.eq(claimedAmount),
+        `Operator USDC balance should increase by claimed amount: ${claimedAmount.toString()}`
+      );
+
+      // Verify staking record state
+      assert(
+        stakingRecordPost.availableUsdcEarnings.isZero(),
+        "Available USDC earnings should be zero after claim"
+      );
+      assert(
+        stakingRecordPost.lastSettledUsdcPerShare.eq(
+          operatorPoolPre.cumulativeUsdcPerShare
+        ),
+        "Last settled USDC per share should match pool's cumulative USDC per share"
+      );
+
+      const claimedAmountString = formatBN(claimedAmount);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(
+        `- [${tracker}] Claimed ${claimedAmountString} USDC earnings for operator ${pool.admin.toString()}`
+      );
+      counter++;
+    }
   });
 
   it("Unstake for all delegators successfully", async () => {
@@ -1161,6 +1458,12 @@ describe("multi-epoch lifecycle tests", () => {
         "Operator pool total unstaking should be decreased by claimed amount"
       );
 
+      // Verify operator pool total unstaking is now zero after all claims
+      assert(
+        operatorPoolPost.totalUnstaking.isZero(),
+        "Operator pool total unstaking should be zero after all unstake claims"
+      );
+
       // Verify tokens were received in owner's account
       const amountClaimed = new anchor.BN(tokenBalancePost.value.amount).sub(
         new anchor.BN(tokenBalancePre.value.amount)
@@ -1300,32 +1603,40 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
-  it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
-    const poolOverview = await program.account.poolOverview.fetch(
-      setup.poolOverview
-    );
-    assert(
-      poolOverview.unclaimedRewards.isZero(),
-      `Unclaimed rewards should be zero, was ${poolOverview.unclaimedRewards.toString()}`
-    );
-    assert(
-      poolOverview.unclaimedUsdcPayout.isZero(),
-      `Unclaimed USDC payout should be zero, was ${poolOverview.unclaimedUsdcPayout.toString()}`
-    );
+  it("Close all operator pools successfully", async () => {
+    if (!SHOULD_CLOSE_ACCOUNTS) {
+      debug("End-to-end test flow is enabled, skipping close operator pools");
+      return;
+    }
 
-    const tokenVault = setup.sdk.rewardTokenPda();
-    const tokenBalance = await connection.getTokenAccountBalance(tokenVault);
-    assert(
-      new anchor.BN(tokenBalance.value.amount).isZero(),
-      `Token balance should be zero, was ${tokenBalance.value.amount}`
-    );
+    debug(`\nClosing ${setup.pools.length} operator pools`);
 
-    const usdcVault = setup.sdk.usdcTokenPda();
-    const usdcBalance = await connection.getTokenAccountBalance(usdcVault);
-    assert(
-      new anchor.BN(usdcBalance.value.amount).isZero(),
-      `USDC balance should be zero, was ${usdcBalance.value.amount}`
-    );
+    let counter = 1;
+    for (const pool of setup.pools) {
+      await program.methods
+        .closeOperatorPool()
+        .accountsStrict({
+          admin: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const operatorPool = await program.account.operatorPool.fetch(pool.pool);
+      const poolOverview = await program.account.poolOverview.fetch(
+        setup.poolOverview
+      );
+
+      assert(
+        operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch.addn(1)),
+        "Operator pool closedAt should match the completed reward epoch"
+      );
+
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(`- [${tracker}] Closed Operator Pool ${pool.pool.toString()}`);
+      counter++;
+    }
   });
 
   it("Unstake for all operator admins successfully", async () => {
@@ -1536,42 +1847,6 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
-  it("Close all operator pools successfully", async () => {
-    if (!SHOULD_CLOSE_ACCOUNTS) {
-      debug("End-to-end test flow is enabled, skipping close operator pools");
-      return;
-    }
-
-    debug(`\nClosing ${setup.pools.length} operator pools`);
-
-    let counter = 1;
-    for (const pool of setup.pools) {
-      await program.methods
-        .closeOperatorPool()
-        .accountsStrict({
-          admin: pool.admin,
-          poolOverview: setup.poolOverview,
-          operatorPool: pool.pool,
-        })
-        .signers([pool.adminKp])
-        .rpc();
-
-      const operatorPool = await program.account.operatorPool.fetch(pool.pool);
-      const poolOverview = await program.account.poolOverview.fetch(
-        setup.poolOverview
-      );
-
-      assert(
-        operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch),
-        "Operator pool closedAt should match the completed reward epoch"
-      );
-
-      const tracker = `${counter}/${setup.pools.length}`;
-      debug(`- [${tracker}] Closed Operator Pool ${pool.pool.toString()}`);
-      counter++;
-    }
-  });
-
   it("Close all operator staking records successfully", async () => {
     if (!SHOULD_CLOSE_ACCOUNTS) {
       debug(
@@ -1613,12 +1888,111 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
-  it("Validate operator pool USDC vault balances", async () => {
+  it("Sweep closed pool USDC dust successfully", async () => {
+    if (!SHOULD_CLOSE_ACCOUNTS) {
+      debug("End-to-end test flow is enabled, skipping sweep USDC dust");
+      return;
+    }
+
+    debug(`\nSweeping USDC dust from ${setup.pools.length} closed pools`);
+
+    let counter = 1;
     for (const pool of setup.pools) {
-      const tokenBalance = await connection.getTokenAccountBalance(
+      const poolUsdcVaultPre = await connection.getTokenAccountBalance(
         pool.poolUsdcVault
       );
-      assert(Number(tokenBalance.value.amount) > 0);
+      const adminUsdcBalancePre = await connection.getTokenAccountBalance(
+        pool.usdcTokenAccount
+      );
+
+      // Skip if no USDC dust to sweep
+      if (new anchor.BN(poolUsdcVaultPre.value.amount).isZero()) {
+        debug(
+          `- No USDC dust to sweep for Operator Pool ${pool.pool.toString()}`
+        );
+        continue;
+      }
+
+      await program.methods
+        .sweepClosedPoolUsdcDust()
+        .accountsStrict({
+          admin: pool.admin,
+          operatorPool: pool.pool,
+          operatorUsdcVault: pool.poolUsdcVault,
+          adminUsdcAccount: pool.usdcTokenAccount,
+          poolOverview: setup.poolOverview,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const adminUsdcBalancePost = await connection.getTokenAccountBalance(
+        pool.usdcTokenAccount
+      );
+
+      // Verify admin received the dust
+      const dustAmount = new anchor.BN(poolUsdcVaultPre.value.amount);
+      const adminBalanceDiff = new anchor.BN(
+        adminUsdcBalancePost.value.amount
+      ).sub(new anchor.BN(adminUsdcBalancePre.value.amount));
+
+      assert(
+        adminBalanceDiff.eq(dustAmount),
+        `Admin USDC balance should increase by dust amount: ${dustAmount.toString()}`
+      );
+
+      // Verify vault account was closed
+      try {
+        await connection.getTokenAccountBalance(pool.poolUsdcVault);
+        assert.fail("Pool USDC vault should have been closed");
+      } catch (_error) {
+        // Expected - account should be closed
+      }
+
+      const dustAmountString = formatBN(dustAmount);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(
+        `- [${tracker}] Swept ${dustAmountString} USDC dust from closed pool ${pool.pool.toString()}`
+      );
+      counter++;
+    }
+  });
+
+  it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    assert(
+      poolOverview.unclaimedRewards.isZero(),
+      `Unclaimed rewards should be zero, was ${poolOverview.unclaimedRewards.toString()}`
+    );
+    assert(
+      poolOverview.unclaimedUsdcPayout.isZero(),
+      `Unclaimed USDC payout should be zero, was ${poolOverview.unclaimedUsdcPayout.toString()}`
+    );
+
+    const tokenVault = setup.sdk.rewardTokenPda();
+    const tokenBalance = await connection.getTokenAccountBalance(tokenVault);
+    assert(
+      new anchor.BN(tokenBalance.value.amount).isZero(),
+      `Token balance should be zero, was ${tokenBalance.value.amount}`
+    );
+
+    const usdcVault = setup.sdk.usdcTokenPda();
+    const usdcBalance = await connection.getTokenAccountBalance(usdcVault);
+    assert(
+      new anchor.BN(usdcBalance.value.amount).isZero(),
+      `USDC balance should be zero, was ${usdcBalance.value.amount}`
+    );
+
+    for (const pool of setup.pools) {
+      try {
+        await connection.getTokenAccountBalance(pool.poolUsdcVault);
+        assert(false);
+      } catch (err) {
+        assertError(err, "Invalid param: could not find account");
+      }
     }
   });
 
@@ -1636,7 +2010,9 @@ describe("multi-epoch lifecycle tests", () => {
     assert(result.isStateValid, "Program account state validation failed.");
 
     const totalDistributedRewardsString = formatBN(totalDistributedRewards);
+    const totalDistributedUsdcString = formatBN(totalDistributedUsdc);
     debug("✅ Program account state is valid. Test completed successfully.");
     debug(`Total rewards distributed: ${totalDistributedRewardsString}`);
+    debug(`Total USDC distributed: ${totalDistributedUsdcString}`);
   });
 });
