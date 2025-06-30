@@ -85,7 +85,10 @@ export class InferenceStakingProgramSdk {
 
   stakedTokenPda(operatorPoolPda: PublicKey): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("StakedToken", "utf-8"), operatorPoolPda.toBuffer()],
+      [
+        Buffer.from("PoolStakedTokenVault", "utf-8"),
+        operatorPoolPda.toBuffer(),
+      ],
       this.program.programId
     );
     return pda;
@@ -93,7 +96,10 @@ export class InferenceStakingProgramSdk {
 
   feeTokenPda(operatorPoolPda: PublicKey): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("FeeToken", "utf-8"), operatorPoolPda.toBuffer()],
+      [
+        Buffer.from("PoolCommissionFeeTokenVault", "utf-8"),
+        operatorPoolPda.toBuffer(),
+      ],
       this.program.programId
     );
     return pda;
@@ -112,7 +118,7 @@ export class InferenceStakingProgramSdk {
 
   rewardTokenPda(): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("RewardToken", "utf-8")],
+      [Buffer.from("GlobalTokenRewardVault", "utf-8")],
       this.program.programId
     );
     return pda;
@@ -120,7 +126,7 @@ export class InferenceStakingProgramSdk {
 
   usdcTokenPda(): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("USDC", "utf-8")],
+      [Buffer.from("GlobalUsdcEarningsVault", "utf-8")],
       this.program.programId
     );
     return pda;
@@ -129,7 +135,7 @@ export class InferenceStakingProgramSdk {
   operatorUsdcVaultPda(operatorPoolPda: PublicKey): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("OperatorPoolUSDCVault", "utf-8"),
+        Buffer.from("PoolDelegatorUsdcEarningsVault", "utf-8"),
         operatorPoolPda.toBuffer(),
       ],
       this.program.programId

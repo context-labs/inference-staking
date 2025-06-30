@@ -34,7 +34,7 @@ pub struct ClaimUsdcEarnings<'info> {
 
     #[account(
         mut,
-        seeds = [b"OperatorPoolUSDCVault", operator_pool.key().as_ref()],
+        seeds = [b"PoolDelegatorUsdcEarningsVault", operator_pool.key().as_ref()],
         bump,
     )]
     pub pool_usdc_vault: Account<'info, TokenAccount>,

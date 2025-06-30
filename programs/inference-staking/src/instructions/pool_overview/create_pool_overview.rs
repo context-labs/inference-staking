@@ -24,7 +24,7 @@ pub struct CreatePoolOverview<'info> {
 
     #[account(
         init,
-        seeds = [b"RewardToken".as_ref()],
+        seeds = [b"GlobalTokenRewardVault".as_ref()],
         bump,
         payer = payer,
         token::mint = mint,
@@ -34,7 +34,7 @@ pub struct CreatePoolOverview<'info> {
 
     #[account(
         init,
-        seeds = [b"USDC".as_ref()],
+        seeds = [b"GlobalUsdcEarningsVault".as_ref()],
         bump,
         payer = payer,
         token::mint = usdc_mint,

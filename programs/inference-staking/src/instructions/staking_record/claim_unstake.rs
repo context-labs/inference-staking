@@ -52,7 +52,7 @@ pub struct ClaimUnstake<'info> {
 
     #[account(
         mut,
-        seeds = [b"StakedToken".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolStakedTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
     pub staked_token_account: Box<Account<'info, TokenAccount>>,
@@ -121,7 +121,7 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
     staking_record.unstake_at_timestamp = 0;
 
     // If Operator is claiming and pool is not closed, check that they still
-    // maintain min. share percentage of pool after.
+    // maintain min. token stake of pool after.
     if is_operator_claiming && operator_pool.closed_at.is_none() {
         let min_operator_token_stake = pool_overview.min_operator_token_stake;
         let operator_stake = operator_pool.calc_tokens_for_share_amount(staking_record.shares);

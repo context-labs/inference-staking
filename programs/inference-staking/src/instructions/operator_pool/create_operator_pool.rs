@@ -52,7 +52,7 @@ pub struct CreateOperatorPool<'info> {
 
     #[account(
         init,
-        seeds = [b"StakedToken".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolStakedTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
         payer = payer,
         token::mint = mint,
@@ -62,7 +62,7 @@ pub struct CreateOperatorPool<'info> {
 
     #[account(
         init,
-        seeds = [b"FeeToken".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolCommissionFeeTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
         payer = payer,
         token::mint = mint,
@@ -75,7 +75,7 @@ pub struct CreateOperatorPool<'info> {
 
     #[account(
         init,
-        seeds = [b"OperatorPoolUSDCVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolDelegatorUsdcEarningsVault".as_ref(), operator_pool.key().as_ref()],
         bump,
         payer = payer,
         token::mint = usdc_mint,

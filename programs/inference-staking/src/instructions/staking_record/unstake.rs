@@ -95,7 +95,7 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
         .unwrap();
 
     // If Operator is unstaking and pool is not closed, check that they still
-    // maintain min. share percentage of pool after.
+    // maintain min. token stake of pool after.
     if is_operator_unstaking && operator_pool.closed_at.is_none() {
         let min_operator_token_stake = pool_overview.min_operator_token_stake;
         let operator_stake = operator_pool.calc_tokens_for_share_amount(staking_record.shares);

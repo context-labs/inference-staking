@@ -34,13 +34,13 @@ pub struct CreateRewardRecord<'info> {
     pub reward_record: Box<Account<'info, RewardRecord>>,
 
     #[account(
-        seeds = [b"RewardToken".as_ref()],
+        seeds = [b"GlobalTokenRewardVault".as_ref()],
         bump,
     )]
     pub reward_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
-        seeds = [b"USDC".as_ref()],
+        seeds = [b"GlobalUsdcEarningsVault".as_ref()],
         bump,
     )]
     pub usdc_token_account: Box<Account<'info, TokenAccount>>,

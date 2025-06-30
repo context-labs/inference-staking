@@ -53,35 +53,35 @@ pub struct AccrueReward<'info> {
 
     #[account(
         mut,
-        seeds = [b"OperatorPoolUSDCVault", operator_pool.key().as_ref()],
+        seeds = [b"PoolDelegatorUsdcEarningsVault", operator_pool.key().as_ref()],
         bump,
     )]
     pub pool_usdc_vault: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [b"RewardToken".as_ref()],
+        seeds = [b"GlobalTokenRewardVault".as_ref()],
         bump,
     )]
     pub reward_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [b"USDC".as_ref()],
+        seeds = [b"GlobalUsdcEarningsVault".as_ref()],
         bump,
     )]
     pub usdc_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [b"StakedToken".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolStakedTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
     pub staked_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [b"FeeToken".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolCommissionFeeTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
     pub fee_token_account: Box<Account<'info, TokenAccount>>,

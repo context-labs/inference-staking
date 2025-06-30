@@ -27,7 +27,7 @@ pub struct WithdrawOperatorCommission<'info> {
 
     #[account(
         mut,
-        seeds = [b"FeeToken".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolCommissionFeeTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
     pub fee_token_account: Account<'info, TokenAccount>,

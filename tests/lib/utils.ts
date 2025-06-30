@@ -83,7 +83,7 @@ const TOKEN_PRECISION = 1_000_000_000n;
 const USDC_PRECISION = 1_000_000n;
 
 const MIN_AMOUNT = 0;
-const MAX_AMOUNT = 10;
+const MAX_AMOUNT = 3;
 
 // const MIN_AMOUNT = 0;
 // const MAX_AMOUNT = 100;
