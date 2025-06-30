@@ -36,6 +36,8 @@ import {
   generateRewardsForEpoch,
   randomIntInRange,
   handleMarkEpochAsFinalizing,
+  range,
+  shuffleArray,
 } from "@tests/lib/utils";
 
 type GetRewardClaimInputsInput = {
@@ -648,6 +650,187 @@ describe("multi-epoch lifecycle tests", () => {
     }
   };
 
+  const handleStakeForOperatorAdmins = async (
+    shouldAssertCreatedState = false
+  ) => {
+    debug(
+      `\nPerforming admin stake instructions for ${setup.pools.length} operator pools`
+    );
+    let counter = 1;
+    for (const pool of setup.pools) {
+      const stakeAmount = new anchor.BN(
+        convertToTokenUnitAmount(randomIntInRange(1_000_000, 10_000_000))
+      );
+
+      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        pool.admin
+      );
+
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        ownerTokenAccount.address,
+        setup.tokenHolderKp,
+        BigInt(stakeAmount.toString())
+      );
+
+      const poolPre = await program.account.operatorPool.fetch(pool.pool);
+      const stakingRecordPre = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+
+      await program.methods
+        .stake(stakeAmount)
+        .accountsStrict({
+          owner: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          ownerStakingRecord: pool.stakingRecord,
+          operatorStakingRecord: pool.stakingRecord,
+          stakedTokenAccount: pool.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount: ownerTokenAccount.address,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const poolPost = await program.account.operatorPool.fetch(pool.pool);
+      const stakingRecordPost = await program.account.stakingRecord.fetch(
+        pool.stakingRecord
+      );
+
+      if (shouldAssertCreatedState) {
+        assertStakingRecordCreatedState({
+          poolPost,
+          poolPre,
+          stakingRecordPost,
+          stakingRecordPre,
+          stakeAmount,
+        });
+      }
+
+      totalOriginalStakes = totalOriginalStakes.add(stakeAmount);
+
+      const stakeAmountString = formatBN(stakeAmount);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(
+        `- [${tracker}] Staked ${stakeAmountString} tokens for Operator Pool ${pool.pool.toString()}`
+      );
+      counter++;
+    }
+  };
+
+  const handleStakeForDelegators = async (shouldAssertCreatedState = false) => {
+    debug(
+      `\nPerforming delegator stake instructions for ${setup.delegatorKeypairs.length} delegators`
+    );
+    let counter = 1;
+    for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
+      const delegatorKp = setup.delegatorKeypairs[i];
+      assert(delegatorKp != null);
+      const pool = setup.pools[i % setup.pools.length];
+      assert(pool != null);
+
+      const stakingRecord = setup.sdk.stakingRecordPda(
+        pool.pool,
+        delegatorKp.publicKey
+      );
+
+      const stakingRecordPreCreate =
+        await program.account.stakingRecord.fetchNullable(stakingRecord);
+
+      if (stakingRecordPreCreate == null) {
+        await program.methods
+          .createStakingRecord()
+          .accountsStrict({
+            payer: setup.payer,
+            owner: delegatorKp.publicKey,
+            operatorPool: pool.pool,
+            ownerStakingRecord: stakingRecord,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([setup.payerKp, delegatorKp])
+          .rpc();
+      }
+
+      const poolPre = await program.account.operatorPool.fetch(pool.pool);
+      const stakingRecordPre = await program.account.stakingRecord.fetch(
+        stakingRecord
+      );
+
+      if (shouldAssertCreatedState) {
+        assert(stakingRecordPre.owner.equals(delegatorKp.publicKey));
+        assert(stakingRecordPre.operatorPool.equals(pool.pool));
+        assert(stakingRecordPre.shares.isZero());
+        assert(stakingRecordPre.tokensUnstakeAmount.isZero());
+        assert(stakingRecordPre.unstakeAtTimestamp.isZero());
+      }
+
+      const stakeAmount = new anchor.BN(
+        convertToTokenUnitAmount(randomIntInRange(100_000, 1_000_000))
+      );
+
+      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        delegatorKp.publicKey
+      );
+
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        ownerTokenAccount.address,
+        setup.tokenHolderKp,
+        BigInt(stakeAmount.toString())
+      );
+
+      await program.methods
+        .stake(stakeAmount)
+        .accountsStrict({
+          owner: delegatorKp.publicKey,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          ownerStakingRecord: stakingRecord,
+          operatorStakingRecord: pool.stakingRecord,
+          stakedTokenAccount: pool.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount: ownerTokenAccount.address,
+        })
+        .signers([delegatorKp])
+        .rpc();
+
+      const poolPost = await program.account.operatorPool.fetch(pool.pool);
+      const stakingRecordPost = await program.account.stakingRecord.fetch(
+        stakingRecord
+      );
+
+      if (shouldAssertCreatedState) {
+        assertStakingRecordCreatedState({
+          poolPost,
+          poolPre,
+          stakingRecordPost,
+          stakingRecordPre,
+          stakeAmount,
+        });
+      }
+
+      totalOriginalStakes = totalOriginalStakes.add(stakeAmount);
+
+      const stakeAmountString = formatBN(stakeAmount);
+      const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
+      debug(
+        `- [${tracker}] Staked ${stakeAmountString} tokens for delegator ${delegatorKp.publicKey.toString()} to pool ${pool.pool.toString()}`
+      );
+      counter++;
+    }
+  };
+
   before(async () => {
     setup = await setupTests();
     program = setup.sdk.program;
@@ -855,177 +1038,15 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
-  it("Stake all operator pool admins", async () => {
-    debug(
-      `\nPerforming admin stake instructions for ${setup.pools.length} operator pools`
-    );
-    let counter = 1;
-    for (const pool of setup.pools) {
-      const stakeAmount = new anchor.BN(
-        convertToTokenUnitAmount(randomIntInRange(1_000_000, 10_000_000))
-      );
-
-      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
-        connection,
-        setup.payerKp,
-        setup.tokenMint,
-        pool.admin
-      );
-
-      await mintTo(
-        connection,
-        setup.payerKp,
-        setup.tokenMint,
-        ownerTokenAccount.address,
-        setup.tokenHolderKp,
-        BigInt(stakeAmount.toString())
-      );
-
-      const poolPre = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
-
-      await program.methods
-        .stake(stakeAmount)
-        .accountsStrict({
-          owner: pool.admin,
-          poolOverview: setup.poolOverview,
-          operatorPool: pool.pool,
-          ownerStakingRecord: pool.stakingRecord,
-          operatorStakingRecord: pool.stakingRecord,
-          stakedTokenAccount: pool.stakedTokenAccount,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          ownerTokenAccount: ownerTokenAccount.address,
-        })
-        .signers([pool.adminKp])
-        .rpc();
-
-      const poolPost = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
-
-      assertStakingRecordCreatedState({
-        poolPost,
-        poolPre,
-        stakingRecordPost,
-        stakingRecordPre,
-        stakeAmount,
-      });
-
-      // Track original stake
-      totalOriginalStakes = totalOriginalStakes.add(stakeAmount);
-
-      const stakeAmountString = formatBN(stakeAmount);
-      const tracker = `${counter}/${setup.pools.length}`;
-      debug(
-        `- [${tracker}] Staked ${stakeAmountString} tokens for Operator Pool ${pool.pool.toString()}`
-      );
-      counter++;
-    }
+  it("[1/2] Stake all operator pool admins", async () => {
+    await handleStakeForOperatorAdmins(true);
   });
 
-  it("Stake for every delegator", async () => {
-    debug(
-      `\nPerforming delegator stake instructions for ${setup.delegatorKeypairs.length} delegators`
-    );
-    let counter = 1;
-    for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
-      const delegatorKp = setup.delegatorKeypairs[i];
-      assert(delegatorKp != null);
-      const pool = setup.pools[i % setup.pools.length];
-      assert(pool != null);
-
-      const stakingRecord = setup.sdk.stakingRecordPda(
-        pool.pool,
-        delegatorKp.publicKey
-      );
-
-      await program.methods
-        .createStakingRecord()
-        .accountsStrict({
-          payer: setup.payer,
-          owner: delegatorKp.publicKey,
-          operatorPool: pool.pool,
-          ownerStakingRecord: stakingRecord,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([setup.payerKp, delegatorKp])
-        .rpc();
-
-      const poolPre = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-
-      assert(stakingRecordPre.owner.equals(delegatorKp.publicKey));
-      assert(stakingRecordPre.operatorPool.equals(pool.pool));
-      assert(stakingRecordPre.shares.isZero());
-      assert(stakingRecordPre.tokensUnstakeAmount.isZero());
-      assert(stakingRecordPre.unstakeAtTimestamp.isZero());
-
-      const stakeAmount = new anchor.BN(
-        convertToTokenUnitAmount(randomIntInRange(100_000, 1_000_000))
-      );
-
-      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
-        connection,
-        setup.payerKp,
-        setup.tokenMint,
-        delegatorKp.publicKey
-      );
-
-      await mintTo(
-        connection,
-        setup.payerKp,
-        setup.tokenMint,
-        ownerTokenAccount.address,
-        setup.tokenHolderKp,
-        BigInt(stakeAmount.toString())
-      );
-
-      await program.methods
-        .stake(stakeAmount)
-        .accountsStrict({
-          owner: delegatorKp.publicKey,
-          poolOverview: setup.poolOverview,
-          operatorPool: pool.pool,
-          ownerStakingRecord: stakingRecord,
-          operatorStakingRecord: pool.stakingRecord,
-          stakedTokenAccount: pool.stakedTokenAccount,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          ownerTokenAccount: ownerTokenAccount.address,
-        })
-        .signers([delegatorKp])
-        .rpc();
-
-      const poolPost = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-
-      assertStakingRecordCreatedState({
-        poolPost,
-        poolPre,
-        stakingRecordPost,
-        stakingRecordPre,
-        stakeAmount,
-      });
-
-      // Track original stake
-      totalOriginalStakes = totalOriginalStakes.add(stakeAmount);
-
-      const stakeAmountString = formatBN(stakeAmount);
-      const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
-      debug(
-        `- [${tracker}] Staked ${stakeAmountString} tokens for delegator ${delegatorKp.publicKey.toString()} to pool ${pool.pool.toString()}`
-      );
-      counter++;
-    }
+  it("[1/2] Stake for every delegator", async () => {
+    await handleStakeForDelegators(true);
   });
 
-  it("Create reward records", async () => {
+  it("[1/2] Create reward records", async () => {
     debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
     const counter = 1;
     for (let epoch = 1; epoch <= NUMBER_OF_EPOCHS; epoch++) {
@@ -1033,7 +1054,7 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
-  it("Accrue Rewards for any remaining epochs", async () => {
+  it("[1/2] Accrue Rewards for any remaining epochs", async () => {
     const claimResult = await handleAccrueRewardForEpochs({
       connection,
       epochRewards,
@@ -1048,6 +1069,56 @@ describe("multi-epoch lifecycle tests", () => {
     totalWithdrawnUsdcEarnings = totalWithdrawnUsdcEarnings.add(
       claimResult.totalOperatorUsdcCommission
     );
+  });
+
+  const performAdditionalStakingActions = async () => {
+    for (const _ of range(3)) {
+      const actions = [handleStakeForDelegators, handleStakeForOperatorAdmins];
+      const randomOrder = shuffleArray(actions);
+      for (const action of randomOrder) {
+        await action();
+      }
+    }
+  };
+
+  it("[2/2] Repeat staking actions for operators and delegators", async () => {
+    await performAdditionalStakingActions();
+  });
+
+  const finalizeAdditionalEpochs = async () => {
+    debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
+    const counter = 1;
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    const startingEpoch = poolOverview.completedRewardEpoch.toNumber() + 1;
+    const endEpoch = startingEpoch + NUMBER_OF_EPOCHS;
+    for (let epoch = startingEpoch; epoch <= endEpoch; epoch++) {
+      await handleEpochFinalization(epoch, counter);
+    }
+
+    const claimResult = await handleAccrueRewardForEpochs({
+      connection,
+      epochRewards,
+      program,
+      setup,
+      trpc,
+    });
+    totalClaimedRewards = totalClaimedRewards.add(
+      claimResult.totalClaimedRewards
+    );
+    totalClaimedUsdc = totalClaimedUsdc.add(claimResult.totalClaimedUsdc);
+    totalWithdrawnUsdcEarnings = totalWithdrawnUsdcEarnings.add(
+      claimResult.totalOperatorUsdcCommission
+    );
+  };
+
+  it("Finalize additional epochs", async () => {
+    for (const _ of range(3)) {
+      await finalizeAdditionalEpochs();
+      await performAdditionalStakingActions();
+    }
+    await finalizeAdditionalEpochs();
   });
 
   it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
@@ -1488,12 +1559,6 @@ describe("multi-epoch lifecycle tests", () => {
         "Operator pool total unstaking should be decreased by claimed amount"
       );
 
-      // Verify operator pool total unstaking is now zero after all claims
-      assert(
-        operatorPoolPost.totalUnstaking.isZero(),
-        "Operator pool total unstaking should be zero after all unstake claims"
-      );
-
       // Verify tokens were received in owner's account
       const amountClaimed = new anchor.BN(tokenBalancePost.value.amount).sub(
         new anchor.BN(tokenBalancePre.value.amount)
@@ -1513,6 +1578,18 @@ describe("multi-epoch lifecycle tests", () => {
         `- [${tracker}] Claimed ${amountClaimedString} tokens for delegator ${delegatorKp.publicKey.toString()}`
       );
       counter++;
+    }
+
+    // Verify all operator pools have zero total unstaking after all unstake claims
+    for (const pool of setup.pools) {
+      const operatorPoolFinal = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+
+      assert(
+        operatorPoolFinal.totalUnstaking.isZero(),
+        "Operator pool total unstaking should be zero after all unstake claims"
+      );
     }
   });
 

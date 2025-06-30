@@ -79,6 +79,21 @@ export const formatBN = (bn: anchor.BN): string => {
   }
 };
 
+const TOKEN_PRECISION = 1_000_000_000n;
+const USDC_PRECISION = 1_000_000n;
+
+// const MIN_AMOUNT = 0;
+// const MAX_AMOUNT = 100;
+
+const MIN_AMOUNT = 1_000;
+const MAX_AMOUNT = 10_000;
+
+// const MIN_AMOUNT = 1_000_000;
+// const MAX_AMOUNT = 10_000_000;
+
+// const MIN_AMOUNT = 10_000_000;
+// const MAX_AMOUNT = 100_000_000;
+
 export const generateRewardsForEpoch = (
   publicKeys: PublicKey[]
 ): ConstructMerkleTreeInput[] => {
@@ -86,8 +101,8 @@ export const generateRewardsForEpoch = (
   for (const publicKey of publicKeys) {
     input.push({
       address: publicKey.toString(),
-      tokenAmount: randomBigIntInRange(1_000, 10_000, 1_000_000_000n),
-      usdcAmount: randomBigIntInRange(1_000, 10_000, 1_000_000n),
+      tokenAmount: randomBigIntInRange(MIN_AMOUNT, MAX_AMOUNT, TOKEN_PRECISION),
+      usdcAmount: randomBigIntInRange(MIN_AMOUNT, MAX_AMOUNT, USDC_PRECISION),
     });
   }
   return MerkleUtils.sortAddressList(input);
