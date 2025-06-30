@@ -57,11 +57,12 @@ export const randomIntInRange = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
-export const randomBigIntInRange = (min: number, max: number): bigint => {
-  const random = BigInt(randomIntInRange(min, max));
-  const scalingFactor = 1_000_000_000_000n;
-  const scaledAmount = random * scalingFactor;
-  return scaledAmount;
+export const randomBigIntInRange = (
+  min: number,
+  max: number,
+  scaleFactor: bigint
+): bigint => {
+  return BigInt(randomIntInRange(min, max)) * scaleFactor;
 };
 
 export const debug = (msg: string) => {
@@ -85,8 +86,8 @@ export const generateRewardsForEpoch = (
   for (const publicKey of publicKeys) {
     input.push({
       address: publicKey.toString(),
-      tokenAmount: randomBigIntInRange(1_000, 10_000),
-      usdcAmount: randomBigIntInRange(1_000, 10_000),
+      tokenAmount: randomBigIntInRange(1_000, 10_000, 1_000_000_000n),
+      usdcAmount: randomBigIntInRange(1_000, 10_000, 1_000_000n),
     });
   }
   return MerkleUtils.sortAddressList(input);
