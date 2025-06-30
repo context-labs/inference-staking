@@ -1795,14 +1795,17 @@ describe("inference-staking program tests", () => {
     const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
+      totalRewards = totalRewards.add(
+        new anchor.BN(addressInput.tokenAmount.toString())
+      );
     }
     let totalUsdcAmount = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalUsdcAmount = totalUsdcAmount.addn(Number(addressInput.usdcAmount));
+      totalUsdcAmount = totalUsdcAmount.add(
+        new anchor.BN(addressInput.usdcAmount.toString())
+      );
     }
 
-    // Fund rewardTokenAccount
     await mintTo(
       connection,
       setup.payerKp,
@@ -2064,8 +2067,8 @@ describe("inference-staking program tests", () => {
       setup.pool1.feeTokenAccount
     );
 
-    const rewardAmount = new anchor.BN(Number(proofInputs.tokenAmount));
-    const usdcAmount = new anchor.BN(Number(proofInputs.usdcAmount));
+    const rewardAmount = new anchor.BN(proofInputs.tokenAmount.toString());
+    const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
 
     const eventPromise = new Promise<CompleteAccrueRewardEvent>((resolve) => {
       const listenerId = program.addEventListener(
@@ -2118,7 +2121,9 @@ describe("inference-staking program tests", () => {
         .eq(rewardAmount)
     );
 
-    const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
+    const commissionFees = rewardAmount
+      .mul(new anchor.BN(commissionRateBps))
+      .div(new anchor.BN(10_000));
     const delegatorRewards = rewardAmount.sub(commissionFees);
 
     // Verify that claimed delegator rewards are added to OperatorPool
@@ -2152,20 +2157,24 @@ describe("inference-staking program tests", () => {
       setup.pool1.feeTokenAccount
     );
     assert(
-      rewardAmount.eqn(
-        Number(rewardBalancePre.value.amount) -
-          Number(rewardBalance.value.amount)
+      rewardAmount.eq(
+        new anchor.BN(rewardBalancePre.value.amount.toString()).sub(
+          new anchor.BN(rewardBalance.value.amount.toString())
+        )
       )
     );
     assert(
-      commissionFees.eqn(
-        Number(feeBalance.value.amount) - Number(feeBalancePre.value.amount)
+      commissionFees.eq(
+        new anchor.BN(feeBalance.value.amount.toString()).sub(
+          new anchor.BN(feeBalancePre.value.amount.toString())
+        )
       )
     );
     assert(
-      delegatorRewards.eqn(
-        Number(stakedBalance.value.amount) -
-          Number(stakedBalancePre.value.amount)
+      delegatorRewards.eq(
+        new anchor.BN(stakedBalance.value.amount.toString()).sub(
+          new anchor.BN(stakedBalancePre.value.amount.toString())
+        )
       )
     );
   });
@@ -2223,11 +2232,10 @@ describe("inference-staking program tests", () => {
   });
 
   it("Fail to claim unstake for operator if operator falls below min token stake", async () => {
-    // Change min token stake to 10M
     await program.methods
       .updatePoolOverview({
         ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
-        minOperatorTokenStake: new anchor.BN(10_000_000),
+        minOperatorTokenStake: new anchor.BN(1_000_000_000_000_000),
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
@@ -2338,11 +2346,11 @@ describe("inference-staking program tests", () => {
     const tokenBalancePost = await connection.getTokenAccountBalance(
       ownerTokenAccount
     );
-    const amountClaimed =
-      Number(tokenBalancePost.value.amount) -
-      Number(tokenBalancePre.value.amount);
+    const amountClaimed = new anchor.BN(
+      tokenBalancePost.value.amount.toString()
+    ).sub(new anchor.BN(tokenBalancePre.value.amount.toString()));
 
-    assert(stakingRecordPre.tokensUnstakeAmount.eqn(amountClaimed));
+    assert(stakingRecordPre.tokensUnstakeAmount.eq(amountClaimed));
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
@@ -2443,11 +2451,11 @@ describe("inference-staking program tests", () => {
     const tokenBalancePost = await connection.getTokenAccountBalance(
       ownerTokenAccount
     );
-    const amountClaimed =
-      Number(tokenBalancePost.value.amount) -
-      Number(tokenBalancePre.value.amount);
+    const amountClaimed = new anchor.BN(
+      tokenBalancePost.value.amount.toString()
+    ).sub(new anchor.BN(tokenBalancePre.value.amount.toString()));
 
-    assert(stakingRecordPre.tokensUnstakeAmount.eqn(amountClaimed));
+    assert(stakingRecordPre.tokensUnstakeAmount.eq(amountClaimed));
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });

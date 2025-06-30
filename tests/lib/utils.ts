@@ -82,14 +82,14 @@ export const formatBN = (bn: anchor.BN): string => {
 const TOKEN_PRECISION = 1_000_000_000n;
 const USDC_PRECISION = 1_000_000n;
 
-const MIN_AMOUNT = 0;
-const MAX_AMOUNT = 3;
+// const MIN_AMOUNT = 0;
+// const MAX_AMOUNT = 3;
 
 // const MIN_AMOUNT = 0;
 // const MAX_AMOUNT = 100;
 
-// const MIN_AMOUNT = 1_000;
-// const MAX_AMOUNT = 10_000;
+const MIN_AMOUNT = 1_000;
+const MAX_AMOUNT = 10_000;
 
 // const MIN_AMOUNT = 1_000_000;
 // const MAX_AMOUNT = 10_000_000;
