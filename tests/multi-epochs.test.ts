@@ -1984,14 +1984,6 @@ describe("multi-epoch lifecycle tests", () => {
         pool.usdcTokenAccount
       );
 
-      // Skip if no USDC dust to sweep
-      if (new anchor.BN(poolUsdcVaultPre.value.amount).isZero()) {
-        debug(
-          `- No USDC dust to sweep for Operator Pool ${pool.pool.toString()}`
-        );
-        continue;
-      }
-
       await program.methods
         .sweepClosedPoolUsdcDust()
         .accountsStrict({
@@ -2025,8 +2017,8 @@ describe("multi-epoch lifecycle tests", () => {
       try {
         await connection.getTokenAccountBalance(pool.poolUsdcVault);
         assert.fail("Pool USDC vault should have been closed");
-      } catch (_error) {
-        // Expected - account should be closed
+      } catch (error) {
+        assertError(error, "Invalid param: could not find account");
       }
 
       // Track total withdrawn USDC (dust)

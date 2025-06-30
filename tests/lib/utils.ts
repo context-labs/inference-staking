@@ -78,8 +78,9 @@ export const generateRewardsForEpoch = (
   for (const publicKey of publicKeys) {
     input.push({
       address: publicKey.toString(),
-      tokenAmount: BigInt(randomIntInRange(1, 1_000_000)),
-      // usdcAmount: BigInt(randomIntInRange(1, 10_000)),
+      tokenAmount: BigInt(
+        randomIntInRange(1_000_000_000_000, 10_000_000_000_000)
+      ),
       usdcAmount: BigInt(
         randomIntInRange(1_000_000_000_000, 10_000_000_000_000)
       ),
