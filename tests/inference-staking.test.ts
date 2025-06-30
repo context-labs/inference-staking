@@ -26,7 +26,7 @@ import {
   assertError,
   assertStakingProgramError,
   sleep,
-  setEpochFinalizationState,
+  handleMarkEpochAsFinalizing,
   setStakingHalted,
   shortId,
 } from "@tests/lib/utils";
@@ -263,7 +263,7 @@ describe("inference-staking program tests", () => {
   });
 
   it("Creating RewardRecord 1 successfully", async () => {
-    await setEpochFinalizationState({
+    await handleMarkEpochAsFinalizing({
       setup,
       program,
     });
@@ -1821,7 +1821,7 @@ describe("inference-staking program tests", () => {
       totalUsdcAmount.toNumber()
     );
 
-    await setEpochFinalizationState({
+    await handleMarkEpochAsFinalizing({
       setup,
       program,
     });
@@ -3098,7 +3098,7 @@ describe("inference-staking program tests", () => {
   });
 
   it("Creating an operator pool during finalization defaults the operator pool reward epoch to the next epoch", async () => {
-    await setEpochFinalizationState({
+    await handleMarkEpochAsFinalizing({
       setup,
       program,
     });

@@ -80,7 +80,9 @@ export const generateRewardsForEpoch = (
       address: publicKey.toString(),
       tokenAmount: BigInt(randomIntInRange(1, 1_000_000)),
       // usdcAmount: BigInt(randomIntInRange(1, 10_000)),
-      usdcAmount: BigInt(randomIntInRange(100_000, 1_000_000)),
+      usdcAmount: BigInt(
+        randomIntInRange(1_000_000_000_000, 10_000_000_000_000)
+      ),
     });
   }
   return MerkleUtils.sortAddressList(input);
@@ -137,7 +139,7 @@ export const confirmTransaction = async (
   });
 };
 
-export const setEpochFinalizationState = async ({
+export const handleMarkEpochAsFinalizing = async ({
   setup,
   program,
 }: {

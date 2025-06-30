@@ -80,6 +80,8 @@ pub enum ErrorCode {
     InvalidCommissionRate,
     #[msg("Operator pool must be closed to sweep dust")]
     PoolMustBeClosed,
+    #[msg("Operator pool must be closed before the current epoch")]
+    PoolClosedEpochInvalid,
     #[msg("Pool is not empty")]
     PoolIsNotEmpty,
 }

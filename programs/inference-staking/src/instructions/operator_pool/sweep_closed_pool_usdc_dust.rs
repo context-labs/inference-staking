@@ -18,7 +18,7 @@ pub struct SweepClosedPoolUsdcDust<'info> {
         // The pool must be owned by the admin invoking this.
         has_one = admin,
         // The pool must be in a closed state.
-        constraint = operator_pool.closed_at.is_some() @ ErrorCode::PoolMustBeClosed,
+        constraint = operator_pool.closed_at.is_some() @ ErrorCode::PoolClosedEpochInvalid,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
 
@@ -51,13 +51,13 @@ pub struct SweepClosedPoolUsdcDust<'info> {
 pub fn handler(ctx: Context<SweepClosedPoolUsdcDust>) -> Result<()> {
     let operator_pool = &ctx.accounts.operator_pool;
     let operator_usdc_vault = &mut ctx.accounts.operator_usdc_vault;
-    // let pool_overview = &ctx.accounts.pool_overview;
+    let pool_overview = &ctx.accounts.pool_overview;
 
     // Ensure the pool is closed and therefore no more rewards are possible
-    // require!(
-    //     pool_overview.completed_reward_epoch > operator_pool.closed_at.unwrap(),
-    //     ErrorCode::PoolMustBeClosed
-    // );
+    require!(
+        pool_overview.completed_reward_epoch > operator_pool.closed_at.unwrap(),
+        ErrorCode::PoolClosedEpochInvalid
+    );
 
     // Verify that the pool is completely empty (no delegators remain)
     require_eq!(operator_pool.total_shares, 0, ErrorCode::PoolIsNotEmpty);

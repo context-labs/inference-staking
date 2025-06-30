@@ -35,7 +35,7 @@ import {
   formatBN,
   generateRewardsForEpoch,
   randomIntInRange,
-  setEpochFinalizationState,
+  handleMarkEpochAsFinalizing,
 } from "@tests/lib/utils";
 
 type GetRewardClaimInputsInput = {
@@ -147,8 +147,16 @@ async function handleAccrueRewardForEpochs({
   program: Program<InferenceStaking>;
   connection: Connection;
   trpc: TrpcHttpClient;
-}) {
+}): Promise<{
+  totalClaimedRewards: anchor.BN;
+  totalClaimedUsdc: anchor.BN;
+  totalOperatorUsdcCommission: anchor.BN;
+}> {
   const commissionFeeMap = new Map<string, anchor.BN>();
+  let totalClaimedRewards = new anchor.BN(0);
+  let totalClaimedUsdc = new anchor.BN(0);
+  let totalOperatorUsdcCommission = new anchor.BN(0);
+
   const poolOverview = await program.account.poolOverview.fetch(
     setup.poolOverview
   );
@@ -209,6 +217,18 @@ async function handleAccrueRewardForEpochs({
       );
 
       rewardClaimsForPool.push(rewardAmount);
+
+      // Track total claimed amounts
+      totalClaimedRewards = totalClaimedRewards.add(rewardAmount);
+      totalClaimedUsdc = totalClaimedUsdc.add(usdcAmount);
+
+      // Calculate and track operator's USDC commission (sent directly to their wallet)
+      const operatorUsdcCommission = usdcAmount
+        .mul(new anchor.BN(pool.usdcCommissionRateBps))
+        .div(new anchor.BN(10_000));
+      totalOperatorUsdcCommission = totalOperatorUsdcCommission.add(
+        operatorUsdcCommission
+      );
 
       const signature = await program.methods
         .accrueReward({
@@ -363,6 +383,12 @@ async function handleAccrueRewardForEpochs({
       }
     }
   }
+
+  return {
+    totalClaimedRewards,
+    totalClaimedUsdc,
+    totalOperatorUsdcCommission,
+  };
 }
 
 describe("multi-epoch lifecycle tests", () => {
@@ -372,6 +398,9 @@ describe("multi-epoch lifecycle tests", () => {
 
   let totalDistributedRewards = new anchor.BN(0);
   let totalDistributedUsdc = new anchor.BN(0);
+  let totalClaimedRewards = new anchor.BN(0);
+  let totalClaimedUsdc = new anchor.BN(0);
+  let totalWithdrawnUsdcEarnings = new anchor.BN(0);
   const epochRewards: ConstructMerkleTreeInput[][] = [];
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
@@ -385,6 +414,236 @@ describe("multi-epoch lifecycle tests", () => {
   const isAccrueRewardHalted = false;
 
   const trpc = new TrpcHttpClient();
+
+  const handleEpochFinalization = async (epoch: number, counter: number) => {
+    if (TEST_WITH_RELAY) {
+      debug(
+        `- End-to-end test flow is enabled, submitting epoch finalization request for epoch ${epoch}...`
+      );
+
+      await executeWithRetries(
+        async () => {
+          const response = await trpc.executeEpochFinalization();
+          if (response.status !== "200") {
+            console.error(response);
+            throw new Error(
+              "executeEpochFinalization returned with non-200 status"
+            );
+          }
+        },
+        {
+          retries: 10,
+          retryDelayMs: 100,
+        }
+      );
+
+      const claims = await trpc.getRewardClaimsForEpoch(BigInt(epoch));
+
+      for (const claim of claims.rewardClaims) {
+        assert(claim.proof != null);
+        assert(claim.proofPath != null);
+        assert(claim.merkleTreeIndex != null);
+        assert(claim.merkleUsdcAmount != null);
+        assert(claim.merkleRewardAmount != null);
+      }
+
+      const totalRewards = claims.rewardClaims.reduce((acc, claim) => {
+        assert(
+          claim.merkleRewardAmount != null,
+          "merkleRewardAmount cannot be null"
+        );
+        return acc.add(new anchor.BN(claim.merkleRewardAmount.toString()));
+      }, new anchor.BN(0));
+
+      const totalUsdcAmount = claims.rewardClaims.reduce((acc, claim) => {
+        assert(
+          claim.merkleUsdcAmount != null,
+          "merkleUsdcAmount cannot be null"
+        );
+        return acc.add(new anchor.BN(claim.merkleUsdcAmount.toString()));
+      }, new anchor.BN(0));
+
+      const expectedEpochRewards = await trpc.getRewardEmissionsForEpoch(
+        BigInt(epoch)
+      );
+
+      const expectedTotalRewards =
+        expectedEpochRewards.rewardEmissions.totalRewards;
+      assert(
+        new anchor.BN(expectedTotalRewards.toString()).eq(totalRewards),
+        `Total rewards for epoch ${epoch}: ${totalRewards.toString()} do not match expected rewards: ${expectedTotalRewards.toString()}`
+      );
+
+      totalDistributedRewards = totalDistributedRewards.add(totalRewards);
+      totalDistributedUsdc = totalDistributedUsdc.add(totalUsdcAmount);
+
+      const totalRewardsString = formatBN(totalRewards);
+      debug(
+        `- ✅ Total rewards for epoch ${epoch} match expected epoch reward emissions: ${totalRewardsString}`
+      );
+
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        setup.rewardTokenAccount,
+        setup.tokenHolderKp,
+        BigInt(totalRewards.toString())
+      );
+
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.usdcTokenMint,
+        setup.usdcTokenAccount,
+        setup.tokenHolderKp,
+        BigInt(totalUsdcAmount.toString())
+      );
+
+      await executeWithRetries(
+        async () => {
+          const response = await trpc.createRewardRecord();
+          if (response.status !== "200") {
+            console.error(response);
+            throw new Error("createRewardRecord returned with non-200 status");
+          }
+        },
+        {
+          retries: 10,
+          retryDelayMs: 100,
+        }
+      );
+    } else {
+      const poolOverview = await program.account.poolOverview.fetch(
+        setup.poolOverview
+      );
+      const currentCompletedEpoch =
+        poolOverview.completedRewardEpoch.toNumber();
+
+      const pools = await Promise.all(
+        setup.pools.map(async (pool) => {
+          const operatorPool = await program.account.operatorPool.fetch(
+            pool.pool
+          );
+          return {
+            ...pool,
+            operatorPool,
+          };
+        })
+      );
+      const activePools = pools.filter(
+        (pool) =>
+          pool.operatorPool.closedAt == null ||
+          pool.operatorPool.closedAt.toNumber() === currentCompletedEpoch
+      );
+      const rewards = generateRewardsForEpoch(
+        activePools.map((pool) => pool.pool)
+      );
+      epochRewards.push(rewards);
+      const merkleTree = MerkleUtils.constructMerkleTree(rewards);
+      const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
+      let totalRewards = new anchor.BN(0);
+      for (const addressInput of rewards) {
+        totalRewards = totalRewards.add(
+          new anchor.BN(addressInput.tokenAmount.toString())
+        );
+      }
+      let totalUsdcAmount = new anchor.BN(0);
+      for (const addressInput of rewards) {
+        totalUsdcAmount = totalUsdcAmount.add(
+          new anchor.BN(addressInput.usdcAmount.toString())
+        );
+      }
+
+      // Track total distributed amounts
+      totalDistributedRewards = totalDistributedRewards.add(totalRewards);
+      totalDistributedUsdc = totalDistributedUsdc.add(totalUsdcAmount);
+
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        setup.rewardTokenAccount,
+        setup.tokenHolderKp,
+        BigInt(totalRewards.toString())
+      );
+
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.usdcTokenMint,
+        setup.usdcTokenAccount,
+        setup.tokenHolderKp,
+        BigInt(totalUsdcAmount.toString())
+      );
+
+      await handleMarkEpochAsFinalizing({
+        setup,
+        program,
+      });
+
+      const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(epoch));
+
+      const tokens = formatBN(totalRewards);
+      const usdc = formatBN(totalUsdcAmount);
+      const tracker = `${counter}/${NUMBER_OF_EPOCHS}`;
+      debug(
+        `- [${tracker}] Creating RewardRecord for epoch ${epoch} - total token reward = ${tokens} - total USDC payout = ${usdc}`
+      );
+      counter++;
+
+      await program.methods
+        .createRewardRecord({
+          merkleRoots,
+          totalRewards,
+          totalUsdcPayout: totalUsdcAmount,
+        })
+        .accountsStrict({
+          payer: setup.payer,
+          authority: setup.rewardDistributionAuthority,
+          poolOverview: setup.poolOverview,
+          rewardRecord,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
+        .rpc();
+
+      const rewardRecordAccount = await program.account.rewardRecord.fetch(
+        rewardRecord
+      );
+      assert(rewardRecordAccount.epoch.eqn(epoch));
+      assert(rewardRecordAccount.totalRewards.eq(totalRewards));
+      for (let i = 0; i < rewardRecordAccount.merkleRoots.length; i++) {
+        assert.deepEqual(
+          rewardRecordAccount.merkleRoots[i],
+          Array.from(merkleRoots[i] ?? [])
+        );
+      }
+    }
+
+    if (epoch % EPOCH_CLAIM_FREQUENCY === 0) {
+      debug(
+        `\nStart reward claims for all existing rewards up to epoch ${epoch}`
+      );
+      const claimResult = await handleAccrueRewardForEpochs({
+        connection,
+        epochRewards,
+        program,
+        setup,
+        trpc,
+      });
+      totalClaimedRewards = totalClaimedRewards.add(
+        claimResult.totalClaimedRewards
+      );
+      totalClaimedUsdc = totalClaimedUsdc.add(claimResult.totalClaimedUsdc);
+      totalWithdrawnUsdcEarnings = totalWithdrawnUsdcEarnings.add(
+        claimResult.totalOperatorUsdcCommission
+      );
+      debug("");
+    }
+  };
 
   before(async () => {
     setup = await setupTests();
@@ -759,215 +1018,27 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Create reward records", async () => {
     debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
-    let counter = 1;
+    const counter = 1;
     for (let epoch = 1; epoch <= NUMBER_OF_EPOCHS; epoch++) {
-      if (TEST_WITH_RELAY) {
-        debug(
-          `- End-to-end test flow is enabled, submitting epoch finalization request for epoch ${epoch}...`
-        );
-
-        await executeWithRetries(
-          async () => {
-            const response = await trpc.executeEpochFinalization();
-            if (response.status !== "200") {
-              console.error(response);
-              throw new Error(
-                "executeEpochFinalization returned with non-200 status"
-              );
-            }
-          },
-          {
-            retries: 10,
-            retryDelayMs: 100,
-          }
-        );
-
-        const claims = await trpc.getRewardClaimsForEpoch(BigInt(epoch));
-
-        for (const claim of claims.rewardClaims) {
-          assert(claim.proof != null);
-          assert(claim.proofPath != null);
-          assert(claim.merkleTreeIndex != null);
-          assert(claim.merkleUsdcAmount != null);
-          assert(claim.merkleRewardAmount != null);
-        }
-
-        const totalRewards = claims.rewardClaims.reduce((acc, claim) => {
-          assert(
-            claim.merkleRewardAmount != null,
-            "merkleRewardAmount cannot be null"
-          );
-          return acc.add(new anchor.BN(claim.merkleRewardAmount.toString()));
-        }, new anchor.BN(0));
-
-        const totalUsdcAmount = claims.rewardClaims.reduce((acc, claim) => {
-          assert(
-            claim.merkleUsdcAmount != null,
-            "merkleUsdcAmount cannot be null"
-          );
-          return acc.add(new anchor.BN(claim.merkleUsdcAmount.toString()));
-        }, new anchor.BN(0));
-
-        const expectedEpochRewards = await trpc.getRewardEmissionsForEpoch(
-          BigInt(epoch)
-        );
-
-        const expectedTotalRewards =
-          expectedEpochRewards.rewardEmissions.totalRewards;
-        assert(
-          new anchor.BN(expectedTotalRewards.toString()).eq(totalRewards),
-          `Total rewards for epoch ${epoch}: ${totalRewards.toString()} do not match expected rewards: ${expectedTotalRewards.toString()}`
-        );
-
-        totalDistributedRewards = totalDistributedRewards.add(totalRewards);
-        totalDistributedUsdc = totalDistributedUsdc.add(totalUsdcAmount);
-
-        const totalRewardsString = formatBN(totalRewards);
-        debug(
-          `- ✅ Total rewards for epoch ${epoch} match expected epoch reward emissions: ${totalRewardsString}`
-        );
-
-        await mintTo(
-          connection,
-          setup.payerKp,
-          setup.tokenMint,
-          setup.rewardTokenAccount,
-          setup.tokenHolderKp,
-          BigInt(totalRewards.toString())
-        );
-
-        await mintTo(
-          connection,
-          setup.payerKp,
-          setup.usdcTokenMint,
-          setup.usdcTokenAccount,
-          setup.tokenHolderKp,
-          BigInt(totalUsdcAmount.toString())
-        );
-
-        await executeWithRetries(
-          async () => {
-            const response = await trpc.createRewardRecord();
-            if (response.status !== "200") {
-              console.error(response);
-              throw new Error(
-                "createRewardRecord returned with non-200 status"
-              );
-            }
-          },
-          {
-            retries: 10,
-            retryDelayMs: 100,
-          }
-        );
-      } else {
-        const rewards = generateRewardsForEpoch(
-          setup.pools.map((pool) => pool.pool)
-        );
-        epochRewards.push(rewards);
-        const merkleTree = MerkleUtils.constructMerkleTree(rewards);
-        const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
-        let totalRewards = new anchor.BN(0);
-        for (const addressInput of rewards) {
-          totalRewards = totalRewards.add(
-            new anchor.BN(addressInput.tokenAmount.toString())
-          );
-        }
-        let totalUsdcAmount = new anchor.BN(0);
-        for (const addressInput of rewards) {
-          totalUsdcAmount = totalUsdcAmount.add(
-            new anchor.BN(addressInput.usdcAmount.toString())
-          );
-        }
-
-        await mintTo(
-          connection,
-          setup.payerKp,
-          setup.tokenMint,
-          setup.rewardTokenAccount,
-          setup.tokenHolderKp,
-          BigInt(totalRewards.toString())
-        );
-
-        await mintTo(
-          connection,
-          setup.payerKp,
-          setup.usdcTokenMint,
-          setup.usdcTokenAccount,
-          setup.tokenHolderKp,
-          BigInt(totalUsdcAmount.toString())
-        );
-
-        await setEpochFinalizationState({
-          setup,
-          program,
-        });
-
-        const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(epoch));
-
-        const tokens = formatBN(totalRewards);
-        const usdc = formatBN(totalUsdcAmount);
-        const tracker = `${counter}/${NUMBER_OF_EPOCHS}`;
-        debug(
-          `- [${tracker}] Creating RewardRecord for epoch ${epoch} - total token reward = ${tokens} - total USDC payout = ${usdc}`
-        );
-        counter++;
-
-        await program.methods
-          .createRewardRecord({
-            merkleRoots,
-            totalRewards,
-            totalUsdcPayout: totalUsdcAmount,
-          })
-          .accountsStrict({
-            payer: setup.payer,
-            authority: setup.rewardDistributionAuthority,
-            poolOverview: setup.poolOverview,
-            rewardRecord,
-            rewardTokenAccount: setup.rewardTokenAccount,
-            usdcTokenAccount: setup.usdcTokenAccount,
-            systemProgram: SystemProgram.programId,
-          })
-          .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
-          .rpc();
-
-        const rewardRecordAccount = await program.account.rewardRecord.fetch(
-          rewardRecord
-        );
-        assert(rewardRecordAccount.epoch.eqn(epoch));
-        assert(rewardRecordAccount.totalRewards.eq(totalRewards));
-        for (let i = 0; i < rewardRecordAccount.merkleRoots.length; i++) {
-          assert.deepEqual(
-            rewardRecordAccount.merkleRoots[i],
-            Array.from(merkleRoots[i] ?? [])
-          );
-        }
-      }
-
-      if (epoch % EPOCH_CLAIM_FREQUENCY === 0) {
-        debug(
-          `\nStart reward claims for all existing rewards up to epoch ${epoch}`
-        );
-        await handleAccrueRewardForEpochs({
-          connection,
-          epochRewards,
-          program,
-          setup,
-          trpc,
-        });
-        debug("");
-      }
+      await handleEpochFinalization(epoch, counter);
     }
   });
 
   it("Accrue Rewards for any remaining epochs", async () => {
-    await handleAccrueRewardForEpochs({
+    const claimResult = await handleAccrueRewardForEpochs({
       connection,
       epochRewards,
       program,
       setup,
       trpc,
     });
+    totalClaimedRewards = totalClaimedRewards.add(
+      claimResult.totalClaimedRewards
+    );
+    totalClaimedUsdc = totalClaimedUsdc.add(claimResult.totalClaimedUsdc);
+    totalWithdrawnUsdcEarnings = totalWithdrawnUsdcEarnings.add(
+      claimResult.totalOperatorUsdcCommission
+    );
   });
 
   it("Withdraw operator commissions successfully", async () => {
@@ -1112,6 +1183,13 @@ describe("multi-epoch lifecycle tests", () => {
         stakingRecordPre
       );
 
+      if (claimedAmount.isZero()) {
+        debug(
+          `- No USDC earnings to claim for delegator ${delegatorKp.publicKey.toString()}`
+        );
+        continue;
+      }
+
       await program.methods
         .claimUsdcEarnings()
         .accountsStrict({
@@ -1167,6 +1245,10 @@ describe("multi-epoch lifecycle tests", () => {
         "Last settled USDC per share should match pool's cumulative USDC per share"
       );
 
+      // Track total withdrawn USDC
+      totalWithdrawnUsdcEarnings =
+        totalWithdrawnUsdcEarnings.add(claimedAmount);
+
       const claimedAmountString = formatBN(claimedAmount);
       const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
       debug(
@@ -1199,6 +1281,13 @@ describe("multi-epoch lifecycle tests", () => {
         operatorPoolPre,
         stakingRecordPre
       );
+
+      if (claimedAmount.isZero()) {
+        debug(
+          `- No USDC earnings to claim for operator ${pool.admin.toString()}`
+        );
+        continue;
+      }
 
       await program.methods
         .claimUsdcEarnings()
@@ -1254,6 +1343,10 @@ describe("multi-epoch lifecycle tests", () => {
         ),
         "Last settled USDC per share should match pool's cumulative USDC per share"
       );
+
+      // Track total withdrawn USDC
+      totalWithdrawnUsdcEarnings =
+        totalWithdrawnUsdcEarnings.add(claimedAmount);
 
       const claimedAmountString = formatBN(claimedAmount);
       const tracker = `${counter}/${setup.pools.length}`;
@@ -1888,6 +1981,44 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
+  it("Finalize more epochs to allow pool sweep to proceed", async () => {
+    const advanceEpoch = async () => {
+      await handleMarkEpochAsFinalizing({
+        setup,
+        program,
+      });
+      const poolOverview = await program.account.poolOverview.fetch(
+        setup.poolOverview
+      );
+      const currentCompletedEpoch =
+        poolOverview.completedRewardEpoch.toNumber();
+      const rewardRecord = setup.sdk.rewardRecordPda(
+        new anchor.BN(currentCompletedEpoch + 1)
+      );
+
+      await program.methods
+        .createRewardRecord({
+          merkleRoots: [],
+          totalRewards: new anchor.BN(0),
+          totalUsdcPayout: new anchor.BN(0),
+        })
+        .accountsStrict({
+          payer: setup.payer,
+          authority: setup.rewardDistributionAuthority,
+          poolOverview: setup.poolOverview,
+          rewardRecord,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
+        .rpc();
+    };
+
+    await advanceEpoch();
+    await advanceEpoch();
+  });
+
   it("Sweep closed pool USDC dust successfully", async () => {
     if (!SHOULD_CLOSE_ACCOUNTS) {
       debug("End-to-end test flow is enabled, skipping sweep USDC dust");
@@ -1949,6 +2080,9 @@ describe("multi-epoch lifecycle tests", () => {
       } catch (_error) {
         // Expected - account should be closed
       }
+
+      // Track total withdrawn USDC (dust)
+      totalWithdrawnUsdcEarnings = totalWithdrawnUsdcEarnings.add(dustAmount);
 
       const dustAmountString = formatBN(dustAmount);
       const tracker = `${counter}/${setup.pools.length}`;
@@ -2014,5 +2148,49 @@ describe("multi-epoch lifecycle tests", () => {
     debug("✅ Program account state is valid. Test completed successfully.");
     debug(`Total rewards distributed: ${totalDistributedRewardsString}`);
     debug(`Total USDC distributed: ${totalDistributedUsdcString}`);
+  });
+
+  it("Verify total claimed amounts match total distributed amounts", () => {
+    debug("\n🔍 Verifying reward distribution and claiming totals...");
+
+    const totalClaimedRewardsString = formatBN(totalClaimedRewards);
+    const totalClaimedUsdcString = formatBN(totalClaimedUsdc);
+    const totalDistributedRewardsString = formatBN(totalDistributedRewards);
+    const totalDistributedUsdcString = formatBN(totalDistributedUsdc);
+    const totalWithdrawnUsdcEarningsString = formatBN(
+      totalWithdrawnUsdcEarnings
+    );
+
+    debug(`- Total rewards distributed:    ${totalDistributedRewardsString}`);
+    debug(`- Total rewards claimed:        ${totalClaimedRewardsString}`);
+    debug(`- Total USDC distributed:       ${totalDistributedUsdcString}`);
+    debug(`- Total USDC claimed:           ${totalClaimedUsdcString}`);
+    debug(
+      `- Total USDC withdrawn:         ${totalWithdrawnUsdcEarningsString}`
+    );
+
+    assert(
+      totalClaimedRewards.eq(totalDistributedRewards),
+      `Total claimed rewards (${totalClaimedRewardsString}) should equal total distributed rewards (${totalDistributedRewardsString})`
+    );
+
+    assert(
+      totalClaimedUsdc.eq(totalDistributedUsdc),
+      `Total claimed USDC (${totalClaimedUsdcString}) should equal total distributed USDC (${totalDistributedUsdcString})`
+    );
+
+    assert(
+      totalWithdrawnUsdcEarnings.eq(totalDistributedUsdc),
+      `Total withdrawn USDC earnings (${totalWithdrawnUsdcEarningsString}) should equal total distributed USDC (${totalDistributedUsdcString})`
+    );
+
+    assert(
+      totalWithdrawnUsdcEarnings.eq(totalClaimedUsdc),
+      `Total withdrawn USDC earnings (${totalWithdrawnUsdcEarningsString}) should equal total claimed USDC (${totalClaimedUsdcString})`
+    );
+
+    debug(
+      "\n✅ All distributed rewards and USDC passed final accounting checks successfully."
+    );
   });
 });

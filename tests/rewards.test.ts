@@ -21,7 +21,7 @@ import { setupTests } from "@tests/lib/setup";
 import {
   assertError,
   assertStakingProgramError,
-  setEpochFinalizationState,
+  handleMarkEpochAsFinalizing,
 } from "@tests/lib/utils";
 
 describe("Reward creation and accrual tests", () => {
@@ -110,7 +110,7 @@ describe("Reward creation and accrual tests", () => {
       const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
       const root = MerkleUtils.getTreeRoot(merkleTree);
       const merkleRoots = [Array.from(root)];
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -136,7 +136,7 @@ describe("Reward creation and accrual tests", () => {
 
   it("Create RewardRecord should require amounts to be zero if no merkle roots are provided", async () => {
     try {
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots: [],
@@ -161,7 +161,7 @@ describe("Reward creation and accrual tests", () => {
   });
 
   it("Create RewardRecord 1 successfully", async () => {
-    await setEpochFinalizationState({ program, setup });
+    await handleMarkEpochAsFinalizing({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots: [],
@@ -290,7 +290,7 @@ describe("Reward creation and accrual tests", () => {
       const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
       const root = MerkleUtils.getTreeRoot(merkleTree);
       const merkleRoots = [Array.from(root)];
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -319,7 +319,7 @@ describe("Reward creation and accrual tests", () => {
       const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
       const root = MerkleUtils.getTreeRoot(merkleTree);
       const merkleRoots = [Array.from(root)];
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -358,7 +358,7 @@ describe("Reward creation and accrual tests", () => {
 
     // Should fail with insufficient rewards.
     try {
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -392,7 +392,7 @@ describe("Reward creation and accrual tests", () => {
     );
 
     try {
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -426,7 +426,7 @@ describe("Reward creation and accrual tests", () => {
     );
 
     // Should succeed with sufficient rewards.
-    await setEpochFinalizationState({ program, setup });
+    await handleMarkEpochAsFinalizing({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
@@ -493,7 +493,7 @@ describe("Reward creation and accrual tests", () => {
       totalUsdcAmount.toNumber()
     );
 
-    await setEpochFinalizationState({ program, setup });
+    await handleMarkEpochAsFinalizing({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
@@ -1115,7 +1115,7 @@ describe("Reward creation and accrual tests", () => {
       totalUSDC.toNumber()
     );
 
-    await setEpochFinalizationState({ program, setup });
+    await handleMarkEpochAsFinalizing({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
@@ -1214,7 +1214,7 @@ describe("Reward creation and accrual tests", () => {
         totalUsdcAmount.toNumber()
       );
 
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
