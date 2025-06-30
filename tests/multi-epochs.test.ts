@@ -401,6 +401,9 @@ describe("multi-epoch lifecycle tests", () => {
   let totalClaimedRewards = new anchor.BN(0);
   let totalClaimedUsdc = new anchor.BN(0);
   let totalWithdrawnUsdcEarnings = new anchor.BN(0);
+  let totalOriginalStakes = new anchor.BN(0);
+  let totalTokensWithdrawnFromUnstake = new anchor.BN(0);
+  let totalCommissionWithdrawn = new anchor.BN(0);
   const epochRewards: ConstructMerkleTreeInput[][] = [];
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
@@ -911,6 +914,9 @@ describe("multi-epoch lifecycle tests", () => {
         stakeAmount,
       });
 
+      // Track original stake
+      totalOriginalStakes = totalOriginalStakes.add(stakeAmount);
+
       const stakeAmountString = formatBN(stakeAmount);
       const tracker = `${counter}/${setup.pools.length}`;
       debug(
@@ -1006,6 +1012,9 @@ describe("multi-epoch lifecycle tests", () => {
         stakingRecordPre,
         stakeAmount,
       });
+
+      // Track original stake
+      totalOriginalStakes = totalOriginalStakes.add(stakeAmount);
 
       const stakeAmountString = formatBN(stakeAmount);
       const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
@@ -1494,6 +1503,10 @@ describe("multi-epoch lifecycle tests", () => {
         "Amount claimed should match tokens unstake amount"
       );
 
+      // Track total unstake withdrawals
+      totalTokensWithdrawnFromUnstake =
+        totalTokensWithdrawnFromUnstake.add(amountClaimed);
+
       const amountClaimedString = formatBN(amountClaimed);
       const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
       debug(
@@ -1614,6 +1627,9 @@ describe("multi-epoch lifecycle tests", () => {
         amountWithdrawn.eq(new anchor.BN(feeTokenAccountPre.value.amount)),
         "Amount withdrawn should match fee token account balance"
       );
+
+      // Track total commission withdrawn
+      totalCommissionWithdrawn = totalCommissionWithdrawn.add(amountWithdrawn);
 
       const amountWithdrawnString = formatBN(amountWithdrawn);
       const tracker = `${counter}/${setup.pools.length}`;
@@ -1859,6 +1875,10 @@ describe("multi-epoch lifecycle tests", () => {
         "Amount claimed should match tokens unstake amount"
       );
 
+      // Track total unstake withdrawals
+      totalTokensWithdrawnFromUnstake =
+        totalTokensWithdrawnFromUnstake.add(amountClaimed);
+
       const amountClaimedString = formatBN(amountClaimed);
       const tracker = `${counter}/${setup.pools.length}`;
       debug(
@@ -2085,17 +2105,19 @@ describe("multi-epoch lifecycle tests", () => {
     const totalClaimedUsdcString = formatBN(totalClaimedUsdc);
     const totalDistributedRewardsString = formatBN(totalDistributedRewards);
     const totalDistributedUsdcString = formatBN(totalDistributedUsdc);
-    const totalWithdrawnUsdcEarningsString = formatBN(
-      totalWithdrawnUsdcEarnings
-    );
+    const totalWithdrawnUsdcString = formatBN(totalWithdrawnUsdcEarnings);
+
+    const totalRewardTokensWithdrawn = totalTokensWithdrawnFromUnstake
+      .add(totalCommissionWithdrawn)
+      .sub(totalOriginalStakes);
+    const totalRewardsWithdrawnString = formatBN(totalRewardTokensWithdrawn);
 
     debug(`- Total rewards distributed:    ${totalDistributedRewardsString}`);
     debug(`- Total rewards claimed:        ${totalClaimedRewardsString}`);
+    debug(`- Net reward tokens withdrawn:  ${totalRewardsWithdrawnString}`);
     debug(`- Total USDC distributed:       ${totalDistributedUsdcString}`);
     debug(`- Total USDC claimed:           ${totalClaimedUsdcString}`);
-    debug(
-      `- Total USDC withdrawn:         ${totalWithdrawnUsdcEarningsString}`
-    );
+    debug(`- Total USDC withdrawn:         ${totalWithdrawnUsdcString}`);
 
     assert(
       totalClaimedRewards.eq(totalDistributedRewards),
@@ -2109,12 +2131,22 @@ describe("multi-epoch lifecycle tests", () => {
 
     assert(
       totalWithdrawnUsdcEarnings.eq(totalDistributedUsdc),
-      `Total withdrawn USDC earnings (${totalWithdrawnUsdcEarningsString}) should equal total distributed USDC (${totalDistributedUsdcString})`
+      `Total withdrawn USDC earnings (${totalWithdrawnUsdcString}) should equal total distributed USDC (${totalDistributedUsdcString})`
     );
 
     assert(
       totalWithdrawnUsdcEarnings.eq(totalClaimedUsdc),
-      `Total withdrawn USDC earnings (${totalWithdrawnUsdcEarningsString}) should equal total claimed USDC (${totalClaimedUsdcString})`
+      `Total withdrawn USDC earnings (${totalWithdrawnUsdcString}) should equal total claimed USDC (${totalClaimedUsdcString})`
+    );
+
+    assert(
+      totalRewardTokensWithdrawn.eq(totalDistributedRewards),
+      `Net reward tokens withdrawn (${totalRewardsWithdrawnString}) should equal total distributed rewards (${totalDistributedRewardsString})`
+    );
+
+    assert(
+      totalRewardTokensWithdrawn.eq(totalClaimedRewards),
+      `Net reward tokens withdrawn (${totalRewardsWithdrawnString}) should equal total claimed rewards (${totalClaimedRewardsString})`
     );
 
     debug(
