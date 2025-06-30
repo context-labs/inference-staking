@@ -260,7 +260,7 @@ async function handleAccrueRewardForEpochs({
       }
 
       const commissionFees = rewardAmount
-        .mul(new anchor.BN(pool.commissionRateBps))
+        .mul(new anchor.BN(pool.rewardCommissionRateBps))
         .div(new anchor.BN(10_000));
       const currentCommissionFeesForPool =
         commissionFeeMap.get(pool.pool.toString()) ?? new anchor.BN(0);
@@ -283,7 +283,7 @@ async function handleAccrueRewardForEpochs({
         "Total unstaking should remain unchanged"
       );
       assert.isNull(
-        operatorPool.newCommissionRateBps,
+        operatorPool.newRewardCommissionRateBps,
         "New commission rate should be null"
       );
 
@@ -976,7 +976,7 @@ describe("multi-epoch lifecycle tests", () => {
       await program.methods
         .createOperatorPool({
           autoStakeFees: pool.autoStakeFees,
-          commissionRateBps: pool.commissionRateBps,
+          rewardCommissionRateBps: pool.rewardCommissionRateBps,
           usdcCommissionRateBps: pool.usdcCommissionRateBps,
           allowDelegation,
           name: pool.name,
@@ -1011,12 +1011,15 @@ describe("multi-epoch lifecycle tests", () => {
       assert(operatorPool.initialPoolAdmin.equals(pool.admin));
       assert(operatorPool.operatorStakingRecord.equals(pool.stakingRecord));
       assert.equal(operatorPool.autoStakeFees, pool.autoStakeFees);
-      assert.equal(operatorPool.commissionRateBps, pool.commissionRateBps);
+      assert.equal(
+        operatorPool.rewardCommissionRateBps,
+        pool.rewardCommissionRateBps
+      );
       assert.equal(
         operatorPool.usdcCommissionRateBps,
         pool.usdcCommissionRateBps
       );
-      assert.isNull(operatorPool.newCommissionRateBps);
+      assert.isNull(operatorPool.newRewardCommissionRateBps);
       assert.equal(operatorPool.allowDelegation, allowDelegation);
       assert(operatorPool.totalStakedAmount.isZero());
       assert(operatorPool.totalShares.isZero());

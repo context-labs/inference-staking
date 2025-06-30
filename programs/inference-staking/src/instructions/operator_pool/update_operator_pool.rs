@@ -30,7 +30,7 @@ pub struct NewCommissionRateSetting {
 #[derive(AnchorDeserialize, AnchorSerialize)]
 pub struct UpdateOperatorPoolArgs {
     /// If set, the new commission rate will become active next epoch
-    pub new_commission_rate_bps: Option<NewCommissionRateSetting>,
+    pub new_reward_commission_rate_bps: Option<NewCommissionRateSetting>,
     pub new_usdc_commission_rate_bps: Option<NewCommissionRateSetting>,
     pub allow_delegation: Option<bool>,
     pub auto_stake_fees: Option<bool>,
@@ -43,7 +43,7 @@ pub struct UpdateOperatorPoolArgs {
 
 pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -> Result<()> {
     let UpdateOperatorPoolArgs {
-        new_commission_rate_bps,
+        new_reward_commission_rate_bps,
         new_usdc_commission_rate_bps,
         allow_delegation,
         auto_stake_fees,
@@ -80,15 +80,15 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
         operator_pool.auto_stake_fees = auto_stake_fees;
     }
 
-    if let Some(new_commission_rate_setting) = new_commission_rate_bps {
-        if let Some(new_commission_rate_bps) = new_commission_rate_setting.rate_bps {
+    if let Some(new_reward_rate_setting) = new_reward_commission_rate_bps {
+        if let Some(new_commission_rate_bps) = new_reward_rate_setting.rate_bps {
             require_gte!(
                 10_000,
                 new_commission_rate_bps,
                 ErrorCode::InvalidCommissionRate
             );
         }
-        operator_pool.new_commission_rate_bps = new_commission_rate_setting.rate_bps;
+        operator_pool.new_reward_commission_rate_bps = new_reward_rate_setting.rate_bps;
     }
 
     if let Some(new_usdc_rate_setting) = new_usdc_commission_rate_bps {

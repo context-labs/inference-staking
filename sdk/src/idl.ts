@@ -105,7 +105,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [82, 101, 119, 97, 114, 100, 84, 111, 107, 101, 110],
+                value: [
+                  71, 108, 111, 98, 97, 108, 84, 111, 107, 101, 110, 82, 101,
+                  119, 97, 114, 100, 86, 97, 117, 108, 116,
+                ],
               },
             ],
           },
@@ -117,7 +120,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [85, 83, 68, 67],
+                value: [
+                  71, 108, 111, 98, 97, 108, 85, 115, 100, 99, 69, 97, 114, 110,
+                  105, 110, 103, 115, 86, 97, 117, 108, 116,
+                ],
               },
             ],
           },
@@ -869,7 +875,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [82, 101, 119, 97, 114, 100, 84, 111, 107, 101, 110],
+                value: [
+                  71, 108, 111, 98, 97, 108, 84, 111, 107, 101, 110, 82, 101,
+                  119, 97, 114, 100, 86, 97, 117, 108, 116,
+                ],
               },
             ],
           },
@@ -880,7 +889,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [85, 83, 68, 67],
+                value: [
+                  71, 108, 111, 98, 97, 108, 85, 115, 100, 99, 69, 97, 114, 110,
+                  105, 110, 103, 115, 86, 97, 117, 108, 116,
+                ],
               },
             ],
           },
@@ -2029,7 +2041,7 @@ const _IDL = {
             type: "bool",
           },
           {
-            name: "commissionRateBps",
+            name: "rewardCommissionRateBps",
             type: "u16",
           },
           {
@@ -2209,12 +2221,12 @@ const _IDL = {
             type: "bool",
           },
           {
-            name: "commissionRateBps",
-            docs: ["Commission Rate for Epoch Rewards. Capped at 100%."],
+            name: "rewardCommissionRateBps",
+            docs: ["Commission Rate for Epoch Token Rewards. Capped at 100%."],
             type: "u16",
           },
           {
-            name: "newCommissionRateBps",
+            name: "newRewardCommissionRateBps",
             docs: [
               "Commission Rate that will take place next Epoch, if set. Capped at 100%.",
             ],
@@ -2686,7 +2698,7 @@ const _IDL = {
         kind: "struct",
         fields: [
           {
-            name: "newCommissionRateBps",
+            name: "newRewardCommissionRateBps",
             docs: [
               "If set, the new commission rate will become active next epoch",
             ],

@@ -46,11 +46,11 @@ pub struct OperatorPool {
     /// If commission fees received by Operator should be staked at the end of the epoch.
     pub auto_stake_fees: bool,
 
-    /// Commission Rate for Epoch Rewards. Capped at 100%.
-    pub commission_rate_bps: u16,
+    /// Commission Rate for Epoch Token Rewards. Capped at 100%.
+    pub reward_commission_rate_bps: u16,
 
     /// Commission Rate that will take place next Epoch, if set. Capped at 100%.
-    pub new_commission_rate_bps: Option<u16>,
+    pub new_reward_commission_rate_bps: Option<u16>,
 
     /// If any other user is allowed to delegate stake to Pool, besides operator_staking_record.
     pub allow_delegation: bool,
@@ -192,11 +192,19 @@ impl OperatorPool {
         tokens_unstaked
     }
 
-    /// Updates commission to new rate. Called after accrual of all issued rewards.
-    pub fn update_commission_rate(&mut self) {
-        if let Some(new_commission_rate_bps) = self.new_commission_rate_bps {
-            self.commission_rate_bps = new_commission_rate_bps;
-            self.new_commission_rate_bps = None;
+    /// Updates reward commission to new rate. Called after accrual of all issued rewards.
+    pub fn update_reward_commission_rate(&mut self) {
+        if let Some(new_commission_rate_bps) = self.new_reward_commission_rate_bps {
+            self.reward_commission_rate_bps = new_commission_rate_bps;
+            self.new_reward_commission_rate_bps = None;
+        }
+    }
+
+    /// Updates USDC commission to new rate. Called after accrual of all issued rewards.
+    pub fn update_usdc_commission_rate(&mut self) {
+        if let Some(new_commission_rate_bps) = self.new_usdc_commission_rate_bps {
+            self.usdc_commission_rate_bps = new_commission_rate_bps;
+            self.new_usdc_commission_rate_bps = None;
         }
     }
 

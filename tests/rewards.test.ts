@@ -30,8 +30,8 @@ describe("Reward creation and accrual tests", () => {
   let program: anchor.Program<InferenceStaking>;
 
   const autoStakeFees = true;
-  const commissionRateBps = 1_500;
-  const newCommissionRateBps = 0;
+  const rewardCommissionRateBps = 1_500;
+  const newRewardCommissionRateBps = 0;
   const usdcCommissionRateBps = 10_000;
   const newUsdcCommissionRateBps = 10_000;
   const allowDelegation = true;
@@ -185,7 +185,7 @@ describe("Reward creation and accrual tests", () => {
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
         usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool1.name,
@@ -266,7 +266,7 @@ describe("Reward creation and accrual tests", () => {
 
     await program.methods
       .updateOperatorPool({
-        newCommissionRateBps: { rateBps: newCommissionRateBps },
+        newRewardCommissionRateBps: { rateBps: newRewardCommissionRateBps },
         newUsdcCommissionRateBps: { rateBps: newUsdcCommissionRateBps },
         autoStakeFees: true,
         allowDelegation: false,
@@ -349,11 +349,15 @@ describe("Reward creation and accrual tests", () => {
     const merkleRoots = [Array.from(root)];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
+      totalRewards = totalRewards.add(
+        new anchor.BN(addressInput.tokenAmount.toString())
+      );
     }
     let totalUSDC = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalUSDC = totalUSDC.addn(Number(addressInput.usdcAmount));
+      totalUSDC = totalUSDC.add(
+        new anchor.BN(addressInput.usdcAmount.toString())
+      );
     }
 
     // Should fail with insufficient rewards.
@@ -381,7 +385,6 @@ describe("Reward creation and accrual tests", () => {
       assertStakingProgramError(error, "insufficientRewards");
     }
 
-    // Fund rewardTokenAccount
     await mintTo(
       connection,
       setup.payerKp,
@@ -415,7 +418,6 @@ describe("Reward creation and accrual tests", () => {
       assertStakingProgramError(error, "insufficientUsdc");
     }
 
-    // Fund usdcTokenAccount
     await mintTo(
       connection,
       setup.payerKp,
@@ -468,11 +470,15 @@ describe("Reward creation and accrual tests", () => {
     ];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[3]) {
-      totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
+      totalRewards = totalRewards.add(
+        new anchor.BN(addressInput.tokenAmount.toString())
+      );
     }
     let totalUsdcAmount = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalUsdcAmount = totalUsdcAmount.addn(Number(addressInput.usdcAmount));
+      totalUsdcAmount = totalUsdcAmount.add(
+        new anchor.BN(addressInput.usdcAmount.toString())
+      );
     }
 
     await mintTo(
@@ -666,7 +672,7 @@ describe("Reward creation and accrual tests", () => {
           proofPath: validProofPath,
           rewardAmount: new anchor.BN(
             (
-              Number(setup.rewardEpochs[2][nodeIndex]?.tokenAmount ?? 0) + 1
+              (setup.rewardEpochs[2][nodeIndex]?.tokenAmount ?? 0n) + 1n
             ).toString()
           ),
           usdcAmount: new anchor.BN(
@@ -704,7 +710,7 @@ describe("Reward creation and accrual tests", () => {
           ),
           usdcAmount: new anchor.BN(
             (
-              Number(setup.rewardEpochs[2][nodeIndex]?.usdcAmount ?? 0) + 1
+              (setup.rewardEpochs[2][nodeIndex]?.usdcAmount ?? 0n) + 1n
             ).toString()
           ),
         })
@@ -842,15 +848,20 @@ describe("Reward creation and accrual tests", () => {
       })
       .rpc();
 
-    const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
+    const commissionFees = rewardAmount
+      .mul(new anchor.BN(rewardCommissionRateBps))
+      .div(new anchor.BN(10_000));
     const delegatorRewards = rewardAmount.sub(commissionFees);
 
     // Check that OperatorPool's commission rate is not updated since there's 1 more epoch to claim.
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert.equal(operatorPool.newCommissionRateBps, newCommissionRateBps);
-    assert.equal(operatorPool.commissionRateBps, commissionRateBps);
+    assert.equal(
+      operatorPool.newRewardCommissionRateBps,
+      newRewardCommissionRateBps
+    );
+    assert.equal(operatorPool.rewardCommissionRateBps, rewardCommissionRateBps);
 
     // Check that rewards accrued are accumulated.
     assert(operatorPool.accruedCommission.eq(commissionFees));
@@ -977,7 +988,9 @@ describe("Reward creation and accrual tests", () => {
       })
       .rpc();
 
-    const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
+    const commissionFees = rewardAmount
+      .mul(new anchor.BN(rewardCommissionRateBps))
+      .div(new anchor.BN(10_000));
 
     const delegatorRewards = rewardAmount.sub(commissionFees);
     const totalTokensTransferred = commissionFees
@@ -1000,8 +1013,11 @@ describe("Reward creation and accrual tests", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert.isNull(operatorPool.newCommissionRateBps);
-    assert.equal(operatorPool.commissionRateBps, newCommissionRateBps);
+    assert.isNull(operatorPool.newRewardCommissionRateBps);
+    assert.equal(
+      operatorPool.rewardCommissionRateBps,
+      newRewardCommissionRateBps
+    );
 
     // Check that total staked and shares are updated for auto-stake and rewards accrual.
     assert(
@@ -1040,18 +1056,20 @@ describe("Reward creation and accrual tests", () => {
       setup.pool1.feeTokenAccount
     );
     assert(
-      totalTokensTransferred.eqn(
-        Number(rewardBalancePre.value.amount) -
-          Number(rewardBalance.value.amount)
+      totalTokensTransferred.eq(
+        new anchor.BN(rewardBalancePre.value.amount).sub(
+          new anchor.BN(rewardBalance.value.amount)
+        )
       )
     );
     assert(
-      totalTokensTransferred.eqn(
-        Number(stakedBalance.value.amount) -
-          Number(stakedBalancePre.value.amount)
+      totalTokensTransferred.eq(
+        new anchor.BN(stakedBalance.value.amount).sub(
+          new anchor.BN(stakedBalancePre.value.amount)
+        )
       )
     );
-    assert.equal(Number(feeBalance.value.amount), 0); // All fees are auto-staked
+    assert(new anchor.BN(feeBalance.value.amount).isZero()); // All fees are auto-staked
 
     const usdcTokenAccountPost = await connection.getTokenAccountBalance(
       setup.pool1.usdcTokenAccount
@@ -1068,7 +1086,7 @@ describe("Reward creation and accrual tests", () => {
 
     assert(
       new anchor.BN(usdcBalancePost.value.amount).eq(
-        totalUsdcTransferred.addn(Number(usdcBalancePre.value.amount))
+        totalUsdcTransferred.add(new anchor.BN(usdcBalancePre.value.amount))
       )
     );
   });
@@ -1082,8 +1100,8 @@ describe("Reward creation and accrual tests", () => {
         tokenAmount: BigInt(i * 100),
         usdcAmount: BigInt(i * 100),
       });
-      totalRewards = totalRewards.addn(i * 100);
-      totalUSDC = totalUSDC.addn(i * 100);
+      totalRewards = totalRewards.add(new anchor.BN((i * 100).toString()));
+      totalUSDC = totalUSDC.add(new anchor.BN((i * 100).toString()));
     }
 
     // Add OperatorPool 1 as a recipient.
@@ -1189,11 +1207,15 @@ describe("Reward creation and accrual tests", () => {
       const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
       let totalRewards = new anchor.BN(0);
       for (const addressInput of setup.rewardEpochs[2]) {
-        totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
+        totalRewards = totalRewards.add(
+          new anchor.BN(addressInput.tokenAmount.toString())
+        );
       }
       let totalUsdcAmount = new anchor.BN(0);
       for (const addressInput of setup.rewardEpochs[2]) {
-        totalUsdcAmount = totalUsdcAmount.addn(Number(addressInput.usdcAmount));
+        totalUsdcAmount = totalUsdcAmount.add(
+          new anchor.BN(addressInput.usdcAmount.toString())
+        );
       }
 
       await mintTo(

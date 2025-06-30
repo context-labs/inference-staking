@@ -137,7 +137,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
 
     let commission = u64::try_from(
         u128::from(reward_amount)
-            .checked_mul(operator_pool.commission_rate_bps.into())
+            .checked_mul(operator_pool.reward_commission_rate_bps.into())
             .unwrap()
             .checked_div(10_000)
             .unwrap(),
@@ -285,8 +285,9 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
             operator_pool.new_usdc_commission_rate_bps = None;
         }
 
-        // Update commission rate if new rate is set
-        operator_pool.update_commission_rate();
+        // Update commission rates if necessary
+        operator_pool.update_reward_commission_rate();
+        operator_pool.update_usdc_commission_rate();
 
         // Update unclaimed token rewards
         let pool_overview = &mut ctx.accounts.pool_overview;

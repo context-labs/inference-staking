@@ -113,7 +113,7 @@ pub struct CreateOperatorPool<'info> {
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateOperatorPoolArgs {
     pub auto_stake_fees: bool,
-    pub commission_rate_bps: u16,
+    pub reward_commission_rate_bps: u16,
     pub allow_delegation: bool,
     pub name: String,
     pub description: Option<String>,
@@ -127,7 +127,7 @@ pub struct CreateOperatorPoolArgs {
 pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -> Result<()> {
     let CreateOperatorPoolArgs {
         auto_stake_fees,
-        commission_rate_bps,
+        reward_commission_rate_bps,
         allow_delegation,
         name,
         description,
@@ -139,7 +139,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
 
     require_gte!(
         10_000,
-        commission_rate_bps,
+        reward_commission_rate_bps,
         ErrorCode::InvalidCommissionRate
     );
     require_gte!(
@@ -181,7 +181,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.initial_pool_admin = ctx.accounts.admin.key();
     operator_pool.operator_staking_record = ctx.accounts.staking_record.key();
     operator_pool.auto_stake_fees = auto_stake_fees;
-    operator_pool.commission_rate_bps = commission_rate_bps;
+    operator_pool.reward_commission_rate_bps = reward_commission_rate_bps;
     operator_pool.allow_delegation = allow_delegation;
     operator_pool.usdc_payout_wallet = ctx.accounts.usdc_payout_wallet.key();
     operator_pool.usdc_commission_rate_bps = usdc_commission_rate_bps;

@@ -419,7 +419,7 @@ export class InferenceStakingProgramSdk {
       typeof this.program.methods.updateOperatorPool
     >[0];
     const empty: EmptyUpdateFields = {
-      newCommissionRateBps: null,
+      newRewardCommissionRateBps: null,
       newUsdcCommissionRateBps: null,
       autoStakeFees: null,
       allowDelegation: null,

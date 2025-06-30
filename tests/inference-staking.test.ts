@@ -39,8 +39,8 @@ describe("inference-staking program tests", () => {
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
   const autoStakeFees = false;
-  const commissionRateBps = 1_500;
-  const usdcCommissionRateBps = 1_500; // 15% USDC commission
+  const rewardCommissionRateBps = 1_500;
+  const usdcCommissionRateBps = 1_500;
   const allowDelegation = true;
   const allowPoolCreation = true;
   const operatorPoolRegistrationFee = new anchor.BN(1_000);
@@ -96,7 +96,7 @@ describe("inference-staking program tests", () => {
       await program.methods
         .createOperatorPool({
           autoStakeFees,
-          commissionRateBps,
+          rewardCommissionRateBps,
           usdcCommissionRateBps,
           allowDelegation,
           name: setup.pool1.name,
@@ -329,7 +329,7 @@ describe("inference-staking program tests", () => {
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
         usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool1.name,
@@ -391,8 +391,8 @@ describe("inference-staking program tests", () => {
       operatorPool.operatorStakingRecord.equals(setup.pool1.stakingRecord)
     );
     assert.equal(operatorPool.autoStakeFees, autoStakeFees);
-    assert.equal(operatorPool.commissionRateBps, commissionRateBps);
-    assert.isNull(operatorPool.newCommissionRateBps);
+    assert.equal(operatorPool.rewardCommissionRateBps, rewardCommissionRateBps);
+    assert.isNull(operatorPool.newRewardCommissionRateBps);
     assert.equal(operatorPool.allowDelegation, allowDelegation);
     assert(operatorPool.totalStakedAmount.isZero());
     assert(operatorPool.totalShares.isZero());
@@ -419,8 +419,8 @@ describe("inference-staking program tests", () => {
       await program.methods
         .createOperatorPool({
           autoStakeFees: true,
-          commissionRateBps: 2000,
-          usdcCommissionRateBps: 2000,
+          rewardCommissionRateBps: 2_000,
+          usdcCommissionRateBps: 2_000,
           allowDelegation: false,
           name: "Different Pool Name",
           description: "Different description",
@@ -595,7 +595,7 @@ describe("inference-staking program tests", () => {
       await program.methods
         .updateOperatorPool({
           ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
-          newCommissionRateBps: { rateBps: 150_00 },
+          newRewardCommissionRateBps: { rateBps: 150_00 },
           autoStakeFees: true,
           allowDelegation: false,
         })
@@ -652,7 +652,7 @@ describe("inference-staking program tests", () => {
   });
 
   it("Should update OperatorPool successfully", async () => {
-    const newCommissionRateBps = 5_500;
+    const newRewardCommissionRateBps = 5_500;
     const newUsdcCommissionRateBps = 8_500;
 
     const newName = `Test Operator ${shortId()}`;
@@ -662,7 +662,7 @@ describe("inference-staking program tests", () => {
 
     await program.methods
       .updateOperatorPool({
-        newCommissionRateBps: { rateBps: newCommissionRateBps },
+        newRewardCommissionRateBps: { rateBps: newRewardCommissionRateBps },
         newUsdcCommissionRateBps: { rateBps: newUsdcCommissionRateBps },
         autoStakeFees: true,
         allowDelegation: false,
@@ -684,7 +684,7 @@ describe("inference-staking program tests", () => {
       setup.pool1.pool
     );
     assert(
-      operatorPool.newCommissionRateBps === newCommissionRateBps,
+      operatorPool.newRewardCommissionRateBps === newRewardCommissionRateBps,
       "New commission rate should be set"
     );
     assert(operatorPool.autoStakeFees === true, "Auto stake should be true");
@@ -710,7 +710,7 @@ describe("inference-staking program tests", () => {
     await program.methods
       .updateOperatorPool({
         ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
-        newCommissionRateBps: { rateBps: null },
+        newRewardCommissionRateBps: { rateBps: null },
         autoStakeFees,
         allowDelegation,
       })
@@ -724,7 +724,7 @@ describe("inference-staking program tests", () => {
 
     operatorPool = await program.account.operatorPool.fetch(setup.pool1.pool);
     assert.isNull(
-      operatorPool.newCommissionRateBps,
+      operatorPool.newRewardCommissionRateBps,
       "New commission rate should be set back to None"
     );
     assert(
@@ -1580,7 +1580,7 @@ describe("inference-staking program tests", () => {
   it("Fail to create an OperatorPool with a name that is too long or invalid", async () => {
     const args = {
       autoStakeFees,
-      commissionRateBps,
+      rewardCommissionRateBps,
       usdcCommissionRateBps,
       allowDelegation,
       name: "Test",
@@ -1706,7 +1706,7 @@ describe("inference-staking program tests", () => {
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
         usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool2.name,
@@ -1768,8 +1768,8 @@ describe("inference-staking program tests", () => {
       operatorPool.operatorStakingRecord.equals(setup.pool2.stakingRecord)
     );
     assert.equal(operatorPool.autoStakeFees, autoStakeFees);
-    assert.equal(operatorPool.commissionRateBps, commissionRateBps);
-    assert.isNull(operatorPool.newCommissionRateBps);
+    assert.equal(operatorPool.rewardCommissionRateBps, rewardCommissionRateBps);
+    assert.isNull(operatorPool.newRewardCommissionRateBps);
     assert.equal(operatorPool.allowDelegation, allowDelegation);
     assert(operatorPool.totalStakedAmount.isZero());
     assert(operatorPool.totalShares.isZero());
@@ -2122,7 +2122,7 @@ describe("inference-staking program tests", () => {
     );
 
     const commissionFees = rewardAmount
-      .mul(new anchor.BN(commissionRateBps))
+      .mul(new anchor.BN(rewardCommissionRateBps))
       .div(new anchor.BN(10_000));
     const delegatorRewards = rewardAmount.sub(commissionFees);
 
@@ -2138,7 +2138,7 @@ describe("inference-staking program tests", () => {
     assert(operatorPool.totalUnstaking.eq(operatorPre.totalUnstaking));
     assert(operatorPool.accruedRewards.isZero());
     assert(operatorPool.accruedCommission.isZero());
-    assert.isNull(operatorPool.newCommissionRateBps);
+    assert.isNull(operatorPool.newRewardCommissionRateBps);
 
     // Verify that operator's shares remain unchanged with auto-stake disabled.
     const operatorStakingRecord = await program.account.stakingRecord.fetch(
@@ -3126,7 +3126,7 @@ describe("inference-staking program tests", () => {
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
         usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool3.name,
@@ -3210,7 +3210,7 @@ describe("inference-staking program tests", () => {
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
         usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool4.name,
@@ -3303,7 +3303,7 @@ describe("inference-staking program tests", () => {
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
         usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool5.name,
@@ -3385,7 +3385,7 @@ describe("inference-staking program tests", () => {
       await program.methods
         .createOperatorPool({
           autoStakeFees,
-          commissionRateBps,
+          rewardCommissionRateBps,
           usdcCommissionRateBps,
           allowDelegation,
           name: setup.pool6.name,

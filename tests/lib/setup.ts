@@ -45,7 +45,7 @@ export type SetupPoolType = {
   usdcTokenAccount: PublicKey;
   delegatorStakingRecord: PublicKey;
   autoStakeFees: boolean;
-  commissionRateBps: number;
+  rewardCommissionRateBps: number;
   usdcCommissionRateBps: number;
   adminTokenAccount: PublicKey;
   poolUsdcVault: PublicKey;
@@ -257,7 +257,7 @@ export async function setupTests() {
           delegatorKeypair.publicKey
         ),
         autoStakeFees: false,
-        commissionRateBps: randomIntInRange(0, 100) * 100,
+        rewardCommissionRateBps: randomIntInRange(0, 100) * 100,
         usdcCommissionRateBps: randomIntInRange(0, 100) * 100,
         adminTokenAccount: adminTokenAccount.address,
         poolUsdcVault: sdk.operatorUsdcVaultPda(operatorPool),

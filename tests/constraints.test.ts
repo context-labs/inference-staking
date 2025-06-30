@@ -244,7 +244,7 @@ describe("Additional tests for instruction constraints", () => {
       await program.methods
         .createOperatorPool({
           autoStakeFees,
-          commissionRateBps: 110_00,
+          rewardCommissionRateBps: 110_00,
           usdcCommissionRateBps: 500,
           allowDelegation,
           name: setup.pool1.name,
