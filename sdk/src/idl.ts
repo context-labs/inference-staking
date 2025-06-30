@@ -1854,6 +1854,11 @@ const _IDL = {
     },
     {
       code: 6039,
+      name: "poolClosedEpochInvalid",
+      msg: "Operator pool must be closed before the current epoch",
+    },
+    {
+      code: 6040,
       name: "poolIsNotEmpty",
       msg: "Pool is not empty",
     },
