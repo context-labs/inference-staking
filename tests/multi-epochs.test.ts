@@ -498,24 +498,6 @@ describe("multi-epoch lifecycle tests", () => {
         `- ✅ Total rewards for epoch ${epoch} match expected epoch reward emissions: ${totalRewardsString}`
       );
 
-      await mintTo(
-        connection,
-        setup.payerKp,
-        setup.tokenMint,
-        setup.rewardTokenAccount,
-        setup.tokenHolderKp,
-        BigInt(totalRewards.toString())
-      );
-
-      await mintTo(
-        connection,
-        setup.payerKp,
-        setup.usdcTokenMint,
-        setup.usdcTokenAccount,
-        setup.tokenHolderKp,
-        BigInt(totalUsdcAmount.toString())
-      );
-
       await executeWithRetries(
         async () => {
           const response = await trpc.createRewardRecord();
