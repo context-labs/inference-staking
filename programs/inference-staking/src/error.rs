@@ -84,4 +84,6 @@ pub enum ErrorCode {
     PoolClosedEpochInvalid,
     #[msg("Pool is not empty")]
     PoolIsNotEmpty,
+    #[msg("Pool must be closed before the current epoch for the operator to unstake")]
+    FinalUnstakeEpochInvalid,
 }

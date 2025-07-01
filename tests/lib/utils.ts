@@ -75,7 +75,7 @@ export const formatBN = (bn: anchor.BN): string => {
   try {
     return bn.toNumber().toLocaleString();
   } catch {
-    return bn.toString();
+    return bn.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 };
 
@@ -113,7 +113,7 @@ const AMOUNT_RANGES = {
   },
 };
 
-const { MIN_AMOUNT, MAX_AMOUNT } = AMOUNT_RANGES["5"];
+const { MIN_AMOUNT, MAX_AMOUNT } = AMOUNT_RANGES["6"];
 
 export const generateRewardsForEpoch = (
   publicKeys: PublicKey[]

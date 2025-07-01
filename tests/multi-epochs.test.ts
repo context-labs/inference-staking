@@ -55,6 +55,17 @@ type GetRewardClaimInputsOutput = {
   usdcAmount: anchor.BN;
 };
 
+const MIN_STAKE_AMOUNT = 1_000_000;
+const MAX_STAKE_AMOUNT = 10_000_000;
+
+const getStakeAmount = (): anchor.BN => {
+  return new anchor.BN(
+    convertToTokenUnitAmount(
+      randomIntInRange(MIN_STAKE_AMOUNT, MAX_STAKE_AMOUNT)
+    )
+  );
+};
+
 async function getRewardClaimInputs({
   epochRewards,
   pool,
@@ -658,9 +669,7 @@ describe("multi-epoch lifecycle tests", () => {
     );
     let counter = 1;
     for (const pool of setup.pools) {
-      const stakeAmount = new anchor.BN(
-        convertToTokenUnitAmount(randomIntInRange(1_000_000, 10_000_000))
-      );
+      const stakeAmount = getStakeAmount();
 
       const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
         connection,
@@ -770,9 +779,7 @@ describe("multi-epoch lifecycle tests", () => {
         assert(stakingRecordPre.unstakeAtTimestamp.isZero());
       }
 
-      const stakeAmount = new anchor.BN(
-        convertToTokenUnitAmount(randomIntInRange(100_000, 1_000_000))
-      );
+      const stakeAmount = getStakeAmount();
 
       const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
         connection,
