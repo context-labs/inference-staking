@@ -1912,6 +1912,11 @@ const _IDL = {
       name: "poolIsNotEmpty",
       msg: "Pool is not empty",
     },
+    {
+      code: 6041,
+      name: "finalUnstakeEpochInvalid",
+      msg: "Pool must be closed before the current epoch for the operator to unstake",
+    },
   ],
   types: [
     {
