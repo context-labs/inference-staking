@@ -438,17 +438,19 @@ export class InferenceStakingProgramSdk {
    *
    * This mirrors the calculation logic in has_unclaimed_usdc_earnings.
    */
-  getAvailableUsdcEarningsForStakingRecord(
-    operatorPool: OperatorPoolAccountStruct,
-    stakingRecord: StakingRecordAccountStruct
-  ): BN {
-    let totalEarnings = new BN(stakingRecord.availableUsdcEarnings);
+  getAvailableUsdcEarningsForStakingRecord(args: {
+    availableUsdcEarnings: string;
+    cumulativeUsdcPerShare: string;
+    lastSettledUsdcPerShare: string;
+    stakingRecordShares: BN;
+  }): BN {
+    let totalEarnings = new BN(args.availableUsdcEarnings);
 
     const cumulativeUsdcPerShare = new BN(
-      operatorPool.cumulativeUsdcPerShare.toString()
+      args.cumulativeUsdcPerShare.toString()
     );
     const lastSettledUsdcPerShare = new BN(
-      stakingRecord.lastSettledUsdcPerShare.toString()
+      args.lastSettledUsdcPerShare.toString()
     );
 
     const usdcPerShareSettlementDelta = cumulativeUsdcPerShare.sub(
@@ -457,9 +459,9 @@ export class InferenceStakingProgramSdk {
 
     if (
       usdcPerShareSettlementDelta.gt(new BN(0)) &&
-      stakingRecord.shares.gt(new BN(0))
+      args.stakingRecordShares.gt(new BN(0))
     ) {
-      const unsettled = stakingRecord.shares
+      const unsettled = args.stakingRecordShares
         .mul(usdcPerShareSettlementDelta)
         .div(USDC_PRECISION_FACTOR);
 

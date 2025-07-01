@@ -1073,7 +1073,7 @@ describe("multi-epoch lifecycle tests", () => {
     }
   };
 
-  it.skip("[2/2] Repeat staking actions for operators and delegators", async () => {
+  it("[2/2] Repeat staking actions for operators and delegators", async () => {
     await performAdditionalStakingActions();
   });
 
@@ -1105,7 +1105,7 @@ describe("multi-epoch lifecycle tests", () => {
     );
   };
 
-  it.skip("Finalize additional epochs", async () => {
+  it("Finalize additional epochs", async () => {
     for (const _ of range(3)) {
       await finalizeAdditionalEpochs();
       await performAdditionalStakingActions();
@@ -1182,10 +1182,15 @@ describe("multi-epoch lifecycle tests", () => {
         delegatorUsdcAccount.address
       );
 
-      const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord(
-        operatorPoolPre,
-        stakingRecordPre
-      );
+      const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord({
+        availableUsdcEarnings:
+          stakingRecordPre.availableUsdcEarnings.toString(),
+        cumulativeUsdcPerShare:
+          operatorPoolPre.cumulativeUsdcPerShare.toString(),
+        lastSettledUsdcPerShare:
+          stakingRecordPre.lastSettledUsdcPerShare.toString(),
+        stakingRecordShares: stakingRecordPre.shares,
+      });
 
       if (claimedAmount.isZero()) {
         debug(
@@ -1281,10 +1286,15 @@ describe("multi-epoch lifecycle tests", () => {
       );
 
       // Calculate the full available amount including unsettled earnings
-      const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord(
-        operatorPoolPre,
-        stakingRecordPre
-      );
+      const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord({
+        availableUsdcEarnings:
+          stakingRecordPre.availableUsdcEarnings.toString(),
+        cumulativeUsdcPerShare:
+          operatorPoolPre.cumulativeUsdcPerShare.toString(),
+        lastSettledUsdcPerShare:
+          stakingRecordPre.lastSettledUsdcPerShare.toString(),
+        stakingRecordShares: stakingRecordPre.shares,
+      });
 
       if (claimedAmount.isZero()) {
         debug(
