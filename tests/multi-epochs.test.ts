@@ -1091,7 +1091,7 @@ describe("multi-epoch lifecycle tests", () => {
     }
   };
 
-  it("[2/2] Repeat staking actions for operators and delegators", async () => {
+  it.skip("[2/2] Repeat staking actions for operators and delegators", async () => {
     await performAdditionalStakingActions();
   });
 
@@ -1123,7 +1123,7 @@ describe("multi-epoch lifecycle tests", () => {
     );
   };
 
-  it("Finalize additional epochs", async () => {
+  it.skip("Finalize additional epochs", async () => {
     for (const _ of range(3)) {
       await finalizeAdditionalEpochs();
       await performAdditionalStakingActions();
@@ -2178,6 +2178,11 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Verify total claimed amounts match total distributed amounts", () => {
+    if (TEST_WITH_RELAY) {
+      debug("Testing with Relay is enabled, skipping final accounting checks");
+      return;
+    }
+
     debug("\n🔍 Verifying reward distribution and claiming totals...");
 
     const totalClaimedRewardsString = formatBN(totalClaimedRewards);

@@ -144,7 +144,7 @@ export class TrpcHttpClient {
   public async executeEpochFinalization(): Promise<any> {
     try {
       const result = await this.mutate(
-        "epochFinalization.executeEpochFinalization"
+        "epochFinalization.executeEpochFinalizationWithAwait"
       );
       return result;
     } catch (error) {
