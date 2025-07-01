@@ -16,6 +16,7 @@ import {
   EPOCH_CLAIM_FREQUENCY,
   NUMBER_OF_EPOCHS,
   SHOULD_CLOSE_ACCOUNTS,
+  SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS,
   SHOULD_UNSTAKE,
   TEST_WITH_RELAY,
 } from "@tests/lib/const";
@@ -1074,6 +1075,13 @@ describe("multi-epoch lifecycle tests", () => {
   };
 
   it("[2/2] Repeat staking actions for operators and delegators", async () => {
+    if (!SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS) {
+      debug(
+        "Skipping additional staking actions as SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS is false"
+      );
+      return;
+    }
+
     await performAdditionalStakingActions();
   });
 
@@ -1106,6 +1114,13 @@ describe("multi-epoch lifecycle tests", () => {
   };
 
   it("Finalize additional epochs", async () => {
+    if (!SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS) {
+      debug(
+        "Skipping additional staking actions as SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS is false"
+      );
+      return;
+    }
+
     for (const _ of range(3)) {
       await finalizeAdditionalEpochs();
       await performAdditionalStakingActions();

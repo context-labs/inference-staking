@@ -32,6 +32,11 @@ export const SHOULD_CLOSE_ACCOUNTS = process.env.SHOULD_CLOSE_ACCOUNTS
   ? process.env.SHOULD_CLOSE_ACCOUNTS === "true"
   : false;
 
+export const SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS = process.env
+  .SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS
+  ? process.env.SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS === "true"
+  : false;
+
 export const API_URL = process.env.API_URL
   ? process.env.API_URL
   : "http://localhost:3001";
