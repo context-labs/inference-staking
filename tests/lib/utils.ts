@@ -82,20 +82,38 @@ export const formatBN = (bn: anchor.BN): string => {
 const TOKEN_PRECISION = 1_000_000_000n;
 const USDC_PRECISION = 1_000_000n;
 
-// const MIN_AMOUNT = 0;
-// const MAX_AMOUNT = 3;
+const AMOUNT_RANGES = {
+  "0": {
+    MIN_AMOUNT: 0,
+    MAX_AMOUNT: 3,
+  },
+  "1": {
+    MIN_AMOUNT: 0,
+    MAX_AMOUNT: 100,
+  },
+  "2": {
+    MIN_AMOUNT: 1_000,
+    MAX_AMOUNT: 10_000,
+  },
+  "3": {
+    MIN_AMOUNT: 10_000,
+    MAX_AMOUNT: 100_000,
+  },
+  "4": {
+    MIN_AMOUNT: 100_000,
+    MAX_AMOUNT: 1_000_000,
+  },
+  "5": {
+    MIN_AMOUNT: 1_000_000,
+    MAX_AMOUNT: 10_000_000,
+  },
+  "6": {
+    MIN_AMOUNT: 10_000_000,
+    MAX_AMOUNT: 100_000_000,
+  },
+};
 
-// const MIN_AMOUNT = 0;
-// const MAX_AMOUNT = 100;
-
-const MIN_AMOUNT = 1_000;
-const MAX_AMOUNT = 10_000;
-
-// const MIN_AMOUNT = 1_000_000;
-// const MAX_AMOUNT = 10_000_000;
-
-// const MIN_AMOUNT = 10_000_000;
-// const MAX_AMOUNT = 100_000_000;
+const { MIN_AMOUNT, MAX_AMOUNT } = AMOUNT_RANGES["5"];
 
 export const generateRewardsForEpoch = (
   publicKeys: PublicKey[]
