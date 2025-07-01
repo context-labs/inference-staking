@@ -1189,7 +1189,7 @@ describe("multi-epoch lifecycle tests", () => {
           operatorPoolPre.cumulativeUsdcPerShare.toString(),
         lastSettledUsdcPerShare:
           stakingRecordPre.lastSettledUsdcPerShare.toString(),
-        stakingRecordShares: stakingRecordPre.shares,
+        stakingRecordShares: stakingRecordPre.shares.toString(),
       });
 
       if (claimedAmount.isZero()) {
@@ -1293,7 +1293,7 @@ describe("multi-epoch lifecycle tests", () => {
           operatorPoolPre.cumulativeUsdcPerShare.toString(),
         lastSettledUsdcPerShare:
           stakingRecordPre.lastSettledUsdcPerShare.toString(),
-        stakingRecordShares: stakingRecordPre.shares,
+        stakingRecordShares: stakingRecordPre.shares.toString(),
       });
 
       if (claimedAmount.isZero()) {

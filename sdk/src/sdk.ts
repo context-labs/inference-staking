@@ -442,7 +442,7 @@ export class InferenceStakingProgramSdk {
     availableUsdcEarnings: string;
     cumulativeUsdcPerShare: string;
     lastSettledUsdcPerShare: string;
-    stakingRecordShares: BN;
+    stakingRecordShares: string;
   }): BN {
     let totalEarnings = new BN(args.availableUsdcEarnings);
 
@@ -457,11 +457,9 @@ export class InferenceStakingProgramSdk {
       lastSettledUsdcPerShare
     );
 
-    if (
-      usdcPerShareSettlementDelta.gt(new BN(0)) &&
-      args.stakingRecordShares.gt(new BN(0))
-    ) {
-      const unsettled = args.stakingRecordShares
+    const shares = new BN(args.stakingRecordShares);
+    if (usdcPerShareSettlementDelta.gt(new BN(0)) && shares.gt(new BN(0))) {
+      const unsettled = shares
         .mul(usdcPerShareSettlementDelta)
         .div(USDC_PRECISION_FACTOR);
 
