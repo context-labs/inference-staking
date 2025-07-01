@@ -423,7 +423,7 @@ describe("multi-epoch lifecycle tests", () => {
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
   const allowDelegation = true;
   const allowPoolCreation = true;
-  const operatorPoolRegistrationFee = new anchor.BN(1_000);
+  const operatorPoolRegistrationFee = convertToTokenUnitAmount(50);
   const minOperatorTokenStake = new anchor.BN(1_000);
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
@@ -1131,7 +1131,7 @@ describe("multi-epoch lifecycle tests", () => {
     await finalizeAdditionalEpochs();
   });
 
-  it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
+  const verifyTokenAccounting = async () => {
     const poolOverview = await program.account.poolOverview.fetch(
       setup.poolOverview
     );
@@ -1157,6 +1157,10 @@ describe("multi-epoch lifecycle tests", () => {
       new anchor.BN(usdcBalance.value.amount).isZero(),
       `USDC balance should be zero, was ${usdcBalance.value.amount}`
     );
+  };
+
+  it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
+    await verifyTokenAccounting();
   });
 
   it("Claim USDC earnings for all delegators successfully", async () => {
@@ -2017,6 +2021,13 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Finalize more epochs to allow pool sweep to proceed", async () => {
+    if (!SHOULD_CLOSE_ACCOUNTS) {
+      debug(
+        "End-to-end test flow is enabled, skipping finalize more epochs for pool sweep"
+      );
+      return;
+    }
+
     const advanceEpoch = async () => {
       await handleMarkEpochAsFinalizing({
         setup,
@@ -2121,31 +2132,14 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
-    const poolOverview = await program.account.poolOverview.fetch(
-      setup.poolOverview
-    );
-    assert(
-      poolOverview.unclaimedRewards.isZero(),
-      `Unclaimed rewards should be zero, was ${poolOverview.unclaimedRewards.toString()}`
-    );
-    assert(
-      poolOverview.unclaimedUsdcPayout.isZero(),
-      `Unclaimed USDC payout should be zero, was ${poolOverview.unclaimedUsdcPayout.toString()}`
-    );
+    await verifyTokenAccounting();
 
-    const tokenVault = setup.sdk.rewardTokenPda();
-    const tokenBalance = await connection.getTokenAccountBalance(tokenVault);
-    assert(
-      new anchor.BN(tokenBalance.value.amount).isZero(),
-      `Token balance should be zero, was ${tokenBalance.value.amount}`
-    );
-
-    const usdcVault = setup.sdk.usdcTokenPda();
-    const usdcBalance = await connection.getTokenAccountBalance(usdcVault);
-    assert(
-      new anchor.BN(usdcBalance.value.amount).isZero(),
-      `USDC balance should be zero, was ${usdcBalance.value.amount}`
-    );
+    if (!SHOULD_CLOSE_ACCOUNTS) {
+      debug(
+        "End-to-end test flow is enabled, skipping operator pool usdc vaults verification"
+      );
+      return;
+    }
 
     for (const pool of setup.pools) {
       try {
@@ -2208,30 +2202,32 @@ describe("multi-epoch lifecycle tests", () => {
       `Total claimed rewards (${totalClaimedRewardsString}) should equal total distributed rewards (${totalDistributedRewardsString})`
     );
 
-    assert(
-      totalClaimedUsdc.eq(totalDistributedUsdc),
-      `Total claimed USDC (${totalClaimedUsdcString}) should equal total distributed USDC (${totalDistributedUsdcString})`
-    );
+    if (SHOULD_CLOSE_ACCOUNTS) {
+      assert(
+        totalRewardTokensWithdrawn.eq(totalClaimedRewards),
+        `Net reward tokens withdrawn (${totalRewardsWithdrawnString}) should equal total claimed rewards (${totalClaimedRewardsString})`
+      );
 
-    assert(
-      totalWithdrawnUsdcEarnings.eq(totalDistributedUsdc),
-      `Total withdrawn USDC earnings (${totalWithdrawnUsdcString}) should equal total distributed USDC (${totalDistributedUsdcString})`
-    );
+      assert(
+        totalRewardTokensWithdrawn.eq(totalDistributedRewards),
+        `Net reward tokens withdrawn (${totalRewardsWithdrawnString}) should equal total distributed rewards (${totalDistributedRewardsString})`
+      );
 
-    assert(
-      totalWithdrawnUsdcEarnings.eq(totalClaimedUsdc),
-      `Total withdrawn USDC earnings (${totalWithdrawnUsdcString}) should equal total claimed USDC (${totalClaimedUsdcString})`
-    );
+      assert(
+        totalClaimedUsdc.eq(totalDistributedUsdc),
+        `Total claimed USDC (${totalClaimedUsdcString}) should equal total distributed USDC (${totalDistributedUsdcString})`
+      );
 
-    assert(
-      totalRewardTokensWithdrawn.eq(totalDistributedRewards),
-      `Net reward tokens withdrawn (${totalRewardsWithdrawnString}) should equal total distributed rewards (${totalDistributedRewardsString})`
-    );
+      assert(
+        totalWithdrawnUsdcEarnings.eq(totalDistributedUsdc),
+        `Total withdrawn USDC earnings (${totalWithdrawnUsdcString}) should equal total distributed USDC (${totalDistributedUsdcString})`
+      );
 
-    assert(
-      totalRewardTokensWithdrawn.eq(totalClaimedRewards),
-      `Net reward tokens withdrawn (${totalRewardsWithdrawnString}) should equal total claimed rewards (${totalClaimedRewardsString})`
-    );
+      assert(
+        totalWithdrawnUsdcEarnings.eq(totalClaimedUsdc),
+        `Total withdrawn USDC earnings (${totalWithdrawnUsdcString}) should equal total claimed USDC (${totalClaimedUsdcString})`
+      );
+    }
 
     debug(
       "\n✅ All distributed rewards and USDC passed final accounting checks successfully."
