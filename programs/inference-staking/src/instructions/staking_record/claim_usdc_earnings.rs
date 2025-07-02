@@ -73,7 +73,7 @@ pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
     operator_pool.settle_usdc_earnings(staking_record)?;
 
     // Check claimable amount
-    let claimable = staking_record.available_usdc_earnings;
+    let claimable = staking_record.accrued_usdc_earnings;
     require!(claimable > 0, ErrorCode::NoUsdcEarningsToClaim);
     require!(
         ctx.accounts.pool_usdc_vault.amount >= claimable,
@@ -95,7 +95,7 @@ pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
     )?;
 
     // Reset available USDC balance
-    staking_record.available_usdc_earnings = 0;
+    staking_record.accrued_usdc_earnings = 0;
 
     emit!(CompleteClaimUsdcEarningsEvent {
         staking_record: staking_record.key(),

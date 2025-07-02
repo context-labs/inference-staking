@@ -2657,7 +2657,7 @@ const _IDL = {
             type: "u128",
           },
           {
-            name: "availableUsdcEarnings",
+            name: "accruedUsdcEarnings",
             docs: ["Accrued USDC rewards available to claim"],
             type: "u64",
           },

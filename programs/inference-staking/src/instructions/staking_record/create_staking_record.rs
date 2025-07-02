@@ -38,7 +38,7 @@ pub fn handler(ctx: Context<CreateStakingRecord>) -> Result<()> {
     staking_record.operator_pool = ctx.accounts.operator_pool.key();
     staking_record.last_settled_usdc_per_share =
         ctx.accounts.operator_pool.cumulative_usdc_per_share;
-    staking_record.available_usdc_earnings = 0;
+    staking_record.accrued_usdc_earnings = 0;
 
     Ok(())
 }

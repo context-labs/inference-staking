@@ -216,7 +216,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     staking_record.owner = ctx.accounts.admin.key();
     staking_record.operator_pool = operator_pool.key();
     staking_record.last_settled_usdc_per_share = 0;
-    staking_record.available_usdc_earnings = 0;
+    staking_record.accrued_usdc_earnings = 0;
 
     operator_pool.validate_string_fields()?;
 

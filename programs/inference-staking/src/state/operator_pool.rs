@@ -244,8 +244,8 @@ impl OperatorPool {
             .unwrap();
 
         // Add to accrued balance
-        staking_record.available_usdc_earnings = staking_record
-            .available_usdc_earnings
+        staking_record.accrued_usdc_earnings = staking_record
+            .accrued_usdc_earnings
             .checked_add(earned_usdc as u64)
             .unwrap();
 
@@ -261,7 +261,7 @@ impl OperatorPool {
         staking_record: &crate::state::StakingRecord,
     ) -> bool {
         // Check accrued balance
-        if staking_record.available_usdc_earnings > 0 {
+        if staking_record.accrued_usdc_earnings > 0 {
             return true;
         }
 

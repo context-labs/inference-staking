@@ -434,17 +434,17 @@ export class InferenceStakingProgramSdk {
 
   /**
    * Calculates the total available USDC earnings for a staking record,
-   * including both settled (available_usdc_earnings) and unsettled amounts.
+   * including both settled (accrued_usdc_earnings) and unsettled amounts.
    *
    * This mirrors the calculation logic in has_unclaimed_usdc_earnings.
    */
   getAvailableUsdcEarningsForStakingRecord(args: {
-    availableUsdcEarnings: string;
+    accruedUsdcEarnings: string;
     cumulativeUsdcPerShare: string;
     lastSettledUsdcPerShare: string;
     stakingRecordShares: string;
   }): BN {
-    let totalEarnings = new BN(args.availableUsdcEarnings);
+    let totalEarnings = new BN(args.accruedUsdcEarnings);
 
     const cumulativeUsdcPerShare = new BN(
       args.cumulativeUsdcPerShare.toString()

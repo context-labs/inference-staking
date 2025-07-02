@@ -77,8 +77,8 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
     operator_pool.settle_usdc_earnings(operator_staking_record)?;
 
     // Confiscate any accrued USDC the operator may have
-    if operator_staking_record.available_usdc_earnings > 0 {
-        let usdc_amount = operator_staking_record.available_usdc_earnings;
+    if operator_staking_record.accrued_usdc_earnings > 0 {
+        let usdc_amount = operator_staking_record.accrued_usdc_earnings;
 
         require!(
             ctx.accounts.pool_usdc_vault.amount >= usdc_amount,
@@ -98,7 +98,7 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
             usdc_amount,
         )?;
 
-        operator_staking_record.available_usdc_earnings = 0;
+        operator_staking_record.accrued_usdc_earnings = 0;
     }
 
     let token_amount = operator_pool.calc_tokens_for_share_amount(args.shares_amount);

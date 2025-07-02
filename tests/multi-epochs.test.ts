@@ -1198,8 +1198,7 @@ describe("multi-epoch lifecycle tests", () => {
       );
 
       const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord({
-        availableUsdcEarnings:
-          stakingRecordPre.availableUsdcEarnings.toString(),
+        accruedUsdcEarnings: stakingRecordPre.accruedUsdcEarnings.toString(),
         cumulativeUsdcPerShare:
           operatorPoolPre.cumulativeUsdcPerShare.toString(),
         lastSettledUsdcPerShare:
@@ -1259,7 +1258,7 @@ describe("multi-epoch lifecycle tests", () => {
 
       // Verify staking record state
       assert(
-        stakingRecordPost.availableUsdcEarnings.isZero(),
+        stakingRecordPost.accruedUsdcEarnings.isZero(),
         "Available USDC earnings should be zero after claim"
       );
       assert(
@@ -1302,8 +1301,7 @@ describe("multi-epoch lifecycle tests", () => {
 
       // Calculate the full available amount including unsettled earnings
       const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord({
-        availableUsdcEarnings:
-          stakingRecordPre.availableUsdcEarnings.toString(),
+        accruedUsdcEarnings: stakingRecordPre.accruedUsdcEarnings.toString(),
         cumulativeUsdcPerShare:
           operatorPoolPre.cumulativeUsdcPerShare.toString(),
         lastSettledUsdcPerShare:
@@ -1363,7 +1361,7 @@ describe("multi-epoch lifecycle tests", () => {
 
       // Verify staking record state
       assert(
-        stakingRecordPost.availableUsdcEarnings.isZero(),
+        stakingRecordPost.accruedUsdcEarnings.isZero(),
         "Available USDC earnings should be zero after claim"
       );
       assert(
