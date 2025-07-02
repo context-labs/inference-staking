@@ -45,21 +45,6 @@ pub struct AccrueReward<'info> {
 
     #[account(
         mut,
-        token::mint = constants::USDC_MINT_PUBKEY,
-        token::authority = operator_pool.usdc_payout_wallet,
-        constraint = usdc_payout_token_account.owner == operator_pool.usdc_payout_wallet @ ErrorCode::InvalidUsdcPayoutDestination
-    )]
-    pub usdc_payout_token_account: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        seeds = [b"PoolDelegatorUsdcEarningsVault", operator_pool.key().as_ref()],
-        bump,
-    )]
-    pub pool_usdc_vault: Box<Account<'info, TokenAccount>>,
-
-    #[account(
-        mut,
         seeds = [b"GlobalTokenRewardVault".as_ref()],
         bump,
     )]
@@ -85,6 +70,21 @@ pub struct AccrueReward<'info> {
         bump,
     )]
     pub fee_token_account: Box<Account<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        token::mint = constants::USDC_MINT_PUBKEY,
+        token::authority = operator_pool.usdc_payout_wallet,
+        constraint = usdc_payout_token_account.owner == operator_pool.usdc_payout_wallet @ ErrorCode::InvalidUsdcPayoutDestination
+    )]
+    pub usdc_payout_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"PoolDelegatorUsdcEarningsVault", operator_pool.key().as_ref()],
+        bump,
+    )]
+    pub pool_usdc_vault: Box<Account<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
 }

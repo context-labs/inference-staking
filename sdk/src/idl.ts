@@ -75,30 +75,6 @@ const _IDL = {
           relations: ["operatorPool"],
         },
         {
-          name: "usdcPayoutTokenAccount",
-          writable: true,
-        },
-        {
-          name: "poolUsdcVault",
-          writable: true,
-          pda: {
-            seeds: [
-              {
-                kind: "const",
-                value: [
-                  80, 111, 111, 108, 68, 101, 108, 101, 103, 97, 116, 111, 114,
-                  85, 115, 100, 99, 69, 97, 114, 110, 105, 110, 103, 115, 86,
-                  97, 117, 108, 116,
-                ],
-              },
-              {
-                kind: "account",
-                path: "operatorPool",
-              },
-            ],
-          },
-        },
-        {
           name: "rewardTokenAccount",
           writable: true,
           pda: {
@@ -158,6 +134,30 @@ const _IDL = {
                   80, 111, 111, 108, 67, 111, 109, 109, 105, 115, 115, 105, 111,
                   110, 70, 101, 101, 84, 111, 107, 101, 110, 86, 97, 117, 108,
                   116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "usdcPayoutTokenAccount",
+          writable: true,
+        },
+        {
+          name: "poolUsdcVault",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 68, 101, 108, 101, 103, 97, 116, 111, 114,
+                  85, 115, 100, 99, 69, 97, 114, 110, 105, 110, 103, 115, 86,
+                  97, 117, 108, 116,
                 ],
               },
               {
