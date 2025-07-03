@@ -107,29 +107,73 @@ pub struct OperatorPool {
     pub accrued_delegator_usdc: u64,
 }
 
-/// Notes on shared based accounting mechanism:
+/// Program Accounting Mechanisms: The staking program employs two accounting mechanisms to
+/// track and distribute rewards:
 ///
-/// The token protocol issues shares when tokens are staked. The key equations are:
+/// 1.  Share-based Accounting Mechanism: This mechanism tracks the proportional ownership of
+///     each delegator in the pool and is used for reward distribution.
 ///
-/// When staking:   shares = (tokenAmount / totalStakedAmount) * totalShares
-/// When unstaking: tokens = (shareAmount / totalShares) * totalStakedAmount
+/// 2.  USDC Revenue Sharing Mechanism: This mechanism tracks the USDC revenue earned by the
+///     pool and is used for USDC revenue distribution.
 ///
-/// When users stake tokens:
-/// The user receives shares proportional to their token contribution relative to the total pool.
+/// The logic for each mechanism is implemented below in the OperatorPool struct.
 ///
-/// When a user unstakes tokens:
-/// The system converts a user's shares to the corresponding tokens amount, based on the current
-/// ratio. The shares are burned, and the tokens begin unstaking.
+/// Notes on Share-based Accounting Mechanism:
 ///
-/// When rewards are paid out:
-/// Rewards are added to the pool's total_staked_amount but no new shares are created, which
-/// increases the value of each share proportionally for each delegator in the pool.
+/// The protocol uses a share-based system to represent a delegator's ownership in a staking
+/// pool. This allows for the fair and efficient distribution of token rewards.
 ///
-/// Operator commission fees are deducted separately before rewards are paid out, depending
-/// on the operator pool's commission settings.
+/// Core Concepts:
 ///
-/// This shared based accounting mechanism allows the program to fairly and efficiently
-/// distribute and compound rewards among many stakers.
+/// 1.  Proportional Share Issuance: When a user stakes tokens, they are issued a number of
+///     shares that represents their proportional ownership of the pool. The number of
+///     shares is calculated as:
+///     shares = (staked_token_amount / total_staked_amount) * total_shares
+///
+/// 2.  Token Redemption: To unstake, a user redeems their shares to receive the
+///     corresponding amount of underlying tokens based on the shares' current value. The shares
+///     are then burned. The token amount is calculated as:
+///     tokens = (share_amount / total_shares) * total_staked_amount
+///
+/// 3.  Passive Reward Accrual: When token rewards are added to the pool (after the
+///     operator's commission is deducted), the pool's total_staked_amount increases, while
+///     the total_shares remains unchanged. This directly increases the value of each share,
+///     passively distributing rewards to all delegators in proportion to their stake.
+///
+/// Notes on USDC Revenue Sharing Mechanism:
+///
+/// The protocol uses a hybrid accounting model to distribute USDC revenue to delegators. This
+/// allows delegators to earn USDC in proportion to their shares in the pool, which can be
+/// withdrawn independently from their staked tokens.
+///
+/// Core Concepts:
+///
+/// 1.  Cumulative Per-Share Index: The OperatorPool tracks a global cumulative_usdc_per_share
+///     value. This index represents the total USDC earned by a single share over the pool's lifetime,
+///     scaled by a precision factor to handle fractions. When USDC rewards (net of operator commission)
+///     are added to the pool, this index increases.
+///
+/// 2.  Delegator Checkpoint: Each StakingRecord stores last_settled_usdc_per_share, which is a
+///     snapshot of the pool's cumulative index at the time of the delegator's last settlement.
+///
+/// 3.  Settling Earnings: A delegator's USDC earnings are calculated by finding the delta
+///     between the current pool index and their last settled checkpoint, and multiplying it by their
+///     number of shares.
+///
+///     earned_usdc = (pool.cumulative_usdc_per_share - delegator.last_settled_usdc_per_share) * delegator.shares
+///
+///     This "settlement" process is automatically triggered before any action that modifies a user's
+///     share balance (e.g., stake, unstake). The calculated earnings are moved into the delegator's
+///     accrued_usdc_earnings balance, and their last_settled_usdc_per_share checkpoint is updated to
+///     the current pool index value.
+///
+/// 4.  Claiming USDC: Delegators can call a separate instruction at any time to withdraw the balance
+///     from their accrued_usdc_earnings. This is required before closing a staking record. The claim
+///     instruction additionally settles any outstanding earnings, and withdraws the full final amount.
+///
+/// This combined share and index-based accounting mechanism allows the program to fairly and efficiently
+/// distribute and compound both token and USDC rewards among many stakers.
+///
 impl OperatorPool {
     /// Calculates number of shares equivalent to token amount.
     /// Uses a default 1:1 rate if total_shares i 0.
