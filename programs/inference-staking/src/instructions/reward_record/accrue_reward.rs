@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
-use crate::constants::{self, USDC_PRECISION_FACTOR};
+use crate::constants::USDC_PRECISION_FACTOR;
 use crate::error::ErrorCode;
 use crate::events::CompleteAccrueRewardEvent;
 use crate::state::{OperatorPool, PoolOverview, RewardRecord, StakingRecord};
@@ -73,11 +73,10 @@ pub struct AccrueReward<'info> {
 
     #[account(
         mut,
-        token::mint = constants::USDC_MINT_PUBKEY,
-        token::authority = operator_pool.usdc_payout_wallet,
-        constraint = usdc_payout_token_account.owner == operator_pool.usdc_payout_wallet @ ErrorCode::InvalidUsdcPayoutDestination
+        seeds = [b"PoolUsdcCommissionFeeTokenVault".as_ref(), operator_pool.key().as_ref()],
+        bump,
     )]
-    pub usdc_payout_token_account: Account<'info, TokenAccount>,
+    pub usdc_fee_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -240,7 +239,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
                     ctx.accounts.token_program.to_account_info(),
                     Transfer {
                         from: ctx.accounts.usdc_token_account.to_account_info(),
-                        to: ctx.accounts.usdc_payout_token_account.to_account_info(),
+                        to: ctx.accounts.usdc_fee_token_account.to_account_info(),
                         authority: ctx.accounts.pool_overview.to_account_info(),
                     },
                     &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],

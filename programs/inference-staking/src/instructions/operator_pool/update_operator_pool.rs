@@ -17,9 +17,6 @@ pub struct UpdateOperatorPool<'info> {
         has_one = admin,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
-
-    /// CHECK: This is the wallet address that should receive USDC payouts
-    pub usdc_payout_wallet: Option<UncheckedAccount<'info>>,
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
@@ -96,11 +93,6 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
             require_gte!(10_000, new_usdc_rate_bps, ErrorCode::InvalidCommissionRate);
         }
         operator_pool.new_usdc_commission_rate_bps = new_usdc_rate_setting.rate_bps;
-    }
-
-    let usdc_payout_wallet = &ctx.accounts.usdc_payout_wallet;
-    if let Some(usdc_payout_wallet) = usdc_payout_wallet {
-        operator_pool.usdc_payout_wallet = usdc_payout_wallet.key();
     }
 
     if let Some(operator_auth_keys) = operator_auth_keys {

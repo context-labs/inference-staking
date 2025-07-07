@@ -70,8 +70,15 @@ pub struct CreateOperatorPool<'info> {
     )]
     pub fee_token_account: Box<Account<'info, TokenAccount>>,
 
-    /// CHECK: This is the wallet address that should receive USDC payouts
-    pub usdc_payout_wallet: UncheckedAccount<'info>,
+    #[account(
+        init,
+        seeds = [b"PoolUsdcCommissionFeeTokenVault".as_ref(), operator_pool.key().as_ref()],
+        bump,
+        payer = payer,
+        token::mint = usdc_mint,
+        token::authority = operator_pool
+    )]
+    pub usdc_fee_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         init,
@@ -183,7 +190,6 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.auto_stake_fees = auto_stake_fees;
     operator_pool.reward_commission_rate_bps = reward_commission_rate_bps;
     operator_pool.allow_delegation = allow_delegation;
-    operator_pool.usdc_payout_wallet = ctx.accounts.usdc_payout_wallet.key();
     operator_pool.usdc_commission_rate_bps = usdc_commission_rate_bps;
     operator_pool.cumulative_usdc_per_share = 0;
     operator_pool.accrued_delegator_usdc = 0;

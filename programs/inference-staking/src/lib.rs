@@ -113,6 +113,12 @@ pub mod inference_staking {
         withdraw_operator_commission::handler(ctx)
     }
 
+    pub fn withdraw_operator_usdc_commission(
+        ctx: Context<WithdrawOperatorUsdcCommission>,
+    ) -> Result<()> {
+        withdraw_operator_usdc_commission::handler(ctx)
+    }
+
     pub fn change_operator_staking_record(ctx: Context<ChangeOperatorStakingRecord>) -> Result<()> {
         change_operator_staking_record::handler(ctx)
     }
