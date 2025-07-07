@@ -392,7 +392,7 @@ describe("Reward creation and accrual tests", () => {
       setup.tokenMint,
       setup.rewardTokenAccount,
       setup.tokenHolderKp,
-      totalRewards.toNumber()
+      BigInt(totalRewards.toString())
     );
 
     try {
@@ -425,7 +425,7 @@ describe("Reward creation and accrual tests", () => {
       setup.usdcTokenMint,
       setup.usdcTokenAccount,
       setup.tokenHolderKp,
-      totalUSDC.toNumber()
+      BigInt(totalUSDC.toString())
     );
 
     // Should succeed with sufficient rewards.
@@ -488,7 +488,7 @@ describe("Reward creation and accrual tests", () => {
       setup.tokenMint,
       setup.rewardTokenAccount,
       setup.tokenHolderKp,
-      totalRewards.toNumber()
+      BigInt(totalRewards.toString())
     );
 
     await mintTo(
@@ -497,7 +497,7 @@ describe("Reward creation and accrual tests", () => {
       setup.usdcTokenMint,
       setup.usdcTokenAccount,
       setup.tokenHolderKp,
-      totalUsdcAmount.toNumber()
+      BigInt(totalUsdcAmount.toString())
     );
 
     await handleMarkEpochAsFinalizing({ program, setup });
@@ -881,6 +881,8 @@ describe("Reward creation and accrual tests", () => {
     );
     assert(poolOverview.unclaimedRewards.eq(poolOverviewPre.unclaimedRewards));
 
+    // Verify operator's USDC account balance remains unchanged
+    // (USDC is only accumulated on-chain, not distributed to operator's wallet)
     const usdcBalancePost = await connection.getTokenAccountBalance(
       setup.pool1.usdcTokenAccount
     );
@@ -888,7 +890,8 @@ describe("Reward creation and accrual tests", () => {
     assert(
       new anchor.BN(usdcBalancePost.value.amount).eq(
         new anchor.BN(usdcBalancePre.value.amount)
-      )
+      ),
+      "Operator's USDC account should remain unchanged"
     );
   });
 
@@ -957,11 +960,11 @@ describe("Reward creation and accrual tests", () => {
     const stakedBalancePre = await connection.getTokenAccountBalance(
       setup.pool1.stakedTokenAccount
     );
-    const usdcTokenAccountPre = await connection.getTokenAccountBalance(
-      setup.pool1.usdcTokenAccount
+    const usdcFeeTokenAccountPre = await connection.getTokenAccountBalance(
+      setup.pool1.usdcCommissionFeeTokenVault
     );
-    const usdcBalancePre = await connection.getTokenAccountBalance(
-      setup.pool1.usdcTokenAccount
+    const poolUsdcVaultPre = await connection.getTokenAccountBalance(
+      setup.pool1.poolUsdcVault
     );
 
     const rewardAmount = new anchor.BN(proofInputs.tokenAmount.toString());
@@ -999,7 +1002,15 @@ describe("Reward creation and accrual tests", () => {
       .add(operatorPre.accruedCommission)
       .add(operatorPre.accruedRewards);
 
-    const totalUsdcTransferred = operatorPre.accruedUsdcPayout.add(usdcAmount);
+    // Calculate USDC commission
+    const usdcCommissionRateBps = operatorPre.usdcCommissionRateBps;
+    const usdcCommissionFees = operatorPre.accruedUsdcPayout
+      .add(usdcAmount)
+      .mul(new anchor.BN(usdcCommissionRateBps))
+      .div(new anchor.BN(10_000));
+    const delegatorUsdcEarnings = operatorPre.accruedUsdcPayout
+      .add(usdcAmount)
+      .sub(usdcCommissionFees);
 
     const amountToStakedAccount = operatorPre.totalStakedAmount.add(
       operatorPre.accruedRewards.add(delegatorRewards)
@@ -1070,25 +1081,28 @@ describe("Reward creation and accrual tests", () => {
         )
       )
     );
-    assert(new anchor.BN(feeBalance.value.amount).isZero()); // All fees are auto-staked
+    assert(new anchor.BN(feeBalance.value.amount).isZero());
 
-    const usdcTokenAccountPost = await connection.getTokenAccountBalance(
-      setup.pool1.usdcTokenAccount
+    // Verify USDC commission went to fee vault
+    const usdcFeeTokenAccountPost = await connection.getTokenAccountBalance(
+      setup.pool1.usdcCommissionFeeTokenVault
     );
-    const usdcBalancePost = await connection.getTokenAccountBalance(
-      setup.pool1.usdcTokenAccount
-    );
-
-    assert(
-      new anchor.BN(usdcTokenAccountPost.value.amount)
-        .sub(totalUsdcTransferred)
-        .eq(new anchor.BN(usdcTokenAccountPre.value.amount))
+    const poolUsdcVaultPost = await connection.getTokenAccountBalance(
+      setup.pool1.poolUsdcVault
     );
 
     assert(
-      new anchor.BN(usdcBalancePost.value.amount).eq(
-        totalUsdcTransferred.add(new anchor.BN(usdcBalancePre.value.amount))
-      )
+      new anchor.BN(usdcFeeTokenAccountPost.value.amount)
+        .sub(new anchor.BN(usdcFeeTokenAccountPre.value.amount))
+        .eq(usdcCommissionFees),
+      "USDC commission should be transferred to USDC fee vault"
+    );
+
+    assert(
+      new anchor.BN(poolUsdcVaultPost.value.amount)
+        .sub(new anchor.BN(poolUsdcVaultPre.value.amount))
+        .eq(delegatorUsdcEarnings),
+      "Delegator USDC earnings should be transferred to pool USDC vault"
     );
   });
 
@@ -1122,7 +1136,7 @@ describe("Reward creation and accrual tests", () => {
       setup.tokenMint,
       setup.rewardTokenAccount,
       setup.tokenHolderKp,
-      totalRewards.toNumber()
+      BigInt(totalRewards.toString())
     );
 
     await mintTo(
@@ -1131,7 +1145,7 @@ describe("Reward creation and accrual tests", () => {
       setup.usdcTokenMint,
       setup.usdcTokenAccount,
       setup.tokenHolderKp,
-      totalUSDC.toNumber()
+      BigInt(totalUSDC.toString())
     );
 
     await handleMarkEpochAsFinalizing({ program, setup });
@@ -1225,7 +1239,7 @@ describe("Reward creation and accrual tests", () => {
         setup.tokenMint,
         setup.rewardTokenAccount,
         setup.tokenHolderKp,
-        totalRewards.toNumber()
+        BigInt(totalRewards.toString())
       );
 
       await mintTo(
@@ -1234,7 +1248,7 @@ describe("Reward creation and accrual tests", () => {
         setup.usdcTokenMint,
         setup.usdcTokenAccount,
         setup.tokenHolderKp,
-        totalUsdcAmount.toNumber()
+        BigInt(totalUsdcAmount.toString())
       );
 
       await handleMarkEpochAsFinalizing({ program, setup });
