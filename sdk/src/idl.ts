@@ -144,8 +144,24 @@ const _IDL = {
           },
         },
         {
-          name: "usdcPayoutTokenAccount",
+          name: "usdcFeeTokenAccount",
           writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 85, 115, 100, 99, 67, 111, 109, 109, 105,
+                  115, 115, 105, 111, 110, 70, 101, 101, 84, 111, 107, 101, 110,
+                  86, 97, 117, 108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
         },
         {
           name: "poolUsdcVault",
@@ -698,7 +714,24 @@ const _IDL = {
           },
         },
         {
-          name: "usdcPayoutWallet",
+          name: "usdcFeeTokenAccount",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 85, 115, 100, 99, 67, 111, 109, 109, 105,
+                  115, 115, 105, 111, 110, 70, 101, 101, 84, 111, 107, 101, 110,
+                  86, 97, 117, 108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
         },
         {
           name: "operatorUsdcVault",
@@ -1494,10 +1527,6 @@ const _IDL = {
             ],
           },
         },
-        {
-          name: "usdcPayoutWallet",
-          optional: true,
-        },
       ],
       args: [
         {
@@ -1652,6 +1681,78 @@ const _IDL = {
         {
           name: "destination",
           docs: ["Destination for the commission."],
+          writable: true,
+        },
+        {
+          name: "tokenProgram",
+          address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        },
+      ],
+      args: [],
+    },
+    {
+      name: "withdrawOperatorUsdcCommission",
+      discriminator: [249, 79, 68, 38, 186, 241, 145, 192],
+      accounts: [
+        {
+          name: "admin",
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+        {
+          name: "operatorPool",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operator_pool.initial_pool_admin",
+                account: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "usdcFeeTokenAccount",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 85, 115, 100, 99, 67, 111, 109, 109, 105,
+                  115, 115, 105, 111, 110, 70, 101, 101, 84, 111, 107, 101, 110,
+                  86, 97, 117, 108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "destination",
+          docs: ["Destination for the USDC commission."],
           writable: true,
         },
         {
@@ -2315,17 +2416,10 @@ const _IDL = {
           {
             name: "accruedUsdcPayout",
             docs: [
-              "USDC that have been calculated in `accrueRewards`, that are yet to be physically transferred to payout wallet.",
+              "USDC commission that have been calculated in `accrueRewards`, that are yet to be physically transferred to USDC fee account.",
               "Used to optimize compute.",
             ],
             type: "u64",
-          },
-          {
-            name: "usdcPayoutWallet",
-            docs: [
-              "Destination wallet for USDC payouts for this operator pool.",
-            ],
-            type: "pubkey",
           },
           {
             name: "usdcCommissionRateBps",
