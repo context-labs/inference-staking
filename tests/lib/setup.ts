@@ -205,8 +205,8 @@ export async function setupTests() {
   );
 
   const poolOverview = sdk.poolOverviewPda();
-  const rewardTokenAccount = sdk.rewardTokenPda();
-  const usdcTokenAccount = sdk.usdcTokenPda();
+  const rewardTokenAccount = sdk.globalTokenRewardVaultPda();
+  const usdcTokenAccount = sdk.globalUsdcEarningsVaultPda();
   const operatorPool1 = sdk.operatorPoolPda(admin1Kp.publicKey);
   const operatorPool2 = sdk.operatorPoolPda(admin2Kp.publicKey);
   const operatorPool3 = sdk.operatorPoolPda(admin3Kp.publicKey);
@@ -237,7 +237,7 @@ export async function setupTests() {
         adminKeypair.publicKey
       );
       const usdcCommissionFeeTokenVault =
-        sdk.usdcCommissionFeeTokenVaultPda(operatorPool);
+        sdk.poolUsdcCommissionFeeTokenVaultPda(operatorPool);
       return {
         name: `Test Operator ${shortId()}`,
         description: `Test Description ${shortId()}`,
@@ -245,9 +245,9 @@ export async function setupTests() {
         avatarImageUrl: null,
         admin: adminKeypair.publicKey,
         adminKp: adminKeypair,
-        feeTokenAccount: sdk.feeTokenPda(operatorPool),
+        feeTokenAccount: sdk.poolCommissionFeeTokenVaultPda(operatorPool),
         pool: operatorPool,
-        stakedTokenAccount: sdk.stakedTokenPda(operatorPool),
+        stakedTokenAccount: sdk.poolStakedTokenVaultPda(operatorPool),
         stakingRecord: sdk.stakingRecordPda(
           operatorPool,
           adminKeypair.publicKey
@@ -262,7 +262,7 @@ export async function setupTests() {
         rewardCommissionRateBps: randomIntInRange(0, 100) * 100,
         usdcCommissionRateBps: randomIntInRange(0, 100) * 100,
         adminTokenAccount: adminTokenAccount.address,
-        poolUsdcVault: sdk.operatorUsdcVaultPda(operatorPool),
+        poolUsdcVault: sdk.poolDelegatorUsdcEarningsVaultPda(operatorPool),
       };
     } catch (err) {
       console.log(`Error getting pool setup for ${operatorPool.toBase58()}`);

@@ -209,7 +209,9 @@ describe("Reward creation and accrual tests", () => {
         adminTokenAccount: setup.pool1.adminTokenAccount,
         registrationFeePayoutTokenAccount:
           setup.registrationFeePayoutTokenAccount,
-        operatorUsdcVault: setup.sdk.operatorUsdcVaultPda(setup.pool1.pool),
+        operatorUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+          setup.pool1.pool
+        ),
         usdcMint: setup.usdcTokenMint,
       })
       .signers([setup.payerKp, setup.pool1.adminKp])

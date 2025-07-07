@@ -2052,7 +2052,9 @@ describe("inference-staking program tests", () => {
         feeTokenAccount: setup.pool1.feeTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
         usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
-        poolUsdcVault: setup.sdk.operatorUsdcVaultPda(setup.pool1.pool),
+        poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+          setup.pool1.pool
+        ),
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
@@ -2446,7 +2448,9 @@ describe("inference-staking program tests", () => {
           operatorStakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           destination: destinationTokenAccount,
-          poolUsdcVault: setup.sdk.operatorUsdcVaultPda(setup.pool1.pool),
+          poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+            setup.pool1.pool
+          ),
           destinationUsdcAccount: getAssociatedTokenAddressSync(
             setup.usdcTokenMint,
             setup.pool1.admin
@@ -2503,7 +2507,9 @@ describe("inference-staking program tests", () => {
         operatorStakingRecord: setup.pool1.stakingRecord,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         destination: destinationTokenAccount,
-        poolUsdcVault: setup.sdk.operatorUsdcVaultPda(setup.pool1.pool),
+        poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+          setup.pool1.pool
+        ),
         destinationUsdcAccount: getAssociatedTokenAddressSync(
           setup.usdcTokenMint,
           setup.pool1.admin

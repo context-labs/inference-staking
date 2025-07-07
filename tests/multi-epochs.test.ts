@@ -990,7 +990,9 @@ describe("multi-epoch lifecycle tests", () => {
           adminTokenAccount: pool.adminTokenAccount,
           registrationFeePayoutTokenAccount:
             setup.registrationFeePayoutTokenAccount,
-          operatorUsdcVault: setup.sdk.operatorUsdcVaultPda(pool.pool),
+          operatorUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+            pool.pool
+          ),
           usdcMint: setup.usdcTokenMint,
         })
         .signers([setup.payerKp, pool.adminKp])
@@ -1141,14 +1143,14 @@ describe("multi-epoch lifecycle tests", () => {
       `Unclaimed USDC payout should be zero, was ${poolOverview.unclaimedUsdcPayout.toString()}`
     );
 
-    const tokenVault = setup.sdk.rewardTokenPda();
+    const tokenVault = setup.sdk.globalTokenRewardVaultPda();
     const tokenBalance = await connection.getTokenAccountBalance(tokenVault);
     assert(
       new anchor.BN(tokenBalance.value.amount).isZero(),
       `Token balance should be zero, was ${tokenBalance.value.amount}`
     );
 
-    const usdcVault = setup.sdk.usdcTokenPda();
+    const usdcVault = setup.sdk.globalUsdcEarningsVaultPda();
     const usdcBalance = await connection.getTokenAccountBalance(usdcVault);
     assert(
       new anchor.BN(usdcBalance.value.amount).isZero(),
