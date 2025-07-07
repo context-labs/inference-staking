@@ -190,21 +190,21 @@ async function handleAccrueRewardForEpochs({
       epoch++
     ) {
       const isFinalEpochClaim = epoch === currentCompletedEpoch;
-      const poolOverviewPre = await program.account.poolOverview.fetch(
-        setup.poolOverview
-      );
-      const operatorPre = await program.account.operatorPool.fetch(pool.pool);
-      const operatorStakingRecordPre =
-        await program.account.stakingRecord.fetch(pool.stakingRecord);
-      const rewardBalancePre = await connection.getTokenAccountBalance(
-        setup.rewardTokenAccount
-      );
-      const stakedBalancePre = await connection.getTokenAccountBalance(
-        pool.stakedTokenAccount
-      );
-      const feeBalancePre = await connection.getTokenAccountBalance(
-        pool.rewardCommissionFeeTokenVault
-      );
+      const [
+        poolOverviewPre,
+        operatorPre,
+        operatorStakingRecordPre,
+        rewardBalancePre,
+        stakedBalancePre,
+        feeBalancePre,
+      ] = await Promise.all([
+        program.account.poolOverview.fetch(setup.poolOverview),
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.stakingRecord.fetch(pool.stakingRecord),
+        connection.getTokenAccountBalance(setup.rewardTokenAccount),
+        connection.getTokenAccountBalance(pool.stakedTokenAccount),
+        connection.getTokenAccountBalance(pool.rewardCommissionFeeTokenVault),
+      ]);
       const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(epoch));
 
       const claimData = await getRewardClaimInputs({
@@ -318,24 +318,20 @@ async function handleAccrueRewardForEpochs({
               new anchor.BN(0)
             );
 
-        const poolOverview = await program.account.poolOverview.fetch(
-          setup.poolOverview
-        );
+        const [poolOverview, rewardBalance, stakedBalance, feeBalance] =
+          await Promise.all([
+            program.account.poolOverview.fetch(setup.poolOverview),
+            connection.getTokenAccountBalance(setup.rewardTokenAccount),
+            connection.getTokenAccountBalance(pool.stakedTokenAccount),
+            connection.getTokenAccountBalance(
+              pool.rewardCommissionFeeTokenVault
+            ),
+          ]);
         assert(
           poolOverviewPre.unclaimedRewards
             .sub(poolOverview.unclaimedRewards)
             .eq(totalClaimedRewardsForPool),
           "Unclaimed rewards should be reduced by the total claimed amount"
-        );
-
-        const rewardBalance = await connection.getTokenAccountBalance(
-          setup.rewardTokenAccount
-        );
-        const stakedBalance = await connection.getTokenAccountBalance(
-          pool.stakedTokenAccount
-        );
-        const feeBalance = await connection.getTokenAccountBalance(
-          pool.rewardCommissionFeeTokenVault
         );
 
         const diff = new anchor.BN(rewardBalancePre.value.amount).sub(
@@ -548,23 +544,24 @@ describe("multi-epoch lifecycle tests", () => {
       totalDistributedRewards = totalDistributedRewards.add(totalRewards);
       totalDistributedUsdc = totalDistributedUsdc.add(totalUsdcAmount);
 
-      await mintTo(
-        connection,
-        setup.payerKp,
-        setup.tokenMint,
-        setup.rewardTokenAccount,
-        setup.tokenHolderKp,
-        BigInt(totalRewards.toString())
-      );
-
-      await mintTo(
-        connection,
-        setup.payerKp,
-        setup.usdcTokenMint,
-        setup.usdcTokenAccount,
-        setup.tokenHolderKp,
-        BigInt(totalUsdcAmount.toString())
-      );
+      await Promise.all([
+        mintTo(
+          connection,
+          setup.payerKp,
+          setup.tokenMint,
+          setup.rewardTokenAccount,
+          setup.tokenHolderKp,
+          BigInt(totalRewards.toString())
+        ),
+        mintTo(
+          connection,
+          setup.payerKp,
+          setup.usdcTokenMint,
+          setup.usdcTokenAccount,
+          setup.tokenHolderKp,
+          BigInt(totalUsdcAmount.toString())
+        ),
+      ]);
 
       await handleMarkEpochAsFinalizing({
         setup,
@@ -657,10 +654,10 @@ describe("multi-epoch lifecycle tests", () => {
         BigInt(stakeAmount.toString())
       );
 
-      const poolPre = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
+      const [poolPre, stakingRecordPre] = await Promise.all([
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.stakingRecord.fetch(pool.stakingRecord),
+      ]);
 
       await program.methods
         .stake(stakeAmount)
@@ -677,10 +674,10 @@ describe("multi-epoch lifecycle tests", () => {
         .signers([pool.adminKp])
         .rpc();
 
-      const poolPost = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
+      const [poolPost, stakingRecordPost] = await Promise.all([
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.stakingRecord.fetch(pool.stakingRecord),
+      ]);
 
       if (shouldAssertCreatedState) {
         assertStakingRecordCreatedState({
@@ -736,10 +733,10 @@ describe("multi-epoch lifecycle tests", () => {
           .rpc();
       }
 
-      const poolPre = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
+      const [poolPre, stakingRecordPre] = await Promise.all([
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.stakingRecord.fetch(stakingRecord),
+      ]);
 
       if (shouldAssertCreatedState) {
         assert(stakingRecordPre.owner.equals(delegatorKp.publicKey));
@@ -782,10 +779,10 @@ describe("multi-epoch lifecycle tests", () => {
         .signers([delegatorKp])
         .rpc();
 
-      const poolPost = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
+      const [poolPost, stakingRecordPost] = await Promise.all([
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.stakingRecord.fetch(stakingRecord),
+      ]);
 
       if (shouldAssertCreatedState) {
         assertStakingRecordCreatedState({
@@ -1125,14 +1122,16 @@ describe("multi-epoch lifecycle tests", () => {
     );
 
     const tokenVault = setup.sdk.globalTokenRewardVaultPda();
-    const tokenBalance = await connection.getTokenAccountBalance(tokenVault);
+    const usdcVault = setup.sdk.globalUsdcEarningsVaultPda();
+    const [tokenBalance, usdcBalance] = await Promise.all([
+      connection.getTokenAccountBalance(tokenVault),
+      connection.getTokenAccountBalance(usdcVault),
+    ]);
     assert(
       new anchor.BN(tokenBalance.value.amount).isZero(),
       `Token balance should be zero, was ${tokenBalance.value.amount}`
     );
 
-    const usdcVault = setup.sdk.globalUsdcEarningsVaultPda();
-    const usdcBalance = await connection.getTokenAccountBalance(usdcVault);
     assert(
       new anchor.BN(usdcBalance.value.amount).isZero(),
       `USDC balance should be zero, was ${usdcBalance.value.amount}`
@@ -1167,18 +1166,17 @@ describe("multi-epoch lifecycle tests", () => {
         delegatorKp.publicKey
       );
 
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-      const operatorPoolPre = await program.account.operatorPool.fetch(
-        pool.pool
-      );
-      const poolUsdcVaultPre = await connection.getTokenAccountBalance(
-        pool.poolUsdcVault
-      );
-      const delegatorUsdcBalancePre = await connection.getTokenAccountBalance(
-        delegatorUsdcAccount.address
-      );
+      const [
+        stakingRecordPre,
+        operatorPoolPre,
+        poolUsdcVaultPre,
+        delegatorUsdcBalancePre,
+      ] = await Promise.all([
+        program.account.stakingRecord.fetch(stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+        connection.getTokenAccountBalance(pool.poolUsdcVault),
+        connection.getTokenAccountBalance(delegatorUsdcAccount.address),
+      ]);
 
       const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord({
         accruedUsdcEarnings: stakingRecordPre.accruedUsdcEarnings.toString(),
@@ -1210,15 +1208,12 @@ describe("multi-epoch lifecycle tests", () => {
         .signers([delegatorKp])
         .rpc();
 
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-      const poolUsdcVaultPost = await connection.getTokenAccountBalance(
-        pool.poolUsdcVault
-      );
-      const delegatorUsdcBalancePost = await connection.getTokenAccountBalance(
-        delegatorUsdcAccount.address
-      );
+      const [stakingRecordPost, poolUsdcVaultPost, delegatorUsdcBalancePost] =
+        await Promise.all([
+          program.account.stakingRecord.fetch(stakingRecord),
+          connection.getTokenAccountBalance(pool.poolUsdcVault),
+          connection.getTokenAccountBalance(delegatorUsdcAccount.address),
+        ]);
 
       // Verify USDC was transferred
       const vaultBalanceDiff = new anchor.BN(poolUsdcVaultPre.value.amount).sub(
@@ -1269,18 +1264,17 @@ describe("multi-epoch lifecycle tests", () => {
 
     let counter = 1;
     for (const pool of setup.pools) {
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
-      const operatorPoolPre = await program.account.operatorPool.fetch(
-        pool.pool
-      );
-      const poolUsdcVaultPre = await connection.getTokenAccountBalance(
-        pool.poolUsdcVault
-      );
-      const operatorUsdcBalancePre = await connection.getTokenAccountBalance(
-        pool.usdcTokenAccount
-      );
+      const [
+        stakingRecordPre,
+        operatorPoolPre,
+        poolUsdcVaultPre,
+        operatorUsdcBalancePre,
+      ] = await Promise.all([
+        program.account.stakingRecord.fetch(pool.stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+        connection.getTokenAccountBalance(pool.poolUsdcVault),
+        connection.getTokenAccountBalance(pool.usdcTokenAccount),
+      ]);
 
       // Calculate the full available amount including unsettled earnings
       const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord({
@@ -1313,15 +1307,12 @@ describe("multi-epoch lifecycle tests", () => {
         .signers([pool.adminKp])
         .rpc();
 
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
-      const poolUsdcVaultPost = await connection.getTokenAccountBalance(
-        pool.poolUsdcVault
-      );
-      const operatorUsdcBalancePost = await connection.getTokenAccountBalance(
-        pool.usdcTokenAccount
-      );
+      const [stakingRecordPost, poolUsdcVaultPost, operatorUsdcBalancePost] =
+        await Promise.all([
+          program.account.stakingRecord.fetch(pool.stakingRecord),
+          connection.getTokenAccountBalance(pool.poolUsdcVault),
+          connection.getTokenAccountBalance(pool.usdcTokenAccount),
+        ]);
 
       // Verify USDC was transferred
       const vaultBalanceDiff = new anchor.BN(poolUsdcVaultPre.value.amount).sub(
@@ -1389,12 +1380,10 @@ describe("multi-epoch lifecycle tests", () => {
         delegatorKp.publicKey
       );
 
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-      const operatorPoolPre = await program.account.operatorPool.fetch(
-        pool.pool
-      );
+      const [stakingRecordPre, operatorPoolPre] = await Promise.all([
+        program.account.stakingRecord.fetch(stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+      ]);
 
       // Unstake all shares for this delegator
       await program.methods
@@ -1409,12 +1398,10 @@ describe("multi-epoch lifecycle tests", () => {
         .signers([delegatorKp])
         .rpc();
 
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-      const operatorPoolPost = await program.account.operatorPool.fetch(
-        pool.pool
-      );
+      const [stakingRecordPost, operatorPoolPost] = await Promise.all([
+        program.account.stakingRecord.fetch(stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+      ]);
 
       // Verify the shares are reduced in the staking record
       assert(
@@ -1499,12 +1486,10 @@ describe("multi-epoch lifecycle tests", () => {
         delegatorKp.publicKey
       );
 
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-      const operatorPoolPre = await program.account.operatorPool.fetch(
-        pool.pool
-      );
+      const [stakingRecordPre, operatorPoolPre] = await Promise.all([
+        program.account.stakingRecord.fetch(stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+      ]);
 
       const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
         connection,
@@ -1531,15 +1516,12 @@ describe("multi-epoch lifecycle tests", () => {
         })
         .rpc();
 
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-      const operatorPoolPost = await program.account.operatorPool.fetch(
-        pool.pool
-      );
-      const tokenBalancePost = await connection.getTokenAccountBalance(
-        ownerTokenAccount.address
-      );
+      const [stakingRecordPost, operatorPoolPost, tokenBalancePost] =
+        await Promise.all([
+          program.account.stakingRecord.fetch(stakingRecord),
+          program.account.operatorPool.fetch(pool.pool),
+          connection.getTokenAccountBalance(ownerTokenAccount.address),
+        ]);
 
       // Verify staking record is properly reset
       assert(
@@ -1684,12 +1666,10 @@ describe("multi-epoch lifecycle tests", () => {
         .signers([pool.adminKp])
         .rpc();
 
-      const feeTokenAccountPost = await connection.getTokenAccountBalance(
-        pool.rewardCommissionFeeTokenVault
-      );
-      const ownerTokenBalancePost = await connection.getTokenAccountBalance(
-        ownerTokenAccount.address
-      );
+      const [feeTokenAccountPost, ownerTokenBalancePost] = await Promise.all([
+        connection.getTokenAccountBalance(pool.rewardCommissionFeeTokenVault),
+        connection.getTokenAccountBalance(ownerTokenAccount.address),
+      ]);
 
       // Verify fee token account is emptied
       assert.equal(
@@ -1756,12 +1736,11 @@ describe("multi-epoch lifecycle tests", () => {
         .signers([pool.adminKp])
         .rpc();
 
-      const usdcFeeTokenAccountPost = await connection.getTokenAccountBalance(
-        pool.usdcCommissionFeeTokenVault
-      );
-      const operatorUsdcBalancePost = await connection.getTokenAccountBalance(
-        pool.usdcTokenAccount
-      );
+      const [usdcFeeTokenAccountPost, operatorUsdcBalancePost] =
+        await Promise.all([
+          connection.getTokenAccountBalance(pool.usdcCommissionFeeTokenVault),
+          connection.getTokenAccountBalance(pool.usdcTokenAccount),
+        ]);
 
       // Verify USDC fee token account is emptied
       assert.equal(
@@ -1820,10 +1799,10 @@ describe("multi-epoch lifecycle tests", () => {
         .signers([pool.adminKp])
         .rpc();
 
-      const operatorPool = await program.account.operatorPool.fetch(pool.pool);
-      const poolOverview = await program.account.poolOverview.fetch(
-        setup.poolOverview
-      );
+      const [operatorPool, poolOverview] = await Promise.all([
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.poolOverview.fetch(setup.poolOverview),
+      ]);
 
       assert(
         operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch.addn(1)),
@@ -1876,12 +1855,10 @@ describe("multi-epoch lifecycle tests", () => {
         .signers([pool.adminKp])
         .rpc();
 
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
-      const operatorPoolPost = await program.account.operatorPool.fetch(
-        pool.pool
-      );
+      const [stakingRecordPost, operatorPoolPost] = await Promise.all([
+        program.account.stakingRecord.fetch(pool.stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+      ]);
 
       // Verify the shares are reduced in the staking record
       assert(
@@ -1990,15 +1967,12 @@ describe("multi-epoch lifecycle tests", () => {
         })
         .rpc();
 
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
-      const operatorPoolPost = await program.account.operatorPool.fetch(
-        pool.pool
-      );
-      const tokenBalancePost = await connection.getTokenAccountBalance(
-        ownerTokenAccount.address
-      );
+      const [stakingRecordPost, operatorPoolPost, tokenBalancePost] =
+        await Promise.all([
+          program.account.stakingRecord.fetch(pool.stakingRecord),
+          program.account.operatorPool.fetch(pool.pool),
+          connection.getTokenAccountBalance(ownerTokenAccount.address),
+        ]);
 
       // Verify staking record is properly reset
       assert(
@@ -2144,12 +2118,10 @@ describe("multi-epoch lifecycle tests", () => {
 
     let counter = 1;
     for (const pool of setup.pools) {
-      const poolUsdcVaultPre = await connection.getTokenAccountBalance(
-        pool.poolUsdcVault
-      );
-      const adminUsdcBalancePre = await connection.getTokenAccountBalance(
-        pool.usdcTokenAccount
-      );
+      const [poolUsdcVaultPre, adminUsdcBalancePre] = await Promise.all([
+        connection.getTokenAccountBalance(pool.poolUsdcVault),
+        connection.getTokenAccountBalance(pool.usdcTokenAccount),
+      ]);
 
       await program.methods
         .sweepClosedPoolUsdcDust()

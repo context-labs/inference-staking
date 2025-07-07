@@ -318,13 +318,13 @@ describe("inference-staking program tests", () => {
   });
 
   it("Create OperatorPool 1 successfully", async () => {
-    const adminTokenBalancePre = await connection.getTokenAccountBalance(
-      setup.pool1.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePre =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePre, registrationFeePayoutBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool1.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     await program.methods
       .createOperatorPool({
@@ -360,13 +360,13 @@ describe("inference-staking program tests", () => {
       .rpc();
 
     // Verify registration fee transfer occurred
-    const adminTokenBalancePost = await connection.getTokenAccountBalance(
-      setup.pool1.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePost =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePost, registrationFeePayoutBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool1.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     assert(
       new anchor.BN(adminTokenBalancePre.value.amount)
@@ -1080,12 +1080,11 @@ describe("inference-staking program tests", () => {
       setup.pool1.pool
     );
 
-    const ownerTokenAccountBalancePre = await connection.getTokenAccountBalance(
-      ownerTokenAccount
-    );
-
-    const programTokenAccountBalancePre =
-      await connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount);
+    const [ownerTokenAccountBalancePre, programTokenAccountBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(ownerTokenAccount),
+        connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      ]);
 
     await program.methods
       .stake(stakeAmount)
@@ -1125,11 +1124,11 @@ describe("inference-staking program tests", () => {
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
 
-    const ownerTokenAccountBalancePost =
-      await connection.getTokenAccountBalance(ownerTokenAccount);
-
-    const programTokenAccountBalancePost =
-      await connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount);
+    const [ownerTokenAccountBalancePost, programTokenAccountBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(ownerTokenAccount),
+        connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      ]);
 
     assert(
       new anchor.BN(ownerTokenAccountBalancePre.value.amount)
@@ -1300,12 +1299,10 @@ describe("inference-staking program tests", () => {
 
   it("Unstake for delegator successfully", async () => {
     const unstakeAmount = new anchor.BN(10_000);
-    const operatorPoolPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.delegatorStakingRecord
-    );
+    const [operatorPoolPre, stakingRecordPre] = await Promise.all([
+      program.account.operatorPool.fetch(setup.pool1.pool),
+      program.account.stakingRecord.fetch(setup.pool1.delegatorStakingRecord),
+    ]);
 
     // Expect unstaking to be successful even when operator falls below min. share.
     const eventPromise = new Promise<UnstakeEvent>((resolve) => {
@@ -1436,12 +1433,10 @@ describe("inference-staking program tests", () => {
 
   it("Cancel unstake successfully", async () => {
     const unstakeAmount = new anchor.BN(10_000);
-    const operatorPoolPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.stakingRecord
-    );
+    const [operatorPoolPre, stakingRecordPre] = await Promise.all([
+      program.account.operatorPool.fetch(setup.pool1.pool),
+      program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
+    ]);
 
     await program.methods
       .cancelUnstake()
@@ -1646,13 +1641,13 @@ describe("inference-staking program tests", () => {
   });
 
   it("Create OperatorPool 2 successfully", async () => {
-    const adminTokenBalancePre = await connection.getTokenAccountBalance(
-      setup.pool2.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePre =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePre, registrationFeePayoutBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool2.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     await program.methods
       .createOperatorPool({
@@ -1688,13 +1683,13 @@ describe("inference-staking program tests", () => {
       .rpc();
 
     // Verify registration fee transfer occurred
-    const adminTokenBalancePost = await connection.getTokenAccountBalance(
-      setup.pool2.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePost =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePost, registrationFeePayoutBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool2.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     assert(
       new anchor.BN(adminTokenBalancePre.value.amount)
@@ -1757,23 +1752,24 @@ describe("inference-staking program tests", () => {
       );
     }
 
-    await mintTo(
-      connection,
-      setup.payerKp,
-      setup.tokenMint,
-      setup.rewardTokenAccount,
-      setup.tokenHolderKp,
-      BigInt(totalRewards.toString())
-    );
-
-    await mintTo(
-      connection,
-      setup.payerKp,
-      setup.usdcTokenMint,
-      setup.usdcTokenAccount,
-      setup.tokenHolderKp,
-      BigInt(totalUsdcAmount.toString())
-    );
+    await Promise.all([
+      mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        setup.rewardTokenAccount,
+        setup.tokenHolderKp,
+        BigInt(totalRewards.toString())
+      ),
+      mintTo(
+        connection,
+        setup.payerKp,
+        setup.usdcTokenMint,
+        setup.usdcTokenAccount,
+        setup.tokenHolderKp,
+        BigInt(totalUsdcAmount.toString())
+      ),
+    ]);
 
     await handleMarkEpochAsFinalizing({
       setup,
@@ -1999,27 +1995,27 @@ describe("inference-staking program tests", () => {
     } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
-    const poolOverviewPre = await program.account.poolOverview.fetch(
-      setup.poolOverview
-    );
-    const operatorPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    const operatorStakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.stakingRecord
-    );
-    const rewardBalancePre = await connection.getTokenAccountBalance(
-      setup.rewardTokenAccount
-    );
-    const stakedBalancePre = await connection.getTokenAccountBalance(
-      setup.pool1.stakedTokenAccount
-    );
-    const feeBalancePre = await connection.getTokenAccountBalance(
-      setup.pool1.rewardCommissionFeeTokenVault
-    );
-    const usdcFeeBalancePre = await connection.getTokenAccountBalance(
-      setup.pool1.usdcCommissionFeeTokenVault
-    );
+    const [
+      poolOverviewPre,
+      operatorPre,
+      operatorStakingRecordPre,
+      rewardBalancePre,
+      stakedBalancePre,
+      feeBalancePre,
+      usdcFeeBalancePre,
+    ] = await Promise.all([
+      program.account.poolOverview.fetch(setup.poolOverview),
+      program.account.operatorPool.fetch(setup.pool1.pool),
+      program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
+      connection.getTokenAccountBalance(setup.rewardTokenAccount),
+      connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
+      connection.getTokenAccountBalance(
+        setup.pool1.usdcCommissionFeeTokenVault
+      ),
+    ]);
 
     const rewardAmount = new anchor.BN(proofInputs.tokenAmount.toString());
     const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
@@ -2107,15 +2103,13 @@ describe("inference-staking program tests", () => {
     assert(operatorStakingRecordPre.shares.eq(operatorStakingRecord.shares));
 
     // Verify that token balance changes are correct.
-    const rewardBalance = await connection.getTokenAccountBalance(
-      setup.rewardTokenAccount
-    );
-    const stakedBalance = await connection.getTokenAccountBalance(
-      setup.pool1.stakedTokenAccount
-    );
-    const feeBalance = await connection.getTokenAccountBalance(
-      setup.pool1.rewardCommissionFeeTokenVault
-    );
+    const [rewardBalance, stakedBalance, feeBalance] = await Promise.all([
+      connection.getTokenAccountBalance(setup.rewardTokenAccount),
+      connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
+    ]);
     assert(
       rewardAmount.eq(
         new anchor.BN(rewardBalancePre.value.amount.toString()).sub(
@@ -2260,16 +2254,12 @@ describe("inference-staking program tests", () => {
       setup.tokenMint,
       setup.delegator1
     );
-    const tokenBalancePre = await connection.getTokenAccountBalance(
-      ownerTokenAccount
-    );
-    const operatorPoolPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-
-    const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.delegatorStakingRecord
-    );
+    const [tokenBalancePre, operatorPoolPre, stakingRecordPre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(ownerTokenAccount),
+        program.account.operatorPool.fetch(setup.pool1.pool),
+        program.account.stakingRecord.fetch(setup.pool1.delegatorStakingRecord),
+      ]);
 
     const eventPromise = new Promise<ClaimUnstakeEvent>((resolve) => {
       const listenerId = program.addEventListener(
@@ -2382,16 +2372,12 @@ describe("inference-staking program tests", () => {
       setup.tokenMint,
       setup.pool1.admin
     );
-    const tokenBalancePre = await connection.getTokenAccountBalance(
-      ownerTokenAccount
-    );
-    const operatorPoolPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-
-    const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.stakingRecord
-    );
+    const [tokenBalancePre, operatorPoolPre, stakingRecordPre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(ownerTokenAccount),
+        program.account.operatorPool.fetch(setup.pool1.pool),
+        program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
+      ]);
 
     await program.methods
       .claimUnstake()
@@ -3242,13 +3228,13 @@ describe("inference-staking program tests", () => {
       setup.poolOverview
     );
 
-    const adminTokenBalancePre = await connection.getTokenAccountBalance(
-      setup.pool3.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePre =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePre, registrationFeePayoutBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool3.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     await program.methods
       .createOperatorPool({
@@ -3284,13 +3270,13 @@ describe("inference-staking program tests", () => {
       .rpc();
 
     // Verify registration fee transfer occurred
-    const adminTokenBalancePost = await connection.getTokenAccountBalance(
-      setup.pool3.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePost =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePost, registrationFeePayoutBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool3.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     assert(
       new anchor.BN(adminTokenBalancePre.value.amount)
@@ -3326,13 +3312,13 @@ describe("inference-staking program tests", () => {
 
     const mockDescription = `NodeOperator-XYZ: High-performance validator with 99.8% uptime. Specialized in Solana infrastructure since 2021. Our setup includes redundant systems and 24/7 monitoring. We are good. #ReliableStaking`;
 
-    const adminTokenBalancePre = await connection.getTokenAccountBalance(
-      setup.pool4.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePre =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePre, registrationFeePayoutBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool4.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     await program.methods
       .createOperatorPool({
@@ -3368,13 +3354,13 @@ describe("inference-staking program tests", () => {
       .rpc();
 
     // Verify registration fee transfer occurred
-    const adminTokenBalancePost = await connection.getTokenAccountBalance(
-      setup.pool4.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePost =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePost, registrationFeePayoutBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool4.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     assert(
       new anchor.BN(adminTokenBalancePre.value.amount)
@@ -3419,13 +3405,13 @@ describe("inference-staking program tests", () => {
       .signers([setup.poolOverviewAdminKp])
       .rpc();
 
-    const adminTokenBalancePre = await connection.getTokenAccountBalance(
-      setup.pool5.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePre =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePre, registrationFeePayoutBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool5.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     await program.methods
       .createOperatorPool({
@@ -3461,13 +3447,13 @@ describe("inference-staking program tests", () => {
       .rpc();
 
     // Verify no registration fee transfer occurred
-    const adminTokenBalancePost = await connection.getTokenAccountBalance(
-      setup.pool5.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePost =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePost, registrationFeePayoutBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool5.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     assert(
       new anchor.BN(adminTokenBalancePre.value.amount).eq(
