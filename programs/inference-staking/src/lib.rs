@@ -109,8 +109,10 @@ pub mod inference_staking {
         create_operator_pool::handler(ctx, args)
     }
 
-    pub fn withdraw_operator_commission(ctx: Context<WithdrawOperatorCommission>) -> Result<()> {
-        withdraw_operator_commission::handler(ctx)
+    pub fn withdraw_operator_reward_commission(
+        ctx: Context<WithdrawOperatorRewardCommission>,
+    ) -> Result<()> {
+        withdraw_operator_reward_commission::handler(ctx)
     }
 
     pub fn withdraw_operator_usdc_commission(

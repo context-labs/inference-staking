@@ -203,7 +203,7 @@ async function handleAccrueRewardForEpochs({
         pool.stakedTokenAccount
       );
       const feeBalancePre = await connection.getTokenAccountBalance(
-        pool.feeTokenAccount
+        pool.rewardCommissionFeeTokenVault
       );
       const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(epoch));
 
@@ -225,8 +225,9 @@ async function handleAccrueRewardForEpochs({
       const usdc = formatBN(usdcAmount);
 
       debug(
-        `- Claiming Epoch ${epoch} rewards for Operator Pool ${pool.pool.toString()} - rewardAmount = ${tokens} - usdcAmount = ${usdc}`
+        `- Claiming Epoch ${epoch} rewards for Operator Pool ${pool.pool.toString()}`
       );
+      debug(` - Epoch rewardAmount = ${tokens} - usdcAmount = ${usdc}`);
 
       rewardClaimsForPool.push(rewardAmount);
 
@@ -249,7 +250,7 @@ async function handleAccrueRewardForEpochs({
           operatorStakingRecord: pool.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: pool.stakedTokenAccount,
-          feeTokenAccount: pool.feeTokenAccount,
+          rewardFeeTokenAccount: pool.rewardCommissionFeeTokenVault,
           usdcTokenAccount: setup.usdcTokenAccount,
           usdcFeeTokenAccount: pool.usdcCommissionFeeTokenVault,
           poolUsdcVault: pool.poolUsdcVault,
@@ -334,7 +335,7 @@ async function handleAccrueRewardForEpochs({
           pool.stakedTokenAccount
         );
         const feeBalance = await connection.getTokenAccountBalance(
-          pool.feeTokenAccount
+          pool.rewardCommissionFeeTokenVault
         );
 
         const diff = new anchor.BN(rewardBalancePre.value.amount).sub(
@@ -967,7 +968,7 @@ describe("multi-epoch lifecycle tests", () => {
           operatorPool: pool.pool,
           stakingRecord: pool.stakingRecord,
           stakedTokenAccount: pool.stakedTokenAccount,
-          feeTokenAccount: pool.feeTokenAccount,
+          rewardFeeTokenAccount: pool.rewardCommissionFeeTokenVault,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
           usdcFeeTokenAccount: pool.usdcCommissionFeeTokenVault,
@@ -1649,7 +1650,7 @@ describe("multi-epoch lifecycle tests", () => {
     let counter = 1;
     for (const pool of setup.pools) {
       const feeTokenAccountPre = await connection.getTokenAccountBalance(
-        pool.feeTokenAccount
+        pool.rewardCommissionFeeTokenVault
       );
 
       if (new anchor.BN(feeTokenAccountPre.value.amount).isZero()) {
@@ -1671,12 +1672,12 @@ describe("multi-epoch lifecycle tests", () => {
       );
 
       await program.methods
-        .withdrawOperatorCommission()
+        .withdrawOperatorRewardCommission()
         .accountsStrict({
           admin: pool.admin,
           poolOverview: setup.poolOverview,
           operatorPool: pool.pool,
-          feeTokenAccount: pool.feeTokenAccount,
+          rewardFeeTokenAccount: pool.rewardCommissionFeeTokenVault,
           destination: ownerTokenAccount.address,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
@@ -1684,7 +1685,7 @@ describe("multi-epoch lifecycle tests", () => {
         .rpc();
 
       const feeTokenAccountPost = await connection.getTokenAccountBalance(
-        pool.feeTokenAccount
+        pool.rewardCommissionFeeTokenVault
       );
       const ownerTokenBalancePost = await connection.getTokenAccountBalance(
         ownerTokenAccount.address

@@ -66,14 +66,14 @@ pub struct AccrueReward<'info> {
 
     #[account(
         mut,
-        seeds = [b"PoolCommissionFeeTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolRewardCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
-    pub fee_token_account: Box<Account<'info, TokenAccount>>,
+    pub reward_fee_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [b"PoolUsdcCommissionFeeTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolUsdcCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
     pub usdc_fee_token_account: Box<Account<'info, TokenAccount>>,
@@ -209,7 +209,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
                     ctx.accounts.token_program.to_account_info(),
                     Transfer {
                         from: ctx.accounts.reward_token_account.to_account_info(),
-                        to: ctx.accounts.fee_token_account.to_account_info(),
+                        to: ctx.accounts.reward_fee_token_account.to_account_info(),
                         authority: ctx.accounts.pool_overview.to_account_info(),
                     },
                     &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],

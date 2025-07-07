@@ -259,7 +259,7 @@ describe("Additional tests for instruction constraints", () => {
           operatorPool: setup.pool1.pool,
           stakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,

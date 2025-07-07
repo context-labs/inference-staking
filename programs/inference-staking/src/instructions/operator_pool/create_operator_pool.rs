@@ -62,17 +62,17 @@ pub struct CreateOperatorPool<'info> {
 
     #[account(
         init,
-        seeds = [b"PoolCommissionFeeTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolRewardCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
         payer = payer,
         token::mint = mint,
         token::authority = operator_pool
     )]
-    pub fee_token_account: Box<Account<'info, TokenAccount>>,
+    pub reward_fee_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         init,
-        seeds = [b"PoolUsdcCommissionFeeTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolUsdcCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
         payer = payer,
         token::mint = usdc_mint,

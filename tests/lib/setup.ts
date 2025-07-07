@@ -37,7 +37,7 @@ export type SetupPoolType = {
   avatarImageUrl: string | null;
   admin: PublicKey;
   adminKp: Keypair;
-  feeTokenAccount: PublicKey;
+  rewardCommissionFeeTokenVault: PublicKey;
   pool: PublicKey;
   stakedTokenAccount: PublicKey;
   stakingRecord: PublicKey;
@@ -236,8 +236,16 @@ export async function setupTests() {
         tokenMint,
         adminKeypair.publicKey
       );
+      const rewardFeeTokenAccount =
+        sdk.poolRewardCommissionTokenVaultPda(operatorPool);
       const usdcCommissionFeeTokenVault =
-        sdk.poolUsdcCommissionFeeTokenVaultPda(operatorPool);
+        sdk.poolUsdcCommissionTokenVaultPda(operatorPool);
+      const stakedTokenAccount = sdk.poolStakedTokenVaultPda(operatorPool);
+      const stakingRecord = sdk.stakingRecordPda(
+        operatorPool,
+        adminKeypair.publicKey
+      );
+      const poolUsdcVault = sdk.poolDelegatorUsdcEarningsVaultPda(operatorPool);
       return {
         name: `Test Operator ${shortId()}`,
         description: `Test Description ${shortId()}`,
@@ -245,13 +253,10 @@ export async function setupTests() {
         avatarImageUrl: null,
         admin: adminKeypair.publicKey,
         adminKp: adminKeypair,
-        feeTokenAccount: sdk.poolCommissionFeeTokenVaultPda(operatorPool),
+        rewardCommissionFeeTokenVault: rewardFeeTokenAccount,
         pool: operatorPool,
-        stakedTokenAccount: sdk.poolStakedTokenVaultPda(operatorPool),
-        stakingRecord: sdk.stakingRecordPda(
-          operatorPool,
-          adminKeypair.publicKey
-        ),
+        stakedTokenAccount,
+        stakingRecord,
         usdcCommissionFeeTokenVault,
         usdcTokenAccount: adminUsdcTokenAccount.address,
         delegatorStakingRecord: sdk.stakingRecordPda(
@@ -262,7 +267,7 @@ export async function setupTests() {
         rewardCommissionRateBps: randomIntInRange(0, 100) * 100,
         usdcCommissionRateBps: randomIntInRange(0, 100) * 100,
         adminTokenAccount: adminTokenAccount.address,
-        poolUsdcVault: sdk.poolDelegatorUsdcEarningsVaultPda(operatorPool),
+        poolUsdcVault,
       };
     } catch (err) {
       console.log(`Error getting pool setup for ${operatorPool.toBase58()}`);

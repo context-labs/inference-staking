@@ -111,7 +111,7 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           stakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -344,7 +344,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         stakingRecord: setup.pool1.stakingRecord,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
         usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
@@ -434,7 +434,7 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           stakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
           usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
@@ -1547,7 +1547,7 @@ describe("inference-staking program tests", () => {
       operatorPool: setup.pool2.pool,
       stakingRecord: setup.pool2.stakingRecord,
       stakedTokenAccount: setup.pool2.stakedTokenAccount,
-      feeTokenAccount: setup.pool2.feeTokenAccount,
+      rewardFeeTokenAccount: setup.pool2.rewardCommissionFeeTokenVault,
       poolOverview: setup.poolOverview,
       mint: setup.tokenMint,
       usdcFeeTokenAccount: setup.pool2.usdcCommissionFeeTokenVault,
@@ -1672,7 +1672,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool2.pool,
         stakingRecord: setup.pool2.stakingRecord,
         stakedTokenAccount: setup.pool2.stakedTokenAccount,
-        feeTokenAccount: setup.pool2.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool2.rewardCommissionFeeTokenVault,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
         usdcFeeTokenAccount: setup.pool2.usdcCommissionFeeTokenVault,
@@ -2015,7 +2015,7 @@ describe("inference-staking program tests", () => {
       setup.pool1.stakedTokenAccount
     );
     const feeBalancePre = await connection.getTokenAccountBalance(
-      setup.pool1.feeTokenAccount
+      setup.pool1.rewardCommissionFeeTokenVault
     );
     const usdcFeeBalancePre = await connection.getTokenAccountBalance(
       setup.pool1.usdcCommissionFeeTokenVault
@@ -2049,7 +2049,7 @@ describe("inference-staking program tests", () => {
         operatorStakingRecord: setup.pool1.stakingRecord,
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
         usdcTokenAccount: setup.usdcTokenAccount,
         usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
@@ -2114,7 +2114,7 @@ describe("inference-staking program tests", () => {
       setup.pool1.stakedTokenAccount
     );
     const feeBalance = await connection.getTokenAccountBalance(
-      setup.pool1.feeTokenAccount
+      setup.pool1.rewardCommissionFeeTokenVault
     );
     assert(
       rewardAmount.eq(
@@ -2687,12 +2687,12 @@ describe("inference-staking program tests", () => {
   it("Fail to withdraw Operator commission if pool is halted", async () => {
     try {
       await program.methods
-        .withdrawOperatorCommission()
+        .withdrawOperatorRewardCommission()
         .accountsStrict({
           admin: setup.pool1.admin,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
           destination: getAssociatedTokenAddressSync(
             setup.tokenMint,
             setup.pool1.admin
@@ -2791,12 +2791,12 @@ describe("inference-staking program tests", () => {
 
     try {
       await program.methods
-        .withdrawOperatorCommission()
+        .withdrawOperatorRewardCommission()
         .accountsStrict({
           admin: setup.pool1.admin,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
           destination: getAssociatedTokenAddressSync(
             setup.tokenMint,
             setup.pool1.admin
@@ -2882,17 +2882,19 @@ describe("inference-staking program tests", () => {
       setup.pool1.admin
     );
     const [feeTokenAccountPre, destinationPre] = await Promise.all([
-      connection.getTokenAccountBalance(setup.pool1.feeTokenAccount),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
       connection.getTokenAccountBalance(destinationTokenAccount),
     ]);
 
     await program.methods
-      .withdrawOperatorCommission()
+      .withdrawOperatorRewardCommission()
       .accountsStrict({
         admin: setup.pool1.admin,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
         destination: destinationTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -2900,7 +2902,9 @@ describe("inference-staking program tests", () => {
       .rpc();
 
     const [feeTokenAccountPost, destinationPost] = await Promise.all([
-      connection.getTokenAccountBalance(setup.pool1.feeTokenAccount),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
       connection.getTokenAccountBalance(destinationTokenAccount),
     ]);
 
@@ -3264,7 +3268,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool3.pool,
         stakingRecord: setup.pool3.stakingRecord,
         stakedTokenAccount: setup.pool3.stakedTokenAccount,
-        feeTokenAccount: setup.pool3.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool3.rewardCommissionFeeTokenVault,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
         usdcFeeTokenAccount: setup.pool3.usdcCommissionFeeTokenVault,
@@ -3348,7 +3352,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool4.pool,
         stakingRecord: setup.pool4.stakingRecord,
         stakedTokenAccount: setup.pool4.stakedTokenAccount,
-        feeTokenAccount: setup.pool4.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool4.rewardCommissionFeeTokenVault,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
         usdcFeeTokenAccount: setup.pool4.usdcCommissionFeeTokenVault,
@@ -3441,7 +3445,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool5.pool,
         stakingRecord: setup.pool5.stakingRecord,
         stakedTokenAccount: setup.pool5.stakedTokenAccount,
-        feeTokenAccount: setup.pool5.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool5.rewardCommissionFeeTokenVault,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
         usdcFeeTokenAccount: setup.pool5.usdcCommissionFeeTokenVault,
@@ -3523,7 +3527,7 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool6.pool,
           stakingRecord: setup.pool6.stakingRecord,
           stakedTokenAccount: setup.pool6.stakedTokenAccount,
-          feeTokenAccount: setup.pool6.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool6.rewardCommissionFeeTokenVault,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
           usdcFeeTokenAccount: setup.pool6.usdcCommissionFeeTokenVault,

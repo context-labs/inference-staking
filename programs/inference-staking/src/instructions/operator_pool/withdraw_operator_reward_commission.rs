@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Accounts)]
-pub struct WithdrawOperatorCommission<'info> {
+pub struct WithdrawOperatorRewardCommission<'info> {
     pub admin: Signer<'info>,
 
     #[account(
@@ -27,10 +27,10 @@ pub struct WithdrawOperatorCommission<'info> {
 
     #[account(
         mut,
-        seeds = [b"PoolCommissionFeeTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolRewardCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
-    pub fee_token_account: Account<'info, TokenAccount>,
+    pub reward_fee_token_account: Account<'info, TokenAccount>,
 
     /// Destination for the commission.
     #[account(mut)]
@@ -41,7 +41,7 @@ pub struct WithdrawOperatorCommission<'info> {
 
 /// Send all fees collected in the OperatorPool's Fee TokenAccount to the destination.
 /// Must be signed by the OperatorPool's admin.
-pub fn handler(ctx: Context<WithdrawOperatorCommission>) -> Result<()> {
+pub fn handler(ctx: Context<WithdrawOperatorRewardCommission>) -> Result<()> {
     require!(
         !ctx.accounts.pool_overview.is_withdrawal_halted,
         ErrorCode::WithdrawalsHalted
@@ -52,12 +52,12 @@ pub fn handler(ctx: Context<WithdrawOperatorCommission>) -> Result<()> {
     );
 
     // Transfer all fees from Fee TokenAccount to selected destination TokenAccount.
-    let fees_amount = ctx.accounts.fee_token_account.amount;
+    let fees_amount = ctx.accounts.reward_fee_token_account.amount;
     token::transfer(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
-                from: ctx.accounts.fee_token_account.to_account_info(),
+                from: ctx.accounts.reward_fee_token_account.to_account_info(),
                 to: ctx.accounts.destination.to_account_info(),
                 authority: ctx.accounts.operator_pool.to_account_info(),
             },

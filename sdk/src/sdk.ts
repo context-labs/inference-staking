@@ -125,10 +125,10 @@ export class InferenceStakingProgramSdk {
     return pda;
   }
 
-  poolCommissionFeeTokenVaultPda(operatorPoolPda: PublicKey): PublicKey {
+  poolRewardCommissionTokenVaultPda(operatorPoolPda: PublicKey): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("PoolCommissionFeeTokenVault", "utf-8"),
+        Buffer.from("PoolRewardCommissionTokenVault", "utf-8"),
         operatorPoolPda.toBuffer(),
       ],
       this.program.programId
@@ -136,10 +136,10 @@ export class InferenceStakingProgramSdk {
     return pda;
   }
 
-  poolUsdcCommissionFeeTokenVaultPda(operatorPoolPda: PublicKey): PublicKey {
+  poolUsdcCommissionTokenVaultPda(operatorPoolPda: PublicKey): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("PoolUsdcCommissionFeeTokenVault", "utf-8"),
+        Buffer.from("PoolUsdcCommissionTokenVault", "utf-8"),
         operatorPoolPda.toBuffer(),
       ],
       this.program.programId
@@ -391,7 +391,7 @@ export class InferenceStakingProgramSdk {
   }
 
   async fetchFeeTokenAccountBalance(operatorPoolPda: PublicKey): Promise<BN> {
-    const feeTokenPda = this.poolCommissionFeeTokenVaultPda(operatorPoolPda);
+    const feeTokenPda = this.poolRewardCommissionTokenVaultPda(operatorPoolPda);
     const tokenAccountInfo =
       await this.program.provider.connection.getTokenAccountBalance(
         feeTokenPda

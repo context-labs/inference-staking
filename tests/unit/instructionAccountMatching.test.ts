@@ -34,7 +34,6 @@ describe("Instruction Account Matching", () => {
         case "authority":
         case "destination":
         case "destinationUsdcAccount":
-        case "feeTokenAccount":
         case "mint":
         case "newAdmin":
         case "newProgramAdmin":
@@ -53,6 +52,7 @@ describe("Instruction Account Matching", () => {
         case "receiver":
         case "registrationFeePayoutTokenAccount":
         case "registrationFeePayoutWallet":
+        case "rewardFeeTokenAccount":
         case "rewardRecord":
         case "rewardTokenAccount":
         case "stakedTokenAccount":

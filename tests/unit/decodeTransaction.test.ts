@@ -256,7 +256,6 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
         case "admin":
         case "authority":
         case "destination":
-        case "feeTokenAccount":
         case "mint":
         case "newAdmin":
         case "newProgramAdmin":
@@ -268,6 +267,7 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
         case "ownerTokenAccount":
         case "payer":
         case "receiver":
+        case "rewardFeeTokenAccount":
         case "rewardRecord":
         case "rewardTokenAccount":
         case "stakedTokenAccount":
@@ -327,7 +327,6 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
         case "admin":
         case "authority":
         case "destination":
-        case "feeTokenAccount":
         case "mint":
         case "newAdmin":
         case "newProgramAdmin":
@@ -335,6 +334,7 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
         case "payer":
         case "programAdmin":
         case "receiver":
+        case "rewardFeeTokenAccount":
         case "rewardRecord":
         case "rewardTokenAccount":
         case "stakingRecord":
