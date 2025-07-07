@@ -115,7 +115,7 @@ describe("inference-staking program tests", () => {
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
-          usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           systemProgram: SystemProgram.programId,
           adminTokenAccount: setup.pool1.adminTokenAccount,
           registrationFeePayoutTokenAccount:
@@ -347,7 +347,7 @@ describe("inference-staking program tests", () => {
         feeTokenAccount: setup.pool1.feeTokenAccount,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
-        usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         adminTokenAccount: setup.pool1.adminTokenAccount,
@@ -437,7 +437,7 @@ describe("inference-staking program tests", () => {
           feeTokenAccount: setup.pool1.feeTokenAccount,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
-          usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           adminTokenAccount: setup.pool1.adminTokenAccount,
@@ -602,7 +602,6 @@ describe("inference-staking program tests", () => {
         .accountsStrict({
           admin: setup.pool1.admin,
           operatorPool: setup.pool1.pool,
-          usdcPayoutWallet: null,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -610,45 +609,6 @@ describe("inference-staking program tests", () => {
     } catch (error) {
       assertStakingProgramError(error, "invalidCommissionRate");
     }
-  });
-
-  it("Should update OperatorPool USDC payout destination successfully", async () => {
-    const operatorPoolPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    const owner = Keypair.generate();
-    await program.methods
-      .updateOperatorPool(
-        setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction()
-      )
-      .accountsStrict({
-        admin: setup.pool1.admin,
-        operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: owner.publicKey,
-      })
-      .signers([setup.pool1.adminKp])
-      .rpc();
-
-    const operatorPool = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    assert(operatorPool.usdcPayoutWallet.equals(owner.publicKey));
-    assert(
-      operatorPoolPre.usdcPayoutWallet.toString() !==
-        operatorPool.usdcPayoutWallet.toString()
-    );
-
-    await program.methods
-      .updateOperatorPool(
-        setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction()
-      )
-      .accountsStrict({
-        admin: setup.pool1.admin,
-        operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: operatorPoolPre.usdcPayoutWallet,
-      })
-      .signers([setup.pool1.adminKp])
-      .rpc();
   });
 
   it("Should update OperatorPool successfully", async () => {
@@ -675,7 +635,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -717,7 +676,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -754,7 +712,6 @@ describe("inference-staking program tests", () => {
         .accountsStrict({
           admin: setup.pool1.admin,
           operatorPool: setup.pool1.pool,
-          usdcPayoutWallet: null,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -784,7 +741,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -832,7 +788,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -861,7 +816,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -1052,7 +1006,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -1113,7 +1066,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -1599,7 +1551,7 @@ describe("inference-staking program tests", () => {
       feeTokenAccount: setup.pool2.feeTokenAccount,
       poolOverview: setup.poolOverview,
       mint: setup.tokenMint,
-      usdcPayoutWallet: setup.pool2.usdcTokenAccount,
+      usdcFeeTokenAccount: setup.pool2.usdcCommissionFeeTokenVault,
       tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
       adminTokenAccount: setup.pool2.adminTokenAccount,
@@ -1724,7 +1676,7 @@ describe("inference-staking program tests", () => {
         feeTokenAccount: setup.pool2.feeTokenAccount,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
-        usdcPayoutWallet: setup.pool2.usdcPayoutWallet,
+        usdcFeeTokenAccount: setup.pool2.usdcCommissionFeeTokenVault,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         adminTokenAccount: setup.pool2.adminTokenAccount,
@@ -2097,7 +2049,7 @@ describe("inference-staking program tests", () => {
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         feeTokenAccount: setup.pool1.feeTokenAccount,
         usdcTokenAccount: setup.usdcTokenAccount,
-        usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         poolUsdcVault: setup.sdk.operatorUsdcVaultPda(setup.pool1.pool),
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -3144,7 +3096,7 @@ describe("inference-staking program tests", () => {
         feeTokenAccount: setup.pool3.feeTokenAccount,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
-        usdcPayoutWallet: setup.pool3.usdcPayoutWallet,
+        usdcFeeTokenAccount: setup.pool3.usdcCommissionFeeTokenVault,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         adminTokenAccount: setup.pool3.adminTokenAccount,
@@ -3228,7 +3180,7 @@ describe("inference-staking program tests", () => {
         feeTokenAccount: setup.pool4.feeTokenAccount,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
-        usdcPayoutWallet: setup.pool4.usdcPayoutWallet,
+        usdcFeeTokenAccount: setup.pool4.usdcCommissionFeeTokenVault,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         adminTokenAccount: setup.pool4.adminTokenAccount,
@@ -3321,7 +3273,7 @@ describe("inference-staking program tests", () => {
         feeTokenAccount: setup.pool5.feeTokenAccount,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
-        usdcPayoutWallet: setup.pool5.usdcPayoutWallet,
+        usdcFeeTokenAccount: setup.pool5.usdcCommissionFeeTokenVault,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         adminTokenAccount: setup.pool5.adminTokenAccount,
@@ -3403,7 +3355,7 @@ describe("inference-staking program tests", () => {
           feeTokenAccount: setup.pool6.feeTokenAccount,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
-          usdcPayoutWallet: setup.pool6.usdcPayoutWallet,
+          usdcFeeTokenAccount: setup.pool6.usdcCommissionFeeTokenVault,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           adminTokenAccount: setup.pool6.adminTokenAccount,

@@ -105,6 +105,17 @@ export class InferenceStakingProgramSdk {
     return pda;
   }
 
+  usdcCommissionFeeTokenVaultPda(operatorPoolPda: PublicKey): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("PoolUsdcCommissionFeeTokenVault", "utf-8"),
+        operatorPoolPda.toBuffer(),
+      ],
+      this.program.programId
+    );
+    return pda;
+  }
+
   rewardRecordPda(epoch: BN): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
       [

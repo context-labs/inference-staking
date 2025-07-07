@@ -41,7 +41,7 @@ export type SetupPoolType = {
   pool: PublicKey;
   stakedTokenAccount: PublicKey;
   stakingRecord: PublicKey;
-  usdcPayoutWallet: PublicKey;
+  usdcCommissionFeeTokenVault: PublicKey;
   usdcTokenAccount: PublicKey;
   delegatorStakingRecord: PublicKey;
   autoStakeFees: boolean;
@@ -236,6 +236,8 @@ export async function setupTests() {
         tokenMint,
         adminKeypair.publicKey
       );
+      const usdcCommissionFeeTokenVault =
+        sdk.usdcCommissionFeeTokenVaultPda(operatorPool);
       return {
         name: `Test Operator ${shortId()}`,
         description: `Test Description ${shortId()}`,
@@ -250,7 +252,7 @@ export async function setupTests() {
           operatorPool,
           adminKeypair.publicKey
         ),
-        usdcPayoutWallet: adminKeypair.publicKey,
+        usdcCommissionFeeTokenVault,
         usdcTokenAccount: adminUsdcTokenAccount.address,
         delegatorStakingRecord: sdk.stakingRecordPda(
           operatorPool,

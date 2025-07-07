@@ -59,9 +59,8 @@ describe("Instruction Account Matching", () => {
         case "stakingRecord":
         case "systemProgram":
         case "tokenProgram":
+        case "usdcFeeTokenAccount":
         case "usdcMint":
-        case "usdcPayoutTokenAccount":
-        case "usdcPayoutWallet":
         case "usdcTokenAccount":
           assert.ok(seen.get(account) === 1);
           break;

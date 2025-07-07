@@ -261,7 +261,7 @@ async function handleAccrueRewardForEpochs({
           stakedTokenAccount: pool.stakedTokenAccount,
           feeTokenAccount: pool.feeTokenAccount,
           usdcTokenAccount: setup.usdcTokenAccount,
-          usdcPayoutTokenAccount: pool.usdcTokenAccount,
+          usdcFeeTokenAccount: pool.usdcCommissionFeeTokenVault,
           poolUsdcVault: pool.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
@@ -984,7 +984,7 @@ describe("multi-epoch lifecycle tests", () => {
           feeTokenAccount: pool.feeTokenAccount,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
-          usdcPayoutWallet: pool.usdcPayoutWallet,
+          usdcFeeTokenAccount: pool.usdcCommissionFeeTokenVault,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           adminTokenAccount: pool.adminTokenAccount,

@@ -264,7 +264,7 @@ describe("Additional tests for instruction constraints", () => {
           mint: setup.tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
-          usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           adminTokenAccount: setup.pool1.adminTokenAccount,
           registrationFeePayoutTokenAccount:
             setup.registrationFeePayoutTokenAccount,
