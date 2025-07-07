@@ -503,7 +503,6 @@ describe("inference-staking program tests", () => {
     const accounts = {
       admin: setup.pool1.admin,
       operatorPool: setup.pool1.pool,
-      usdcPayoutWallet: null,
     } as const;
 
     const signers = [setup.pool1.adminKp];
@@ -1764,7 +1763,7 @@ describe("inference-staking program tests", () => {
       setup.tokenMint,
       setup.rewardTokenAccount,
       setup.tokenHolderKp,
-      totalRewards.toNumber()
+      BigInt(totalRewards.toString())
     );
 
     await mintTo(
@@ -1773,7 +1772,7 @@ describe("inference-staking program tests", () => {
       setup.usdcTokenMint,
       setup.usdcTokenAccount,
       setup.tokenHolderKp,
-      totalUsdcAmount.toNumber()
+      BigInt(totalUsdcAmount.toString())
     );
 
     await handleMarkEpochAsFinalizing({
@@ -2018,6 +2017,9 @@ describe("inference-staking program tests", () => {
     const feeBalancePre = await connection.getTokenAccountBalance(
       setup.pool1.feeTokenAccount
     );
+    const usdcFeeBalancePre = await connection.getTokenAccountBalance(
+      setup.pool1.usdcCommissionFeeTokenVault
+    );
 
     const rewardAmount = new anchor.BN(proofInputs.tokenAmount.toString());
     const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
@@ -2078,6 +2080,10 @@ describe("inference-staking program tests", () => {
       .div(new anchor.BN(10_000));
     const delegatorRewards = rewardAmount.sub(commissionFees);
 
+    const usdcCommissionFees = usdcAmount
+      .mul(new anchor.BN(usdcCommissionRateBps))
+      .div(new anchor.BN(10_000));
+
     // Verify that claimed delegator rewards are added to OperatorPool
     // and rewardLastClaimedEpoch is updated.
     assert(
@@ -2128,6 +2134,19 @@ describe("inference-staking program tests", () => {
           new anchor.BN(stakedBalancePre.value.amount.toString())
         )
       )
+    );
+
+    // Verify USDC commission was transferred to USDC fee account
+    const usdcFeeBalance = await connection.getTokenAccountBalance(
+      setup.pool1.usdcCommissionFeeTokenVault
+    );
+    assert(
+      usdcCommissionFees.eq(
+        new anchor.BN(usdcFeeBalance.value.amount.toString()).sub(
+          new anchor.BN(usdcFeeBalancePre.value.amount.toString())
+        )
+      ),
+      "USDC commission should be transferred to USDC fee account"
     );
   });
 
@@ -2187,7 +2206,7 @@ describe("inference-staking program tests", () => {
     await program.methods
       .updatePoolOverview({
         ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
-        minOperatorTokenStake: new anchor.BN(1_000_000_000_000_000),
+        minOperatorTokenStake: new anchor.BN("1000000000000000000"),
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
@@ -2260,7 +2279,6 @@ describe("inference-staking program tests", () => {
       );
     });
 
-    // Call the claimUnstake method
     await program.methods
       .claimUnstake()
       .accountsStrict({
@@ -2701,6 +2719,55 @@ describe("inference-staking program tests", () => {
     assert(!operatorPool.isHalted, "OperatorPool must be unhalted");
   });
 
+  it("Fail to withdraw Operator USDC commission if pool is halted", async () => {
+    // Set pool to halted
+    await program.methods
+      .setHaltStatus({
+        isHalted: true,
+      })
+      .accountsStrict({
+        authority: setup.haltingAuthorityKp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.haltingAuthorityKp])
+      .rpc();
+
+    try {
+      await program.methods
+        .withdrawOperatorUsdcCommission()
+        .accountsStrict({
+          admin: setup.pool1.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+          destination: getAssociatedTokenAddressSync(
+            setup.usdcTokenMint,
+            setup.pool1.admin
+          ),
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([setup.pool1.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "operatorPoolHalted");
+    }
+
+    // Set back to unhalted
+    await program.methods
+      .setHaltStatus({
+        isHalted: false,
+      })
+      .accountsStrict({
+        authority: setup.haltingAuthorityKp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.haltingAuthorityKp])
+      .rpc();
+  });
+
   it("Fail to withdraw Operator commission if global withdrawal is halted", async () => {
     // Halt withdrawal
     await program.methods
@@ -2726,6 +2793,57 @@ describe("inference-staking program tests", () => {
           feeTokenAccount: setup.pool1.feeTokenAccount,
           destination: getAssociatedTokenAddressSync(
             setup.tokenMint,
+            setup.pool1.admin
+          ),
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([setup.pool1.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "withdrawalsHalted");
+    }
+
+    // Revert halt withdrawal
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        isWithdrawalHalted: false,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
+  it("Fail to withdraw Operator USDC commission if global withdrawal is halted", async () => {
+    // Halt withdrawal
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        isWithdrawalHalted: true,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    try {
+      await program.methods
+        .withdrawOperatorUsdcCommission()
+        .accountsStrict({
+          admin: setup.pool1.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+          destination: getAssociatedTokenAddressSync(
+            setup.usdcTokenMint,
             setup.pool1.admin
           ),
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -2792,6 +2910,53 @@ describe("inference-staking program tests", () => {
         .sub(new anchor.BN(destinationPre.value.amount))
         .eq(new anchor.BN(feeTokenAccountPre.value.amount)),
       "Destination must receive the fee balance"
+    );
+  });
+
+  it("OperatorPool 1 Admin should be able to withdraw USDC commission", async () => {
+    const destinationUsdcAccount = getAssociatedTokenAddressSync(
+      setup.usdcTokenMint,
+      setup.pool1.admin
+    );
+    const [usdcFeeTokenAccountPre, destinationPre] = await Promise.all([
+      connection.getTokenAccountBalance(
+        setup.pool1.usdcCommissionFeeTokenVault
+      ),
+      connection.getTokenAccountBalance(destinationUsdcAccount),
+    ]);
+
+    await program.methods
+      .withdrawOperatorUsdcCommission()
+      .accountsStrict({
+        admin: setup.pool1.admin,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+        destination: destinationUsdcAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([setup.pool1.adminKp])
+      .rpc();
+
+    const [usdcFeeTokenAccountPost, destinationPost] = await Promise.all([
+      connection.getTokenAccountBalance(
+        setup.pool1.usdcCommissionFeeTokenVault
+      ),
+      connection.getTokenAccountBalance(destinationUsdcAccount),
+    ]);
+
+    // Assert USDC Fee TokenAccount has 0 balance
+    assert(
+      usdcFeeTokenAccountPost.value.amount === "0",
+      "USDC Fee TokenAccount must have 0 balance"
+    );
+
+    // Assert USDC fee balance was transferred to destination
+    assert(
+      new anchor.BN(destinationPost.value.amount)
+        .sub(new anchor.BN(destinationPre.value.amount))
+        .eq(new anchor.BN(usdcFeeTokenAccountPre.value.amount)),
+      "Destination must receive the USDC fee balance"
     );
   });
 

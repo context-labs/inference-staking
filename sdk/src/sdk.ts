@@ -52,7 +52,7 @@ export class InferenceStakingProgramSdk {
   }
 
   /** ************************************************************************
-   *  PDA Methods
+   *  Program State Account PDAs
    *************************************************************************** */
 
   poolOverviewPda(): PublicKey {
@@ -78,6 +78,37 @@ export class InferenceStakingProgramSdk {
         operatorPoolPda.toBuffer(),
         owner.toBuffer(),
       ],
+      this.program.programId
+    );
+    return pda;
+  }
+
+  rewardRecordPda(epoch: BN): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("RewardRecord", "utf-8"),
+        epoch.toArrayLike(Buffer, "le", 8),
+      ],
+      this.program.programId
+    );
+    return pda;
+  }
+
+  /** ************************************************************************
+   *  Program On-Chain Vault PDAs
+   *************************************************************************** */
+
+  rewardTokenPda(): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("GlobalTokenRewardVault", "utf-8")],
+      this.program.programId
+    );
+    return pda;
+  }
+
+  usdcTokenPda(): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("GlobalUsdcEarningsVault", "utf-8")],
       this.program.programId
     );
     return pda;
@@ -111,33 +142,6 @@ export class InferenceStakingProgramSdk {
         Buffer.from("PoolUsdcCommissionFeeTokenVault", "utf-8"),
         operatorPoolPda.toBuffer(),
       ],
-      this.program.programId
-    );
-    return pda;
-  }
-
-  rewardRecordPda(epoch: BN): PublicKey {
-    const [pda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("RewardRecord", "utf-8"),
-        epoch.toArrayLike(Buffer, "le", 8),
-      ],
-      this.program.programId
-    );
-    return pda;
-  }
-
-  rewardTokenPda(): PublicKey {
-    const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("GlobalTokenRewardVault", "utf-8")],
-      this.program.programId
-    );
-    return pda;
-  }
-
-  usdcTokenPda(): PublicKey {
-    const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("GlobalUsdcEarningsVault", "utf-8")],
       this.program.programId
     );
     return pda;

@@ -135,6 +135,11 @@ export function assertStakingProgramError(
 ) {
   const errorName =
     InferenceStakingProgramSdk.getErrorNameFromTransactionError(error);
+
+  if (errorName !== code) {
+    console.error(error);
+  }
+
   assert.equal(errorName, code);
 }
 
