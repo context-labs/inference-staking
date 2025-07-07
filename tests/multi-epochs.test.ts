@@ -164,12 +164,10 @@ async function handleAccrueRewardForEpochs({
 }): Promise<{
   totalClaimedRewards: anchor.BN;
   totalClaimedUsdc: anchor.BN;
-  totalOperatorUsdcCommission: anchor.BN;
 }> {
   const commissionFeeMap = new Map<string, anchor.BN>();
   let totalClaimedRewards = new anchor.BN(0);
   let totalClaimedUsdc = new anchor.BN(0);
-  let totalOperatorUsdcCommission = new anchor.BN(0);
 
   const poolOverview = await program.account.poolOverview.fetch(
     setup.poolOverview
@@ -235,14 +233,6 @@ async function handleAccrueRewardForEpochs({
       // Track total claimed amounts
       totalClaimedRewards = totalClaimedRewards.add(rewardAmount);
       totalClaimedUsdc = totalClaimedUsdc.add(usdcAmount);
-
-      // Calculate and track operator's USDC commission (sent directly to their wallet)
-      const operatorUsdcCommission = usdcAmount
-        .mul(new anchor.BN(pool.usdcCommissionRateBps))
-        .div(new anchor.BN(10_000));
-      totalOperatorUsdcCommission = totalOperatorUsdcCommission.add(
-        operatorUsdcCommission
-      );
 
       const signature = await program.methods
         .accrueReward({
@@ -401,7 +391,6 @@ async function handleAccrueRewardForEpochs({
   return {
     totalClaimedRewards,
     totalClaimedUsdc,
-    totalOperatorUsdcCommission,
   };
 }
 
@@ -637,9 +626,6 @@ describe("multi-epoch lifecycle tests", () => {
         claimResult.totalClaimedRewards
       );
       totalClaimedUsdc = totalClaimedUsdc.add(claimResult.totalClaimedUsdc);
-      totalWithdrawnUsdcEarnings = totalWithdrawnUsdcEarnings.add(
-        claimResult.totalOperatorUsdcCommission
-      );
       debug("");
     }
   };
@@ -1061,9 +1047,6 @@ describe("multi-epoch lifecycle tests", () => {
       claimResult.totalClaimedRewards
     );
     totalClaimedUsdc = totalClaimedUsdc.add(claimResult.totalClaimedUsdc);
-    totalWithdrawnUsdcEarnings = totalWithdrawnUsdcEarnings.add(
-      claimResult.totalOperatorUsdcCommission
-    );
   });
 
   const performAdditionalStakingActions = async () => {
@@ -1110,9 +1093,6 @@ describe("multi-epoch lifecycle tests", () => {
       claimResult.totalClaimedRewards
     );
     totalClaimedUsdc = totalClaimedUsdc.add(claimResult.totalClaimedUsdc);
-    totalWithdrawnUsdcEarnings = totalWithdrawnUsdcEarnings.add(
-      claimResult.totalOperatorUsdcCommission
-    );
   };
 
   it("Finalize additional epochs", async () => {
@@ -1736,6 +1716,87 @@ describe("multi-epoch lifecycle tests", () => {
       );
       counter++;
     }
+  });
+
+  it("Withdraw operator USDC commissions successfully", async () => {
+    debug(
+      `\nWithdrawing USDC commission for ${setup.pools.length} operator pools`
+    );
+
+    let counter = 1;
+    let totalUsdcCommissionWithdrawn = new anchor.BN(0);
+
+    for (const pool of setup.pools) {
+      const usdcFeeTokenAccountPre = await connection.getTokenAccountBalance(
+        pool.usdcCommissionFeeTokenVault
+      );
+
+      if (new anchor.BN(usdcFeeTokenAccountPre.value.amount).isZero()) {
+        debug(
+          `- No USDC commission to withdraw for Operator Pool ${pool.pool.toString()}`
+        );
+        continue;
+      }
+
+      const operatorUsdcBalancePre = await connection.getTokenAccountBalance(
+        pool.usdcTokenAccount
+      );
+
+      await program.methods
+        .withdrawOperatorUsdcCommission()
+        .accountsStrict({
+          admin: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          usdcFeeTokenAccount: pool.usdcCommissionFeeTokenVault,
+          destination: pool.usdcTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const usdcFeeTokenAccountPost = await connection.getTokenAccountBalance(
+        pool.usdcCommissionFeeTokenVault
+      );
+      const operatorUsdcBalancePost = await connection.getTokenAccountBalance(
+        pool.usdcTokenAccount
+      );
+
+      // Verify USDC fee token account is emptied
+      assert.equal(
+        usdcFeeTokenAccountPost.value.amount,
+        "0",
+        "USDC fee token account should be empty after withdrawal"
+      );
+
+      // Verify USDC was received in operator's account
+      const amountWithdrawn = new anchor.BN(
+        operatorUsdcBalancePost.value.amount
+      ).sub(new anchor.BN(operatorUsdcBalancePre.value.amount));
+      assert(
+        amountWithdrawn.eq(new anchor.BN(usdcFeeTokenAccountPre.value.amount)),
+        "Amount withdrawn should match USDC fee token account balance"
+      );
+
+      // Track total USDC commission withdrawn
+      totalUsdcCommissionWithdrawn =
+        totalUsdcCommissionWithdrawn.add(amountWithdrawn);
+      totalWithdrawnUsdcEarnings =
+        totalWithdrawnUsdcEarnings.add(amountWithdrawn);
+
+      const amountWithdrawnString = formatBN(amountWithdrawn);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(
+        `- [${tracker}] Withdrew ${amountWithdrawnString} USDC in commission for Operator Pool ${pool.pool.toString()}`
+      );
+      counter++;
+    }
+
+    debug(
+      `\nTotal USDC commission withdrawn: ${formatBN(
+        totalUsdcCommissionWithdrawn
+      )}`
+    );
   });
 
   it("Close all operator pools successfully", async () => {
