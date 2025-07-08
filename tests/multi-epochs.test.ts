@@ -1202,7 +1202,7 @@ describe("multi-epoch lifecycle tests", () => {
           operatorPool: pool.pool,
           stakingRecord: stakingRecord,
           poolUsdcVault: pool.poolUsdcVault,
-          ownerUsdcAccount: delegatorUsdcAccount.address,
+          destination: delegatorUsdcAccount.address,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .signers([delegatorKp])
@@ -1301,7 +1301,7 @@ describe("multi-epoch lifecycle tests", () => {
           operatorPool: pool.pool,
           stakingRecord: pool.stakingRecord,
           poolUsdcVault: pool.poolUsdcVault,
-          ownerUsdcAccount: pool.usdcTokenAccount,
+          destination: pool.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .signers([pool.adminKp])

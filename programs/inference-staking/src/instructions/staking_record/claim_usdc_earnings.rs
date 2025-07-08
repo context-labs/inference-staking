@@ -39,12 +39,12 @@ pub struct ClaimUsdcEarnings<'info> {
     )]
     pub pool_usdc_vault: Account<'info, TokenAccount>,
 
+    /// Destination account for the USDC earnings. Must be a USDC token account.
     #[account(
         mut,
-        constraint = owner_usdc_account.owner == owner.key(),
-        constraint = owner_usdc_account.mint == USDC_MINT_PUBKEY,
+        constraint = destination.mint == USDC_MINT_PUBKEY @ ErrorCode::InvalidUsdcMint,
     )]
-    pub owner_usdc_account: Account<'info, TokenAccount>,
+    pub destination: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
 }
@@ -86,7 +86,7 @@ pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
             ctx.accounts.token_program.to_account_info(),
             Transfer {
                 from: ctx.accounts.pool_usdc_vault.to_account_info(),
-                to: ctx.accounts.owner_usdc_account.to_account_info(),
+                to: ctx.accounts.destination.to_account_info(),
                 authority: operator_pool.to_account_info(),
             },
             &[operator_pool_signer_seeds!(operator_pool)],

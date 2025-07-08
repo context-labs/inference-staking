@@ -44,7 +44,6 @@ describe("Instruction Account Matching", () => {
         case "owner":
         case "ownerStakingRecord":
         case "ownerTokenAccount":
-        case "ownerUsdcAccount":
         case "payer":
         case "poolOverview":
         case "poolUsdcVault":
