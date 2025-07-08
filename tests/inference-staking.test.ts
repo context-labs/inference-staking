@@ -1538,23 +1538,23 @@ describe("inference-staking program tests", () => {
       assertStakingProgramError(error, "nameTooLong");
     }
 
-    // Will exceed transaction size limit.
-    // TODO: Figure out what to do here.
-    // try {
-    //   const longDescription = "a".repeat(401);
-    //   await program.methods
-    //     .createOperatorPool({
-    //       ...args,
-    //       description: longDescription,
-    //     })
-    //     .accountsStrict(accounts)
-    //     .signers(signers)
-    //     .rpc();
+    try {
+      const longDescription = "a".repeat(401);
+      await program.methods
+        .createOperatorPool({
+          ...args,
+          websiteUrl: null,
+          avatarImageUrl: null,
+          description: longDescription,
+        })
+        .accountsStrict(accounts)
+        .signers(signers)
+        .rpc();
 
-    //   assert(false);
-    // } catch (error) {
-    //   assertStakingProgramError(error, "descriptionTooLong");
-    // }
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "descriptionTooLong");
+    }
 
     try {
       const longWebsiteUrl = "a".repeat(65);
