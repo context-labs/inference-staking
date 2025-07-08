@@ -117,21 +117,7 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
         token_amount,
     )?;
 
-    // Decrement Operator's StakingRecord
-    operator_staking_record.shares = operator_staking_record
-        .shares
-        .checked_sub(args.shares_amount)
-        .unwrap();
-
-    // Decrement OperatorPool stake and shares
-    operator_pool.total_shares = operator_pool
-        .total_shares
-        .checked_sub(args.shares_amount)
-        .unwrap();
-    operator_pool.total_staked_amount = operator_pool
-        .total_staked_amount
-        .checked_sub(token_amount)
-        .unwrap();
+    operator_pool.slash_tokens(operator_staking_record, args.shares_amount)?;
 
     emit!(SlashStakeEvent {
         staking_record: operator_staking_record.key(),

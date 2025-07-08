@@ -73,7 +73,7 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
     operator_pool.settle_usdc_earnings(staking_record)?;
 
     // Calculate number of tokens to unstake, and update token and share amounts on OperatorPool.
-    let tokens_unstaked = operator_pool.unstake_tokens(share_amount);
+    let tokens_unstaked = operator_pool.unstake_tokens(staking_record, share_amount)?;
 
     // Determine the correct unstake cooldown period on whether it's a delegator
     // or operator.

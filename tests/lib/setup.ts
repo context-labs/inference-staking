@@ -101,9 +101,7 @@ export async function setupTests() {
     `- SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS: ${SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS}`
   );
   debug(`- API_URL: ${API_URL}`);
-  debug(
-    `---------------------------------------------------------------------`
-  );
+  debug("");
 
   const payerKp = PAYER_KEYPAIR ?? new Keypair();
   const registrationFeePayoutWalletKp = new Keypair();

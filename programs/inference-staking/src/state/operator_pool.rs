@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{constants::USDC_PRECISION_FACTOR, error::ErrorCode};
+use crate::{constants::USDC_PRECISION_FACTOR, error::ErrorCode, state::StakingRecord};
 
 // Keep numbers in sync with error codes.
 const MAX_NAME_LENGTH: usize = 64;
@@ -143,18 +143,30 @@ impl OperatorPool {
     /// Updates OperatorPool total_shares and total_staked_amount after staking of
     /// token_amount tokens.
     /// Returns number of shares created.
-    pub fn stake_tokens(&mut self, token_amount: u64) -> u64 {
+    pub fn stake_tokens(
+        &mut self,
+        staking_record: &mut StakingRecord,
+        token_amount: u64,
+    ) -> Result<u64> {
+        self.check_usdc_settlement_delta(staking_record)?;
+
         let shares_created = self.calc_shares_for_token_amount(token_amount);
         self.total_staked_amount = self.total_staked_amount.checked_add(token_amount).unwrap();
         self.total_shares = self.total_shares.checked_add(shares_created).unwrap();
 
-        shares_created
+        Ok(shares_created)
     }
 
     /// Updates OperatorPool total_shares, total_staked_amount and total_unstaking after
     /// unstaking of share_amount shares.
     /// Returns number of tokens unstaked.
-    pub fn unstake_tokens(&mut self, share_amount: u64) -> u64 {
+    pub fn unstake_tokens(
+        &mut self,
+        staking_record: &mut StakingRecord,
+        share_amount: u64,
+    ) -> Result<u64> {
+        self.check_usdc_settlement_delta(staking_record)?;
+
         let tokens_unstaked = self.calc_tokens_for_share_amount(share_amount);
         self.total_staked_amount = self
             .total_staked_amount
@@ -163,23 +175,26 @@ impl OperatorPool {
         self.total_shares = self.total_shares.checked_sub(share_amount).unwrap();
         self.total_unstaking = self.total_unstaking.checked_add(tokens_unstaked).unwrap();
 
-        tokens_unstaked
+        Ok(tokens_unstaked)
     }
 
-    /// Updates reward commission to new rate. Called after accrual of all issued rewards.
-    pub fn update_reward_commission_rate(&mut self) {
-        if let Some(new_commission_rate_bps) = self.new_reward_commission_rate_bps {
-            self.reward_commission_rate_bps = new_commission_rate_bps;
-            self.new_reward_commission_rate_bps = None;
-        }
-    }
+    /// Updates OperatorPool total_shares, total_staked_amount and staking_record shares after
+    /// slashing of share_amount shares. Slashing tokens is the same as unstaking, but
+    /// there is no unstaking delay. The slashed tokens are immediately confiscated.
+    /// Returns number of tokens slashed.
+    pub fn slash_tokens(
+        &mut self,
+        staking_record: &mut StakingRecord,
+        shares_amount: u64,
+    ) -> Result<u64> {
+        self.check_usdc_settlement_delta(staking_record)?;
 
-    /// Updates USDC commission to new rate. Called after accrual of all issued rewards.
-    pub fn update_usdc_commission_rate(&mut self) {
-        if let Some(new_commission_rate_bps) = self.new_usdc_commission_rate_bps {
-            self.usdc_commission_rate_bps = new_commission_rate_bps;
-            self.new_usdc_commission_rate_bps = None;
-        }
+        staking_record.shares = staking_record.shares.checked_sub(shares_amount).unwrap();
+        self.total_shares = self.total_shares.checked_sub(shares_amount).unwrap();
+        let token_amount = self.calc_tokens_for_share_amount(shares_amount);
+        self.total_staked_amount = self.total_staked_amount.checked_sub(token_amount).unwrap();
+
+        Ok(token_amount)
     }
 
     /// Check that all rewards have been claimed for pool closure conditions.
@@ -252,6 +267,35 @@ impl OperatorPool {
         }
 
         false
+    }
+
+    /// Any function which mutates staking shares must settle any outstanding USDC earnings
+    /// first. This check should be called at the beginning any of the other functions which
+    /// mutate staking record shares.
+    pub fn check_usdc_settlement_delta(&self, staking_record: &StakingRecord) -> Result<()> {
+        require_eq!(
+            staking_record.last_settled_usdc_per_share,
+            self.cumulative_usdc_per_share,
+            ErrorCode::UsdcEarningsSettlementRequired
+        );
+
+        Ok(())
+    }
+
+    /// Updates reward commission to new rate. Called after accrual of all issued rewards.
+    pub fn update_reward_commission_rate(&mut self) {
+        if let Some(new_commission_rate_bps) = self.new_reward_commission_rate_bps {
+            self.reward_commission_rate_bps = new_commission_rate_bps;
+            self.new_reward_commission_rate_bps = None;
+        }
+    }
+
+    /// Updates USDC commission to new rate. Called after accrual of all issued rewards.
+    pub fn update_usdc_commission_rate(&mut self) {
+        if let Some(new_commission_rate_bps) = self.new_usdc_commission_rate_bps {
+            self.usdc_commission_rate_bps = new_commission_rate_bps;
+            self.new_usdc_commission_rate_bps = None;
+        }
     }
 }
 

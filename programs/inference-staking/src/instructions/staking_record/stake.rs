@@ -91,7 +91,8 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     operator_pool.settle_usdc_earnings(&mut ctx.accounts.owner_staking_record)?;
 
     // Calculate number of shares to create, and update token and share amounts on OperatorPool.
-    let shares_created = operator_pool.stake_tokens(token_amount);
+    let shares_created =
+        operator_pool.stake_tokens(&mut ctx.accounts.owner_staking_record, token_amount)?;
 
     // Add shares created to owner's StakingRecord.
     let staking_record = &mut ctx.accounts.owner_staking_record;

@@ -191,13 +191,16 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         let mut amount_to_staked_account = operator_pool.accrued_rewards;
 
         if operator_pool.auto_stake_fees {
+            operator_pool.settle_usdc_earnings(operator_staking_record)?;
+
             let accrued_commission = operator_pool.accrued_commission;
             amount_to_staked_account = amount_to_staked_account
                 .checked_add(accrued_commission)
                 .unwrap();
 
             // Stake tokens and increment shares owned by Operator.
-            let new_shares = operator_pool.stake_tokens(accrued_commission);
+            let new_shares =
+                operator_pool.stake_tokens(operator_staking_record, accrued_commission)?;
             operator_staking_record.shares = operator_staking_record
                 .shares
                 .checked_add(new_shares)

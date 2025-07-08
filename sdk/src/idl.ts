@@ -1993,31 +1993,36 @@ const _IDL = {
     },
     {
       code: 6036,
+      name: "usdcEarningsSettlementRequired",
+      msg: "USDC earnings must be settled",
+    },
+    {
+      code: 6037,
       name: "insufficientPoolUsdcVaultBalance",
       msg: "Insufficient USDC in pool vault",
     },
     {
-      code: 6037,
+      code: 6038,
       name: "invalidCommissionRate",
       msg: "Invalid commission rate",
     },
     {
-      code: 6038,
+      code: 6039,
       name: "poolMustBeClosed",
       msg: "Operator pool must be closed to sweep dust",
     },
     {
-      code: 6039,
+      code: 6040,
       name: "poolClosedEpochInvalid",
       msg: "Operator pool must be closed before the current epoch",
     },
     {
-      code: 6040,
+      code: 6041,
       name: "poolIsNotEmpty",
       msg: "Pool is not empty",
     },
     {
-      code: 6041,
+      code: 6042,
       name: "finalUnstakeEpochInvalid",
       msg: "Pool must be closed before the current epoch for the operator to unstake",
     },
