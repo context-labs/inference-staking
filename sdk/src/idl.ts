@@ -1130,56 +1130,6 @@ const _IDL = {
       ],
     },
     {
-      name: "modifyRewardRecord",
-      discriminator: [16, 109, 128, 67, 141, 121, 47, 186],
-      accounts: [
-        {
-          name: "authority",
-          signer: true,
-        },
-        {
-          name: "poolOverview",
-          pda: {
-            seeds: [
-              {
-                kind: "const",
-                value: [
-                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
-                ],
-              },
-            ],
-          },
-        },
-        {
-          name: "rewardRecord",
-          writable: true,
-          pda: {
-            seeds: [
-              {
-                kind: "const",
-                value: [82, 101, 119, 97, 114, 100, 82, 101, 99, 111, 114, 100],
-              },
-              {
-                kind: "account",
-                path: "reward_record.epoch",
-                account: "rewardRecord",
-              },
-            ],
-          },
-        },
-      ],
-      args: [
-        {
-          name: "args",
-          type: {
-            defined: {
-              name: "modifyRewardRecordArgs",
-            },
-          },
-        },
-      ],
-    },
-    {
       name: "setHaltStatus",
       docs: [
         "-----------------------------------------------------------------------\n     * Program Admin Security Instructions\n     * ------------------------------------------------------------------------",
@@ -2205,22 +2155,6 @@ const _IDL = {
           {
             name: "expectedEpoch",
             type: "u64",
-          },
-        ],
-      },
-    },
-    {
-      name: "modifyRewardRecordArgs",
-      type: {
-        kind: "struct",
-        fields: [
-          {
-            name: "merkleRoots",
-            type: {
-              vec: {
-                array: ["u8", 32],
-              },
-            },
           },
         ],
       },

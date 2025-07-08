@@ -100,13 +100,6 @@ pub mod inference_staking {
         create_reward_record::handler(ctx, args)
     }
 
-    pub fn modify_reward_record(
-        ctx: Context<ModifyRewardRecord>,
-        args: ModifyRewardRecordArgs,
-    ) -> Result<()> {
-        modify_reward_record::handler(ctx, args)
-    }
-
     pub fn accrue_reward(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()> {
         accrue_reward::handler(ctx, args)
     }
