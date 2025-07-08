@@ -1360,7 +1360,7 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Unstake for all delegators successfully", async () => {
     if (PREVENT_UNSTAKE) {
-      debug("PREVENT_UNSTAKE is enabled, skipping unstake");
+      debug("Unstaking is disabled, skipping unstake");
       return;
     }
 
@@ -1459,7 +1459,7 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Claim unstake for all delegators successfully", async () => {
     if (PREVENT_UNSTAKE) {
-      debug("PREVENT_UNSTAKE is enabled, skipping claim unstake");
+      debug("Unstaking is disabled, skipping claim unstake");
       return;
     }
 
@@ -1579,9 +1579,7 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Close staking records for all delegators successfully", async () => {
     if (PREVENT_CLOSE_ACCOUNTS) {
-      debug(
-        "PREVENT_CLOSE_ACCOUNTS is enabled, skipping close staking records"
-      );
+      debug("Account closure is disabled, skipping close staking records");
       return;
     }
 
@@ -1783,7 +1781,7 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Close all operator pools successfully", async () => {
     if (PREVENT_CLOSE_ACCOUNTS) {
-      debug("PREVENT_CLOSE_ACCOUNTS is enabled, skipping close operator pools");
+      debug("Account closure is disabled, skipping close operator pools");
       return;
     }
 
@@ -1819,7 +1817,7 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Unstake for all operator admins successfully", async () => {
     if (PREVENT_UNSTAKE) {
-      debug("PREVENT_UNSTAKE is enabled, skipping unstake");
+      debug("Unstaking is disabled, skipping unstake");
       return;
     }
 
@@ -1914,7 +1912,7 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Claim unstake for all operator admins successfully", async () => {
     if (PREVENT_UNSTAKE) {
-      debug("PREVENT_UNSTAKE is enabled, skipping claim unstake");
+      debug("Unstaking is disabled, skipping claim unstake");
       return;
     }
 
@@ -2027,7 +2025,7 @@ describe("multi-epoch lifecycle tests", () => {
   it("Close all operator staking records successfully", async () => {
     if (PREVENT_CLOSE_ACCOUNTS) {
       debug(
-        "PREVENT_CLOSE_ACCOUNTS is enabled, skipping close operator staking records"
+        "Account closure is disabled, skipping close operator staking records"
       );
       return;
     }
@@ -2068,7 +2066,7 @@ describe("multi-epoch lifecycle tests", () => {
   it("Finalize more epochs to allow pool sweep to proceed", async () => {
     if (PREVENT_CLOSE_ACCOUNTS) {
       debug(
-        "PREVENT_CLOSE_ACCOUNTS is enabled, skipping finalize more epochs for pool sweep"
+        "Account closure is disabled, skipping finalize more epochs for pool sweep"
       );
       return;
     }
@@ -2112,7 +2110,7 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Sweep closed pool USDC dust successfully", async () => {
     if (PREVENT_CLOSE_ACCOUNTS) {
-      debug("PREVENT_CLOSE_ACCOUNTS is enabled, skipping sweep USDC dust");
+      debug("Account closure is disabled, skipping sweep USDC dust");
       return;
     }
 
@@ -2179,7 +2177,7 @@ describe("multi-epoch lifecycle tests", () => {
 
     if (PREVENT_CLOSE_ACCOUNTS) {
       debug(
-        "PREVENT_CLOSE_ACCOUNTS is enabled, skipping operator pool usdc vaults verification"
+        "Account closure is disabled, skipping operator pool usdc vaults verification"
       );
       return;
     }
