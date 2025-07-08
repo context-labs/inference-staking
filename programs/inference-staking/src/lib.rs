@@ -111,6 +111,10 @@ pub mod inference_staking {
         accrue_reward::handler(ctx, args)
     }
 
+    pub fn accrue_reward_emergency_bypass(ctx: Context<AccrueRewardEmergencyBypass>) -> Result<()> {
+        accrue_reward_emergency_bypass::handler(ctx)
+    }
+
     /** -----------------------------------------------------------------------
      * OperatorPool Admin Instructions
      * ------------------------------------------------------------------------ */

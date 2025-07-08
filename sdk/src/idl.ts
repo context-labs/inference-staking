@@ -200,6 +200,89 @@ const _IDL = {
       ],
     },
     {
+      name: "accrueRewardEmergencyBypass",
+      discriminator: [42, 22, 105, 160, 223, 106, 212, 244],
+      accounts: [
+        {
+          name: "admin",
+          docs: ["Only the pool admin can execute this emergency bypass"],
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+        {
+          name: "operatorPool",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operator_pool.initial_pool_admin",
+                account: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "currentPoolRewardRecord",
+          docs: [
+            "The current reward record that should have been claimed (at reward_last_claimed_epoch + 1)",
+          ],
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [82, 101, 119, 97, 114, 100, 82, 101, 99, 111, 114, 100],
+              },
+              {
+                kind: "account",
+                path: "current_pool_reward_record.epoch",
+                account: "rewardRecord",
+              },
+            ],
+          },
+        },
+        {
+          name: "nextPoolRewardRecord",
+          docs: [
+            "The next reward record that we're bypassing to (at reward_last_claimed_epoch + 2)",
+          ],
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [82, 101, 119, 97, 114, 100, 82, 101, 99, 111, 114, 100],
+              },
+              {
+                kind: "account",
+                path: "next_pool_reward_record.epoch",
+                account: "rewardRecord",
+              },
+            ],
+          },
+        },
+      ],
+      args: [],
+    },
+    {
       name: "cancelUnstake",
       discriminator: [64, 65, 53, 227, 125, 153, 3, 167],
       accounts: [
@@ -1994,6 +2077,11 @@ const _IDL = {
       code: 6041,
       name: "finalUnstakeEpochInvalid",
       msg: "Pool must be closed before the current epoch for the operator to unstake",
+    },
+    {
+      code: 6042,
+      name: "invalidEmergencyBypassEpoch",
+      msg: "Invalid epoch for emergency bypass",
     },
   ],
   types: [

@@ -86,4 +86,6 @@ pub enum ErrorCode {
     PoolIsNotEmpty,
     #[msg("Pool must be closed before the current epoch for the operator to unstake")]
     FinalUnstakeEpochInvalid,
+    #[msg("Invalid epoch for emergency bypass")]
+    InvalidEmergencyBypassEpoch,
 }
