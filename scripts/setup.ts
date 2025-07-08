@@ -50,6 +50,19 @@ function setupKeys() {
     console.log(`Created keypairs for ${env} environment`);
   });
 
+  const targetDir = path.join(rootDir, "target", "deploy");
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const targetProgramPath = path.join(
+    targetDir,
+    "inference_staking-keypair.json"
+  );
+  fs.writeFileSync(targetProgramPath, JSON.stringify(PROGRAM_KEYPAIR));
+
+  console.log(
+    "Copied program keypair to target/deploy/inference_staking-keypair.json"
+  );
+
   console.log("Keys folder setup complete!");
 }
 
