@@ -60,8 +60,7 @@ pub fn handler(ctx: Context<SweepClosedPoolUsdcDust>) -> Result<()> {
     );
 
     // Verify that the pool is completely empty (no delegators remain)
-    require_eq!(operator_pool.total_shares, 0, ErrorCode::PoolIsNotEmpty);
-    require_eq!(operator_pool.total_unstaking, 0, ErrorCode::PoolIsNotEmpty);
+    require!(operator_pool.is_empty(), ErrorCode::PoolIsNotEmpty);
 
     // Transfer all remaining "dust" from the pool's vault to the admin.
     let remaining_balance = operator_usdc_vault.amount;

@@ -283,6 +283,10 @@ impl OperatorPool {
             self.new_usdc_commission_rate_bps = None;
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.total_shares == 0 && self.total_staked_amount == 0 && self.total_unstaking == 0
+    }
 }
 
 impl OperatorPool {
