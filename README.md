@@ -39,6 +39,8 @@ The program consists of several key accounts:
 - `WithdrawOperatorRewardCommission`: Withdraw earned commission fees
 - `WithdrawOperatorUsdcCommission`: Withdraw earned USDC commission fees
 - `CloseOperatorPool`: Permanently close a pool
+- `SweepClosedPoolUsdcDust`: Sweep USDC dust from a closed pool
+- `AccrueRewardEmergencyBypass`: Accrue reward to a pool when the pool is not included in a reward record payout
 
 ### For Delegators
 
@@ -55,7 +57,6 @@ The program consists of several key accounts:
 - `UpdatePoolOverviewAuthorities`: Modify authorites on PoolOverview
 - `UpdatePoolOverview`: Modify global staking parameters
 - `CreateRewardRecord`: Finalize a reward epoch by committing the Merkle root
-- `ModifyRewardRecord`: Modify Merkle root committed
 - `SlashStake`: Penalize an Operator by slashing their stake
 - `SetHaltStatus`: Halt an Operator from staking, unstaking or claiming from their pool
 
