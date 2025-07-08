@@ -21,3 +21,4 @@ devnet = []
 [dependencies]
 anchor-lang = "0.31.0"
 anchor-spl = "0.31.0"
+solana-security-txt = "1.1.1"

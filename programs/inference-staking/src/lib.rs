@@ -1,6 +1,9 @@
 #![allow(ambiguous_glob_reexports)]
 #![allow(unexpected_cfgs)] // See: https://solana.stackexchange.com/a/19845
 
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_security_txt::security_txt;
+
 pub mod constants;
 pub mod error;
 pub mod instructions;
@@ -13,6 +16,16 @@ use state::*;
 use anchor_lang::prelude::*;
 
 declare_id!("stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG");
+
+#[cfg(not(feature = "no-entrypoint"))]
+security_txt! {
+    name: "Inference.net Staking Program",
+    project_url: "https://inference.net",
+    contacts: "email:security@inference.net",
+    policy: "https://docs.devnet.inference.net/devnet-epoch-3/bug-bounty-program",
+    source_code: "https://github.com/context-labs/inference-staking",
+    auditors: "TBD"
+}
 
 #[program]
 pub mod inference_staking {
