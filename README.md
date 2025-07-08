@@ -103,13 +103,22 @@ bun install
 # Setup
 bun run setup
 
+# Run formatting
+bun run format
+
+# Run linting
+bun run lint
+
+# Run all static checks
+bun run check
+
 # Build the program and generate the IDL
 bun run build
 ```
 
 # Testing
 
-The `tests` folder contains a full suite of integrations tests for the program which can be run with Anchor. The tests will run whichever test suite is specified in the `Anchor.toml` file (there are multiple test suites - additional tests are commented out).
+The `tests` folder contains a full suite of integrations tests for the program which can be run with Anchor. The tests will run whichever test suite is specified in the `Anchor.toml` file (there are multiple test suites - additional tests are commented out, you can run them all with the `test-all` command).
 
 ```bash
 # Run unit tests
