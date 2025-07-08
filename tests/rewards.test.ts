@@ -103,6 +103,41 @@ describe("Reward creation and accrual tests", () => {
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
+
+    await program.methods
+      .createOperatorPool({
+        autoStakeFees: setup.pool2.autoStakeFees,
+        rewardCommissionRateBps: setup.pool2.rewardCommissionRateBps,
+        usdcCommissionRateBps: setup.pool2.usdcCommissionRateBps,
+        allowDelegation,
+        name: setup.pool2.name,
+        description: setup.pool2.description,
+        websiteUrl: setup.pool2.websiteUrl,
+        avatarImageUrl: setup.pool2.avatarImageUrl,
+        operatorAuthKeys: null,
+      })
+      .accountsStrict({
+        payer: setup.payer,
+        admin: setup.pool2.admin,
+        operatorPool: setup.pool2.pool,
+        stakingRecord: setup.pool2.stakingRecord,
+        stakedTokenAccount: setup.pool2.stakedTokenAccount,
+        rewardFeeTokenAccount: setup.pool2.rewardCommissionFeeTokenVault,
+        poolOverview: setup.poolOverview,
+        mint: setup.tokenMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        usdcFeeTokenAccount: setup.pool2.usdcCommissionFeeTokenVault,
+        adminTokenAccount: setup.pool2.adminTokenAccount,
+        registrationFeePayoutTokenAccount:
+          setup.registrationFeePayoutTokenAccount,
+        operatorUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+          setup.pool2.pool
+        ),
+        usdcMint: setup.usdcTokenMint,
+      })
+      .signers([setup.payerKp, setup.pool2.adminKp])
+      .rpc();
   });
 
   it("Fail to create future RewardRecord", async () => {
@@ -1216,7 +1251,7 @@ describe("Reward creation and accrual tests", () => {
       .signers([setup.pool1.adminKp])
       .rpc();
 
-    const createRewardRecord = async (epoch: 5 | 6) => {
+    const createRewardRecord = async (epoch: 5 | 6 | 7) => {
       // Use same reward values as epoch 2
       const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
       const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
@@ -1273,6 +1308,7 @@ describe("Reward creation and accrual tests", () => {
 
     await createRewardRecord(5);
     await createRewardRecord(6);
+    await createRewardRecord(7);
   });
 
   it("Fail to accrue reward after pool closure", async () => {
@@ -1341,6 +1377,216 @@ describe("Reward creation and accrual tests", () => {
           usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "closedPool");
+    }
+  });
+
+  it("Use emergency bypass to catch up pool2 to current epoch", async () => {
+    // Verify pool2 starts at epoch 0
+    let operatorPool = await program.account.operatorPool.fetch(
+      setup.pool2.pool
+    );
+
+    assert.equal(operatorPool.rewardLastClaimedEpoch.toNumber(), 0);
+
+    // Get the current completed reward epoch
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    const completedEpoch = poolOverview.completedRewardEpoch.toNumber();
+    assert(completedEpoch >= 6, "Should have at least 6 completed epochs");
+
+    // Use emergency bypass to bump pool2 from epoch 0 to epoch 5
+    for (let epoch = 0; epoch < 5; epoch++) {
+      await program.methods
+        .accrueRewardEmergencyBypass()
+        .accountsStrict({
+          admin: setup.pool2.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool2.pool,
+          currentPoolRewardRecord:
+            setup.rewardRecords[(epoch + 1) as 1 | 2 | 3 | 4 | 5 | 6],
+          nextPoolRewardRecord:
+            setup.rewardRecords[(epoch + 2) as 1 | 2 | 3 | 4 | 5 | 6],
+        })
+        .signers([setup.pool2.adminKp])
+        .rpc();
+
+      // Verify the epoch was incremented
+      operatorPool = await program.account.operatorPool.fetch(setup.pool2.pool);
+      assert.equal(
+        operatorPool.rewardLastClaimedEpoch.toNumber(),
+        epoch + 1,
+        `Should have incremented to epoch ${epoch + 1}`
+      );
+    }
+
+    // Verify pool2 is now at epoch 5
+    assert.equal(operatorPool.rewardLastClaimedEpoch.toNumber(), 5);
+  });
+
+  it("Fail emergency bypass with wrong admin", async () => {
+    try {
+      await program.methods
+        .accrueRewardEmergencyBypass()
+        .accountsStrict({
+          admin: setup.pool1.admin, // Wrong admin for pool2
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool2.pool,
+          currentPoolRewardRecord: setup.rewardRecords[6],
+          nextPoolRewardRecord: setup.rewardRecords[6], // Invalid - using same record
+        })
+        .signers([setup.pool1.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertError(error, "ConstraintHasOne");
+    }
+  });
+
+  it("Fail emergency bypass with invalid epoch progression", async () => {
+    try {
+      // Try to skip ahead too far - from epoch 5 to epoch 3 (backwards)
+      await program.methods
+        .accrueRewardEmergencyBypass()
+        .accountsStrict({
+          admin: setup.pool2.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool2.pool,
+          currentPoolRewardRecord: setup.rewardRecords[3], // Wrong - should be epoch 6
+          nextPoolRewardRecord: setup.rewardRecords[4],
+        })
+        .signers([setup.pool2.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "invalidEmergencyBypassEpoch");
+    }
+  });
+
+  it("Fail emergency bypass when pool is already caught up", async () => {
+    // First, use emergency bypass to catch pool2 up to epoch 6
+    await program.methods
+      .accrueRewardEmergencyBypass()
+      .accountsStrict({
+        admin: setup.pool2.admin,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool2.pool,
+        currentPoolRewardRecord: setup.rewardRecords[6],
+        nextPoolRewardRecord: setup.rewardRecords[7],
+      })
+      .signers([setup.pool2.adminKp])
+      .rpc();
+
+    // Verify pool2 is now at epoch 6
+    const operatorPool = await program.account.operatorPool.fetch(
+      setup.pool2.pool
+    );
+    assert.equal(operatorPool.rewardLastClaimedEpoch.toNumber(), 6);
+
+    // Try to bypass again when already caught up
+    try {
+      await program.methods
+        .accrueRewardEmergencyBypass()
+        .accountsStrict({
+          admin: setup.pool2.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool2.pool,
+          currentPoolRewardRecord: setup.rewardRecords[6], // Invalid - pool already claimed epoch 6
+          nextPoolRewardRecord: setup.rewardRecords[6],
+        })
+        .signers([setup.pool2.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      // This will fail because pool's reward_last_claimed_epoch (6) + 1 != current_pool_reward_record.epoch (6)
+      assertStakingProgramError(error, "invalidEmergencyBypassEpoch");
+    }
+  });
+
+  it("Fail emergency bypass on halted pool", async () => {
+    // Create pool3 and then halt it
+    await program.methods
+      .createOperatorPool({
+        autoStakeFees: setup.pool3.autoStakeFees,
+        rewardCommissionRateBps: setup.pool3.rewardCommissionRateBps,
+        usdcCommissionRateBps: setup.pool3.usdcCommissionRateBps,
+        allowDelegation,
+        name: setup.pool3.name,
+        description: setup.pool3.description,
+        websiteUrl: setup.pool3.websiteUrl,
+        avatarImageUrl: setup.pool3.avatarImageUrl,
+        operatorAuthKeys: null,
+      })
+      .accountsStrict({
+        payer: setup.payer,
+        admin: setup.pool3.admin,
+        operatorPool: setup.pool3.pool,
+        stakingRecord: setup.pool3.stakingRecord,
+        stakedTokenAccount: setup.pool3.stakedTokenAccount,
+        rewardFeeTokenAccount: setup.pool3.rewardCommissionFeeTokenVault,
+        poolOverview: setup.poolOverview,
+        mint: setup.tokenMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        usdcFeeTokenAccount: setup.pool3.usdcCommissionFeeTokenVault,
+        adminTokenAccount: setup.pool3.adminTokenAccount,
+        registrationFeePayoutTokenAccount:
+          setup.registrationFeePayoutTokenAccount,
+        operatorUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+          setup.pool3.pool
+        ),
+        usdcMint: setup.usdcTokenMint,
+      })
+      .signers([setup.payerKp, setup.pool3.adminKp])
+      .rpc();
+
+    // Set halt status on pool3
+    await program.methods
+      .setHaltStatus({ isHalted: true })
+      .accountsStrict({
+        authority: setup.haltingAuthority,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool3.pool,
+      })
+      .signers([setup.haltingAuthorityKp])
+      .rpc();
+
+    // Try emergency bypass on halted pool
+    try {
+      await program.methods
+        .accrueRewardEmergencyBypass()
+        .accountsStrict({
+          admin: setup.pool3.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool3.pool,
+          currentPoolRewardRecord: setup.rewardRecords[1],
+          nextPoolRewardRecord: setup.rewardRecords[2],
+        })
+        .signers([setup.pool3.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "operatorPoolHalted");
+    }
+  });
+
+  it("Fail emergency bypass on closed pool", async () => {
+    // Pool1 was closed earlier in the tests
+    try {
+      await program.methods
+        .accrueRewardEmergencyBypass()
+        .accountsStrict({
+          admin: setup.pool1.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          currentPoolRewardRecord: setup.rewardRecords[5],
+          nextPoolRewardRecord: setup.rewardRecords[6],
+        })
+        .signers([setup.pool1.adminKp])
         .rpc();
       assert(false);
     } catch (error) {
