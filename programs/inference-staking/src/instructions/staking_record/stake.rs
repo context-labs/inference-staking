@@ -106,7 +106,8 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
         token_amount,
     )?;
 
-    // Check that operator still maintains min. token stake.
+    // Check that operator still maintains min. token stake. This prevents delegators
+    // from staking to a pool where an operator is in violation of the min. token stake.
     let operator_shares = if is_operator_staking {
         staking_record.shares
     } else {
