@@ -3,7 +3,6 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::constants::USDC_PRECISION_FACTOR;
 use crate::error::ErrorCode;
-use crate::events::CompleteAccrueRewardEvent;
 use crate::state::{OperatorPool, PoolOverview, RewardRecord, StakingRecord};
 
 #[derive(Accounts)]
@@ -313,12 +312,6 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         operator_pool.accrued_commission = 0;
         operator_pool.accrued_usdc_payout = 0;
         operator_pool.accrued_delegator_usdc = 0;
-
-        emit!(CompleteAccrueRewardEvent {
-            operator_pool: operator_pool.key(),
-            total_staked_amount: operator_pool.total_staked_amount,
-            total_unstaking: operator_pool.total_unstaking
-        });
     }
 
     Ok(())

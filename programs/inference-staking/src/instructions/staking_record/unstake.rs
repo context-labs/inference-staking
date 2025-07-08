@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
-use crate::events::UnstakeEvent;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 
 #[derive(Accounts)]
@@ -117,14 +116,6 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
             }
         }
     }
-
-    emit!(UnstakeEvent {
-        staking_record: staking_record.key(),
-        operator_pool: operator_pool.key(),
-        unstake_amount: tokens_unstaked,
-        total_staked_amount: operator_pool.total_staked_amount,
-        total_unstaking: operator_pool.total_unstaking
-    });
 
     Ok(())
 }
