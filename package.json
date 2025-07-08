@@ -6,6 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "setup": "bun run scripts/setup.ts",
     "format": "prettier */*.js \"**/*{.js,.ts,bun.lock}\" --check",
     "format:fix": "prettier */*.js \"**/*{.js,.ts,bun.lock}\" -w",
     "lint": "eslint",
