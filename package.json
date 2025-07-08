@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "setup": "bun run scripts/setup.ts",
+    "setup": "bun run scripts/setup.ts && cp .example.env .env",
     "format": "prettier */*.js \"**/*{.js,.ts,bun.lock}\" --check",
     "format:fix": "prettier */*.js \"**/*{.js,.ts,bun.lock}\" -w",
     "lint": "eslint",

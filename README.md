@@ -100,6 +100,9 @@ Start here: [https://www.anchor-lang.com/docs/installation](https://www.anchor-l
 # Install dependencies
 bun install
 
+# Setup
+bun run setup
+
 # Build the program and generate the IDL
 bun run build
 ```
