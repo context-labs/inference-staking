@@ -30,33 +30,36 @@ describe("Instruction Account Matching", () => {
       switch (account) {
         case "admin":
         case "adminTokenAccount":
+        case "adminUsdcAccount":
         case "authority":
         case "destination":
-        case "feeTokenAccount":
+        case "destinationUsdcAccount":
         case "mint":
         case "newAdmin":
         case "newProgramAdmin":
         case "newStakingRecord":
         case "operatorPool":
         case "operatorStakingRecord":
+        case "operatorUsdcVault":
         case "owner":
         case "ownerStakingRecord":
         case "ownerTokenAccount":
         case "payer":
         case "poolOverview":
+        case "poolUsdcVault":
         case "programAdmin":
         case "receiver":
         case "registrationFeePayoutTokenAccount":
         case "registrationFeePayoutWallet":
+        case "rewardFeeTokenAccount":
         case "rewardRecord":
         case "rewardTokenAccount":
         case "stakedTokenAccount":
         case "stakingRecord":
         case "systemProgram":
         case "tokenProgram":
+        case "usdcFeeTokenAccount":
         case "usdcMint":
-        case "usdcPayoutTokenAccount":
-        case "usdcPayoutWallet":
         case "usdcTokenAccount":
           assert.ok(seen.get(account) === 1);
           break;

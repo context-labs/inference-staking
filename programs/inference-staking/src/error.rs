@@ -70,4 +70,20 @@ pub enum ErrorCode {
     InvalidWebsiteUrl,
     #[msg("Avatar image URL is invalid")]
     InvalidAvatarImageUrl,
+    #[msg("USDC earnings must be claimed before unstaking")]
+    UnclaimedUsdcEarnings,
+    #[msg("No USDC earnings to claim")]
+    NoUsdcEarningsToClaim,
+    #[msg("Insufficient USDC in pool vault")]
+    InsufficientPoolUsdcVaultBalance,
+    #[msg("Invalid commission rate")]
+    InvalidCommissionRate,
+    #[msg("Operator pool must be closed to sweep dust")]
+    PoolMustBeClosed,
+    #[msg("Operator pool must be closed before the current epoch")]
+    PoolClosedEpochInvalid,
+    #[msg("Pool is not empty")]
+    PoolIsNotEmpty,
+    #[msg("Pool must be closed before the current epoch for the operator to unstake")]
+    FinalUnstakeEpochInvalid,
 }

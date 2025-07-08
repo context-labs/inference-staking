@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::error::ErrorCode;
+use crate::{constants::USDC_PRECISION_FACTOR, error::ErrorCode, state::StakingRecord};
 
 // Keep numbers in sync with error codes.
 const MAX_NAME_LENGTH: usize = 64;
@@ -46,11 +46,11 @@ pub struct OperatorPool {
     /// If commission fees received by Operator should be staked at the end of the epoch.
     pub auto_stake_fees: bool,
 
-    /// Commission Rate for Epoch Rewards. Capped at 100%.
-    pub commission_rate_bps: u16,
+    /// Commission Rate for Epoch Token Rewards. Capped at 100%.
+    pub reward_commission_rate_bps: u16,
 
     /// Commission Rate that will take place next Epoch, if set. Capped at 100%.
-    pub new_commission_rate_bps: Option<u16>,
+    pub new_reward_commission_rate_bps: Option<u16>,
 
     /// If any other user is allowed to delegate stake to Pool, besides operator_staking_record.
     pub allow_delegation: bool,
@@ -87,37 +87,23 @@ pub struct OperatorPool {
     /// Used to optimize compute.
     pub accrued_commission: u64,
 
-    /// USDC that have been calculated in `accrueRewards`, that are yet to be physically transferred to payout wallet.
+    /// USDC commission that have been calculated in `accrueRewards`, that are yet to be physically transferred to USDC fee account.
     /// Used to optimize compute.
     pub accrued_usdc_payout: u64,
 
-    /// Destination wallet for USDC payouts for this operator pool.
-    pub usdc_payout_wallet: Pubkey,
+    /// USDC commission rate in basis points (0-10000)
+    pub usdc_commission_rate_bps: u16,
+
+    /// Pending USDC commission rate for next epoch
+    pub new_usdc_commission_rate_bps: Option<u16>,
+
+    /// Cumulative USDC per share (scaled by USDC_PRECISION_FACTOR)
+    pub cumulative_usdc_per_share: u128,
+
+    /// USDC earned by delegators, yet to be transferred to the pool vault. Used to optimize compute.
+    pub accrued_delegator_usdc: u64,
 }
 
-/// Notes on shared based accounting mechanism:
-///
-/// The token protocol issues shares when tokens are staked. The key equations are:
-///
-/// When staking:   shares = (tokenAmount / totalStakedAmount) * totalShares
-/// When unstaking: tokens = (shareAmount / totalShares) * totalStakedAmount
-///
-/// When users stake tokens:
-/// The user receives shares proportional to their token contribution relative to the total pool.
-///
-/// When a user unstakes tokens:
-/// The system converts a user's shares to the corresponding tokens amount, based on the current
-/// ratio. The shares are burned, and the tokens begin unstaking.
-///
-/// When rewards are paid out:
-/// Rewards are added to the pool's total_staked_amount but no new shares are created, which
-/// increases the value of each share proportionally for each delegator in the pool.
-///
-/// Operator commission fees are deducted separately before rewards are paid out, depending
-/// on the operator pool's commission settings.
-///
-/// This shared based accounting mechanism allows the program to fairly and efficiently
-/// distribute and compound rewards among many stakers.
 impl OperatorPool {
     /// Calculates number of shares equivalent to token amount.
     /// Uses a default 1:1 rate if total_shares i 0.
@@ -140,6 +126,10 @@ impl OperatorPool {
     /// Calculates number of tokens equivalent to share amount.
     /// Final result is rounded down as part of integer division.
     pub fn calc_tokens_for_share_amount(&self, share_amount: u64) -> u64 {
+        if share_amount == 0 {
+            return 0;
+        }
+
         // Tokens = (share_amount / total_shares) * total_staked_amount
         let tokens = u128::from(share_amount)
             .checked_mul(u128::from(self.total_staked_amount))
@@ -153,18 +143,30 @@ impl OperatorPool {
     /// Updates OperatorPool total_shares and total_staked_amount after staking of
     /// token_amount tokens.
     /// Returns number of shares created.
-    pub fn stake_tokens(&mut self, token_amount: u64) -> u64 {
+    pub fn stake_tokens(
+        &mut self,
+        staking_record: &mut StakingRecord,
+        token_amount: u64,
+    ) -> Result<u64> {
+        self.settle_usdc_earnings(staking_record)?;
+
         let shares_created = self.calc_shares_for_token_amount(token_amount);
         self.total_staked_amount = self.total_staked_amount.checked_add(token_amount).unwrap();
         self.total_shares = self.total_shares.checked_add(shares_created).unwrap();
 
-        shares_created
+        Ok(shares_created)
     }
 
     /// Updates OperatorPool total_shares, total_staked_amount and total_unstaking after
     /// unstaking of share_amount shares.
     /// Returns number of tokens unstaked.
-    pub fn unstake_tokens(&mut self, share_amount: u64) -> u64 {
+    pub fn unstake_tokens(
+        &mut self,
+        staking_record: &mut StakingRecord,
+        share_amount: u64,
+    ) -> Result<u64> {
+        self.settle_usdc_earnings(staking_record)?;
+
         let tokens_unstaked = self.calc_tokens_for_share_amount(share_amount);
         self.total_staked_amount = self
             .total_staked_amount
@@ -173,15 +175,25 @@ impl OperatorPool {
         self.total_shares = self.total_shares.checked_sub(share_amount).unwrap();
         self.total_unstaking = self.total_unstaking.checked_add(tokens_unstaked).unwrap();
 
-        tokens_unstaked
+        Ok(tokens_unstaked)
     }
 
-    /// Updates commission to new rate. Called after accrual of all issued rewards.
-    pub fn update_commission_rate(&mut self) {
-        if let Some(new_commission_rate_bps) = self.new_commission_rate_bps {
-            self.commission_rate_bps = new_commission_rate_bps;
-            self.new_commission_rate_bps = None;
-        }
+    /// Updates OperatorPool total_shares, total_staked_amount and staking_record shares after
+    /// slashing of share_amount shares. Slashing tokens is the same as unstaking, but
+    /// there is no unstaking delay. The slashed tokens are immediately confiscated.
+    /// Returns number of tokens slashed.
+    pub fn slash_tokens(
+        &mut self,
+        staking_record: &mut StakingRecord,
+        shares_amount: u64,
+    ) -> Result<u64> {
+        self.settle_usdc_earnings(staking_record)?;
+
+        let token_amount = self.calc_tokens_for_share_amount(shares_amount);
+        self.total_staked_amount = self.total_staked_amount.checked_sub(token_amount).unwrap();
+        self.total_shares = self.total_shares.checked_sub(shares_amount).unwrap();
+
+        Ok(token_amount)
     }
 
     /// Check that all rewards have been claimed for pool closure conditions.
@@ -201,11 +213,81 @@ impl OperatorPool {
         }
         Ok(())
     }
+
+    /// Settle USDC rewards for a staking record.
+    /// Must be called before any share modifications.
+    pub fn settle_usdc_earnings(
+        &self,
+        staking_record: &mut crate::state::StakingRecord,
+    ) -> Result<()> {
+        // Calculate earned USDC since last settlement
+        let usdc_per_share_settlement_delta = self
+            .cumulative_usdc_per_share
+            .saturating_sub(staking_record.last_settled_usdc_per_share);
+
+        let earned_usdc = (staking_record.shares as u128)
+            .checked_mul(usdc_per_share_settlement_delta)
+            .unwrap()
+            .checked_div(USDC_PRECISION_FACTOR)
+            .unwrap();
+
+        // Add to accrued balance
+        staking_record.accrued_usdc_earnings = staking_record
+            .accrued_usdc_earnings
+            .checked_add(earned_usdc as u64)
+            .unwrap();
+
+        // Update settlement checkpoint
+        staking_record.last_settled_usdc_per_share = self.cumulative_usdc_per_share;
+
+        Ok(())
+    }
+
+    /// Check if a staking record has unclaimed USDC.
+    pub fn has_unclaimed_usdc_earnings(
+        &self,
+        staking_record: &crate::state::StakingRecord,
+    ) -> bool {
+        // Check accrued balance
+        if staking_record.accrued_usdc_earnings > 0 {
+            return true;
+        }
+
+        // Check unsettled rewards
+        let usdc_per_share_settlement_delta = self
+            .cumulative_usdc_per_share
+            .saturating_sub(staking_record.last_settled_usdc_per_share);
+
+        if usdc_per_share_settlement_delta > 0 && staking_record.shares > 0 {
+            let unsettled = (staking_record.shares as u128)
+                .saturating_mul(usdc_per_share_settlement_delta)
+                .saturating_div(USDC_PRECISION_FACTOR);
+            return unsettled > 0;
+        }
+
+        false
+    }
+
+    /// Updates reward commission to new rate. Called after accrual of all issued rewards.
+    pub fn update_reward_commission_rate(&mut self) {
+        if let Some(new_commission_rate_bps) = self.new_reward_commission_rate_bps {
+            self.reward_commission_rate_bps = new_commission_rate_bps;
+            self.new_reward_commission_rate_bps = None;
+        }
+    }
+
+    /// Updates USDC commission to new rate. Called after accrual of all issued rewards.
+    pub fn update_usdc_commission_rate(&mut self) {
+        if let Some(new_commission_rate_bps) = self.new_usdc_commission_rate_bps {
+            self.usdc_commission_rate_bps = new_commission_rate_bps;
+            self.new_usdc_commission_rate_bps = None;
+        }
+    }
 }
 
 impl OperatorPool {
     pub fn is_url_valid(&self, url: &str) -> bool {
-        return url.starts_with("https://") || url.starts_with("http://");
+        url.starts_with("https://") || url.starts_with("http://")
     }
 
     pub fn validate_name(&self) -> Result<()> {

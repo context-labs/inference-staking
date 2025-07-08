@@ -13,4 +13,7 @@ dist
 
 Anchor.toml.bak
 
+scripts/compile-program.ts
 compiled-program.rs
+
+keys/

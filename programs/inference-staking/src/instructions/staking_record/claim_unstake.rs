@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCode;
-use crate::events::ClaimUnstakeEvent;
 use crate::operator_pool_signer_seeds;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 
@@ -52,7 +51,7 @@ pub struct ClaimUnstake<'info> {
 
     #[account(
         mut,
-        seeds = [b"StakedToken".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolStakedTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
     pub staked_token_account: Box<Account<'info, TokenAccount>>,
@@ -121,7 +120,7 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
     staking_record.unstake_at_timestamp = 0;
 
     // If Operator is claiming and pool is not closed, check that they still
-    // maintain min. share percentage of pool after.
+    // maintain min. token stake of pool after.
     if is_operator_claiming && operator_pool.closed_at.is_none() {
         let min_operator_token_stake = pool_overview.min_operator_token_stake;
         let operator_stake = operator_pool.calc_tokens_for_share_amount(staking_record.shares);
@@ -131,14 +130,6 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
             ErrorCode::MinOperatorTokenStakeNotMet
         );
     }
-
-    emit!(ClaimUnstakeEvent {
-        staking_record: staking_record.key(),
-        operator_pool: operator_pool.key(),
-        unstake_amount: tokens_unstake_amount,
-        total_staked_amount: operator_pool.total_staked_amount,
-        total_unstaking: operator_pool.total_unstaking
-    });
 
     Ok(())
 }

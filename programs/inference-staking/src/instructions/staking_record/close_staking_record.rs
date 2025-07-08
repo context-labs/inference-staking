@@ -1,6 +1,9 @@
 use anchor_lang::prelude::*;
 
-use crate::{error::ErrorCode, state::StakingRecord};
+use crate::{
+    error::ErrorCode,
+    state::{OperatorPool, StakingRecord},
+};
 
 #[derive(Accounts)]
 pub struct CloseStakingRecord<'info> {
@@ -24,18 +27,32 @@ pub struct CloseStakingRecord<'info> {
     )]
     pub owner_staking_record: Account<'info, StakingRecord>,
 
+    #[account(
+        seeds = [b"OperatorPool".as_ref(), operator_pool.initial_pool_admin.as_ref()],
+        bump = operator_pool.bump,
+    )]
+    pub operator_pool: Account<'info, OperatorPool>,
+
     pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<CloseStakingRecord>) -> Result<()> {
-    // Assert the StakingRecord is empty
+    let staking_record = &ctx.accounts.owner_staking_record;
+
+    // Check no shares or unstaking tokens
+    require!(staking_record.shares == 0, ErrorCode::AccountNotEmpty);
     require!(
-        ctx.accounts.owner_staking_record.shares == 0,
+        staking_record.tokens_unstake_amount == 0,
         ErrorCode::AccountNotEmpty
     );
+
+    // Check no unsettled USDC earnings
     require!(
-        ctx.accounts.owner_staking_record.tokens_unstake_amount == 0,
-        ErrorCode::AccountNotEmpty
+        !ctx.accounts
+            .operator_pool
+            .has_unclaimed_usdc_earnings(staking_record),
+        ErrorCode::UnclaimedUsdcEarnings
     );
+
     Ok(())
 }

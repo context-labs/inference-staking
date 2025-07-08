@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
-use crate::events::StakeEvent;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
@@ -51,7 +50,7 @@ pub struct Stake<'info> {
 
     #[account(
         mut,
-        seeds = [b"StakedToken".as_ref(), operator_pool.key().as_ref()],
+        seeds = [b"PoolStakedTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
     pub staked_token_account: Box<Account<'info, TokenAccount>>,
@@ -88,7 +87,8 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     require_gte!(owner_token_account.amount, token_amount);
 
     // Calculate number of shares to create, and update token and share amounts on OperatorPool.
-    let shares_created = operator_pool.stake_tokens(token_amount);
+    let shares_created =
+        operator_pool.stake_tokens(&mut ctx.accounts.owner_staking_record, token_amount)?;
 
     // Add shares created to owner's StakingRecord.
     let staking_record = &mut ctx.accounts.owner_staking_record;
@@ -120,14 +120,6 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
         min_operator_token_stake,
         ErrorCode::MinOperatorTokenStakeNotMet
     );
-
-    emit!(StakeEvent {
-        staking_record: staking_record.key(),
-        operator_pool: operator_pool.key(),
-        stake_amount: token_amount,
-        total_staked_amount: operator_pool.total_staked_amount,
-        total_unstaking: operator_pool.total_unstaking
-    });
 
     Ok(())
 }

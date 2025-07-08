@@ -36,6 +36,9 @@ pub fn handler(ctx: Context<CreateStakingRecord>) -> Result<()> {
     let staking_record = &mut ctx.accounts.owner_staking_record;
     staking_record.owner = ctx.accounts.owner.key();
     staking_record.operator_pool = ctx.accounts.operator_pool.key();
+    staking_record.last_settled_usdc_per_share =
+        ctx.accounts.operator_pool.cumulative_usdc_per_share;
+    staking_record.accrued_usdc_earnings = 0;
 
     Ok(())
 }

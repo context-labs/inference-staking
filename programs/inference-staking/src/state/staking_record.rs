@@ -17,4 +17,10 @@ pub struct StakingRecord {
 
     /// Amount of tokens to be unstaked
     pub tokens_unstake_amount: u64,
+
+    /// USDC per share value at last settlement
+    pub last_settled_usdc_per_share: u128,
+
+    /// Accrued USDC rewards available to claim
+    pub accrued_usdc_earnings: u64,
 }

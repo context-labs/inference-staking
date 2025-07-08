@@ -37,16 +37,18 @@ export type SetupPoolType = {
   avatarImageUrl: string | null;
   admin: PublicKey;
   adminKp: Keypair;
-  feeTokenAccount: PublicKey;
+  rewardCommissionFeeTokenVault: PublicKey;
   pool: PublicKey;
   stakedTokenAccount: PublicKey;
   stakingRecord: PublicKey;
-  usdcPayoutWallet: PublicKey;
+  usdcCommissionFeeTokenVault: PublicKey;
   usdcTokenAccount: PublicKey;
   delegatorStakingRecord: PublicKey;
   autoStakeFees: boolean;
-  commissionRateBps: number;
+  rewardCommissionRateBps: number;
+  usdcCommissionRateBps: number;
   adminTokenAccount: PublicKey;
+  poolUsdcVault: PublicKey;
 };
 
 export const TEST_PROGRAM_ID = new PublicKey(
@@ -203,8 +205,8 @@ export async function setupTests() {
   );
 
   const poolOverview = sdk.poolOverviewPda();
-  const rewardTokenAccount = sdk.rewardTokenPda();
-  const usdcTokenAccount = sdk.usdcTokenPda();
+  const rewardTokenAccount = sdk.globalTokenRewardVaultPda();
+  const usdcTokenAccount = sdk.globalUsdcEarningsVaultPda();
   const operatorPool1 = sdk.operatorPoolPda(admin1Kp.publicKey);
   const operatorPool2 = sdk.operatorPoolPda(admin2Kp.publicKey);
   const operatorPool3 = sdk.operatorPoolPda(admin3Kp.publicKey);
@@ -234,6 +236,16 @@ export async function setupTests() {
         tokenMint,
         adminKeypair.publicKey
       );
+      const rewardFeeTokenAccount =
+        sdk.poolRewardCommissionTokenVaultPda(operatorPool);
+      const usdcCommissionFeeTokenVault =
+        sdk.poolUsdcCommissionTokenVaultPda(operatorPool);
+      const stakedTokenAccount = sdk.poolStakedTokenVaultPda(operatorPool);
+      const stakingRecord = sdk.stakingRecordPda(
+        operatorPool,
+        adminKeypair.publicKey
+      );
+      const poolUsdcVault = sdk.poolDelegatorUsdcEarningsVaultPda(operatorPool);
       return {
         name: `Test Operator ${shortId()}`,
         description: `Test Description ${shortId()}`,
@@ -241,22 +253,21 @@ export async function setupTests() {
         avatarImageUrl: null,
         admin: adminKeypair.publicKey,
         adminKp: adminKeypair,
-        feeTokenAccount: sdk.feeTokenPda(operatorPool),
+        rewardCommissionFeeTokenVault: rewardFeeTokenAccount,
         pool: operatorPool,
-        stakedTokenAccount: sdk.stakedTokenPda(operatorPool),
-        stakingRecord: sdk.stakingRecordPda(
-          operatorPool,
-          adminKeypair.publicKey
-        ),
-        usdcPayoutWallet: adminKeypair.publicKey,
+        stakedTokenAccount,
+        stakingRecord,
+        usdcCommissionFeeTokenVault,
         usdcTokenAccount: adminUsdcTokenAccount.address,
         delegatorStakingRecord: sdk.stakingRecordPda(
           operatorPool,
           delegatorKeypair.publicKey
         ),
         autoStakeFees: false,
-        commissionRateBps: randomIntInRange(0, 100) * 100,
+        rewardCommissionRateBps: randomIntInRange(0, 100) * 100,
+        usdcCommissionRateBps: randomIntInRange(0, 100) * 100,
         adminTokenAccount: adminTokenAccount.address,
+        poolUsdcVault,
       };
     } catch (err) {
       console.log(`Error getting pool setup for ${operatorPool.toBase58()}`);

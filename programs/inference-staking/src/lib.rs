@@ -1,9 +1,11 @@
 #![allow(ambiguous_glob_reexports)]
 #![allow(unexpected_cfgs)] // See: https://solana.stackexchange.com/a/19845
 
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_security_txt::security_txt;
+
 pub mod constants;
 pub mod error;
-pub mod events;
 pub mod instructions;
 pub mod macros;
 pub mod state;
@@ -14,6 +16,16 @@ use state::*;
 use anchor_lang::prelude::*;
 
 declare_id!("stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG");
+
+#[cfg(not(feature = "no-entrypoint"))]
+security_txt! {
+    name: "Inference.net Staking Program",
+    project_url: "https://inference.net",
+    contacts: "email:security@inference.net",
+    policy: "https://docs.devnet.inference.net/devnet-epoch-3/bug-bounty-program",
+    source_code: "https://github.com/context-labs/inference-staking",
+    auditors: "Zellic"
+}
 
 #[program]
 pub mod inference_staking {
@@ -74,6 +86,10 @@ pub mod inference_staking {
         close_staking_record::handler(ctx)
     }
 
+    pub fn claim_usdc_earnings(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
+        claim_usdc_earnings::handler(ctx)
+    }
+
     /** -----------------------------------------------------------------------
      * Reward Distribution Instructions
      * ------------------------------------------------------------------------ */
@@ -105,8 +121,16 @@ pub mod inference_staking {
         create_operator_pool::handler(ctx, args)
     }
 
-    pub fn withdraw_operator_commission(ctx: Context<WithdrawOperatorCommission>) -> Result<()> {
-        withdraw_operator_commission::handler(ctx)
+    pub fn withdraw_operator_reward_commission(
+        ctx: Context<WithdrawOperatorRewardCommission>,
+    ) -> Result<()> {
+        withdraw_operator_reward_commission::handler(ctx)
+    }
+
+    pub fn withdraw_operator_usdc_commission(
+        ctx: Context<WithdrawOperatorUsdcCommission>,
+    ) -> Result<()> {
+        withdraw_operator_usdc_commission::handler(ctx)
     }
 
     pub fn change_operator_staking_record(ctx: Context<ChangeOperatorStakingRecord>) -> Result<()> {
@@ -126,6 +150,10 @@ pub mod inference_staking {
 
     pub fn close_operator_pool(ctx: Context<CloseOperatorPool>) -> Result<()> {
         close_operator_pool::handler(ctx)
+    }
+
+    pub fn sweep_closed_pool_usdc_dust(ctx: Context<SweepClosedPoolUsdcDust>) -> Result<()> {
+        sweep_closed_pool_usdc_dust::handler(ctx)
     }
 
     /** -----------------------------------------------------------------------

@@ -75,17 +75,16 @@ const _IDL = {
           relations: ["operatorPool"],
         },
         {
-          name: "usdcPayoutTokenAccount",
-          writable: true,
-        },
-        {
           name: "rewardTokenAccount",
           writable: true,
           pda: {
             seeds: [
               {
                 kind: "const",
-                value: [82, 101, 119, 97, 114, 100, 84, 111, 107, 101, 110],
+                value: [
+                  71, 108, 111, 98, 97, 108, 84, 111, 107, 101, 110, 82, 101,
+                  119, 97, 114, 100, 86, 97, 117, 108, 116,
+                ],
               },
             ],
           },
@@ -97,7 +96,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [85, 83, 68, 67],
+                value: [
+                  71, 108, 111, 98, 97, 108, 85, 115, 100, 99, 69, 97, 114, 110,
+                  105, 110, 103, 115, 86, 97, 117, 108, 116,
+                ],
               },
             ],
           },
@@ -109,7 +111,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [83, 116, 97, 107, 101, 100, 84, 111, 107, 101, 110],
+                value: [
+                  80, 111, 111, 108, 83, 116, 97, 107, 101, 100, 84, 111, 107,
+                  101, 110, 86, 97, 117, 108, 116,
+                ],
               },
               {
                 kind: "account",
@@ -119,13 +124,57 @@ const _IDL = {
           },
         },
         {
-          name: "feeTokenAccount",
+          name: "rewardFeeTokenAccount",
           writable: true,
           pda: {
             seeds: [
               {
                 kind: "const",
-                value: [70, 101, 101, 84, 111, 107, 101, 110],
+                value: [
+                  80, 111, 111, 108, 82, 101, 119, 97, 114, 100, 67, 111, 109,
+                  109, 105, 115, 115, 105, 111, 110, 84, 111, 107, 101, 110, 86,
+                  97, 117, 108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "usdcFeeTokenAccount",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 85, 115, 100, 99, 67, 111, 109, 109, 105,
+                  115, 115, 105, 111, 110, 84, 111, 107, 101, 110, 86, 97, 117,
+                  108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "poolUsdcVault",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 68, 101, 108, 101, 103, 97, 116, 111, 114,
+                  85, 115, 100, 99, 69, 97, 114, 110, 105, 110, 103, 115, 86,
+                  97, 117, 108, 116,
+                ],
               },
               {
                 kind: "account",
@@ -378,7 +427,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [83, 116, 97, 107, 101, 100, 84, 111, 107, 101, 110],
+                value: [
+                  80, 111, 111, 108, 83, 116, 97, 107, 101, 100, 84, 111, 107,
+                  101, 110, 86, 97, 117, 108, 116,
+                ],
               },
               {
                 kind: "account",
@@ -386,6 +438,85 @@ const _IDL = {
               },
             ],
           },
+        },
+        {
+          name: "tokenProgram",
+          address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        },
+      ],
+      args: [],
+    },
+    {
+      name: "claimUsdcEarnings",
+      discriminator: [38, 20, 245, 41, 23, 224, 55, 153],
+      accounts: [
+        {
+          name: "owner",
+          signer: true,
+          relations: ["stakingRecord"],
+        },
+        {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+        {
+          name: "operatorPool",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operator_pool.initial_pool_admin",
+                account: "operatorPool",
+              },
+            ],
+          },
+          relations: ["stakingRecord"],
+        },
+        {
+          name: "stakingRecord",
+          writable: true,
+        },
+        {
+          name: "poolUsdcVault",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 68, 101, 108, 101, 103, 97, 116, 111, 114,
+                  85, 115, 100, 99, 69, 97, 114, 110, 105, 110, 103, 115, 86,
+                  97, 117, 108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "destination",
+          docs: [
+            "Destination account for the USDC earnings. Must be a USDC token account.",
+          ],
+          writable: true,
         },
         {
           name: "tokenProgram",
@@ -446,6 +577,24 @@ const _IDL = {
               {
                 kind: "account",
                 path: "owner",
+              },
+            ],
+          },
+        },
+        {
+          name: "operatorPool",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operator_pool.initial_pool_admin",
+                account: "operatorPool",
               },
             ],
           },
@@ -535,7 +684,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [83, 116, 97, 107, 101, 100, 84, 111, 107, 101, 110],
+                value: [
+                  80, 111, 111, 108, 83, 116, 97, 107, 101, 100, 84, 111, 107,
+                  101, 110, 86, 97, 117, 108, 116,
+                ],
               },
               {
                 kind: "account",
@@ -545,13 +697,17 @@ const _IDL = {
           },
         },
         {
-          name: "feeTokenAccount",
+          name: "rewardFeeTokenAccount",
           writable: true,
           pda: {
             seeds: [
               {
                 kind: "const",
-                value: [70, 101, 101, 84, 111, 107, 101, 110],
+                value: [
+                  80, 111, 111, 108, 82, 101, 119, 97, 114, 100, 67, 111, 109,
+                  109, 105, 115, 115, 105, 111, 110, 84, 111, 107, 101, 110, 86,
+                  97, 117, 108, 116,
+                ],
               },
               {
                 kind: "account",
@@ -561,7 +717,44 @@ const _IDL = {
           },
         },
         {
-          name: "usdcPayoutWallet",
+          name: "usdcFeeTokenAccount",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 85, 115, 100, 99, 67, 111, 109, 109, 105,
+                  115, 115, 105, 111, 110, 84, 111, 107, 101, 110, 86, 97, 117,
+                  108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "operatorUsdcVault",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 68, 101, 108, 101, 103, 97, 116, 111, 114,
+                  85, 115, 100, 99, 69, 97, 114, 110, 105, 110, 103, 115, 86,
+                  97, 117, 108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
         },
         {
           name: "adminTokenAccount",
@@ -574,6 +767,9 @@ const _IDL = {
         {
           name: "mint",
           relations: ["poolOverview"],
+        },
+        {
+          name: "usdcMint",
         },
         {
           name: "tokenProgram",
@@ -635,7 +831,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [82, 101, 119, 97, 114, 100, 84, 111, 107, 101, 110],
+                value: [
+                  71, 108, 111, 98, 97, 108, 84, 111, 107, 101, 110, 82, 101,
+                  119, 97, 114, 100, 86, 97, 117, 108, 116,
+                ],
               },
             ],
           },
@@ -647,7 +846,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [85, 83, 68, 67],
+                value: [
+                  71, 108, 111, 98, 97, 108, 85, 115, 100, 99, 69, 97, 114, 110,
+                  105, 110, 103, 115, 86, 97, 117, 108, 116,
+                ],
               },
             ],
           },
@@ -709,7 +911,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [82, 101, 119, 97, 114, 100, 84, 111, 107, 101, 110],
+                value: [
+                  71, 108, 111, 98, 97, 108, 84, 111, 107, 101, 110, 82, 101,
+                  119, 97, 114, 100, 86, 97, 117, 108, 116,
+                ],
               },
             ],
           },
@@ -720,7 +925,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [85, 83, 68, 67],
+                value: [
+                  71, 108, 111, 98, 97, 108, 85, 115, 100, 99, 69, 97, 114, 110,
+                  105, 110, 103, 115, 86, 97, 117, 108, 116,
+                ],
               },
             ],
           },
@@ -994,7 +1202,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [83, 116, 97, 107, 101, 100, 84, 111, 107, 101, 110],
+                value: [
+                  80, 111, 111, 108, 83, 116, 97, 107, 101, 100, 84, 111, 107,
+                  101, 110, 86, 97, 117, 108, 116,
+                ],
               },
               {
                 kind: "account",
@@ -1005,6 +1216,30 @@ const _IDL = {
         },
         {
           name: "destination",
+          writable: true,
+        },
+        {
+          name: "poolUsdcVault",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 68, 101, 108, 101, 103, 97, 116, 111, 114,
+                  85, 115, 100, 99, 69, 97, 114, 110, 105, 110, 103, 115, 86,
+                  97, 117, 108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "destinationUsdcAccount",
           writable: true,
         },
         {
@@ -1102,7 +1337,10 @@ const _IDL = {
             seeds: [
               {
                 kind: "const",
-                value: [83, 116, 97, 107, 101, 100, 84, 111, 107, 101, 110],
+                value: [
+                  80, 111, 111, 108, 83, 116, 97, 107, 101, 100, 84, 111, 107,
+                  101, 110, 86, 97, 117, 108, 116,
+                ],
               },
               {
                 kind: "account",
@@ -1122,6 +1360,71 @@ const _IDL = {
           type: "u64",
         },
       ],
+    },
+    {
+      name: "sweepClosedPoolUsdcDust",
+      discriminator: [151, 159, 189, 65, 127, 240, 112, 65],
+      accounts: [
+        {
+          name: "admin",
+          docs: [
+            "The admin of the OperatorPool, who is authorized to sweep the vault.",
+          ],
+          writable: true,
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "operatorPool",
+        },
+        {
+          name: "operatorUsdcVault",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 68, 101, 108, 101, 103, 97, 116, 111, 114,
+                  85, 115, 100, 99, 69, 97, 114, 110, 105, 110, 103, 115, 86,
+                  97, 117, 108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "adminUsdcAccount",
+          docs: ["The admin's USDC token account to receive the swept funds."],
+          writable: true,
+        },
+        {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+        {
+          name: "tokenProgram",
+          address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        },
+        {
+          name: "systemProgram",
+          address: "11111111111111111111111111111111",
+        },
+      ],
+      args: [],
     },
     {
       name: "unstake",
@@ -1227,10 +1530,6 @@ const _IDL = {
             ],
           },
         },
-        {
-          name: "usdcPayoutWallet",
-          optional: true,
-        },
       ],
       args: [
         {
@@ -1323,8 +1622,8 @@ const _IDL = {
       ],
     },
     {
-      name: "withdrawOperatorCommission",
-      discriminator: [235, 10, 174, 108, 185, 188, 152, 196],
+      name: "withdrawOperatorRewardCommission",
+      discriminator: [224, 6, 179, 170, 51, 12, 49, 221],
       accounts: [
         {
           name: "admin",
@@ -1363,13 +1662,17 @@ const _IDL = {
           },
         },
         {
-          name: "feeTokenAccount",
+          name: "rewardFeeTokenAccount",
           writable: true,
           pda: {
             seeds: [
               {
                 kind: "const",
-                value: [70, 101, 101, 84, 111, 107, 101, 110],
+                value: [
+                  80, 111, 111, 108, 82, 101, 119, 97, 114, 100, 67, 111, 109,
+                  109, 105, 115, 115, 105, 111, 110, 84, 111, 107, 101, 110, 86,
+                  97, 117, 108, 116,
+                ],
               },
               {
                 kind: "account",
@@ -1381,6 +1684,78 @@ const _IDL = {
         {
           name: "destination",
           docs: ["Destination for the commission."],
+          writable: true,
+        },
+        {
+          name: "tokenProgram",
+          address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        },
+      ],
+      args: [],
+    },
+    {
+      name: "withdrawOperatorUsdcCommission",
+      discriminator: [249, 79, 68, 38, 186, 241, 145, 192],
+      accounts: [
+        {
+          name: "admin",
+          signer: true,
+          relations: ["operatorPool"],
+        },
+        {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+        {
+          name: "operatorPool",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  79, 112, 101, 114, 97, 116, 111, 114, 80, 111, 111, 108,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operator_pool.initial_pool_admin",
+                account: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "usdcFeeTokenAccount",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 85, 115, 100, 99, 67, 111, 109, 109, 105,
+                  115, 115, 105, 111, 110, 84, 111, 107, 101, 110, 86, 97, 117,
+                  108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
+          name: "destination",
+          docs: ["Destination for the USDC commission."],
           writable: true,
         },
         {
@@ -1407,28 +1782,6 @@ const _IDL = {
     {
       name: "stakingRecord",
       discriminator: [104, 155, 91, 97, 111, 66, 42, 128],
-    },
-  ],
-  events: [
-    {
-      name: "claimUnstakeEvent",
-      discriminator: [18, 255, 161, 59, 246, 47, 255, 127],
-    },
-    {
-      name: "completeAccrueRewardEvent",
-      discriminator: [149, 158, 93, 104, 228, 19, 24, 204],
-    },
-    {
-      name: "slashStakeEvent",
-      discriminator: [150, 87, 165, 208, 202, 50, 106, 12],
-    },
-    {
-      name: "stakeEvent",
-      discriminator: [226, 134, 188, 173, 19, 33, 75, 175],
-    },
-    {
-      name: "unstakeEvent",
-      discriminator: [162, 104, 137, 228, 81, 3, 79, 197],
     },
   ],
   errors: [
@@ -1602,6 +1955,46 @@ const _IDL = {
       name: "invalidAvatarImageUrl",
       msg: "Avatar image URL is invalid",
     },
+    {
+      code: 6034,
+      name: "unclaimedUsdcEarnings",
+      msg: "USDC earnings must be claimed before unstaking",
+    },
+    {
+      code: 6035,
+      name: "noUsdcEarningsToClaim",
+      msg: "No USDC earnings to claim",
+    },
+    {
+      code: 6036,
+      name: "insufficientPoolUsdcVaultBalance",
+      msg: "Insufficient USDC in pool vault",
+    },
+    {
+      code: 6037,
+      name: "invalidCommissionRate",
+      msg: "Invalid commission rate",
+    },
+    {
+      code: 6038,
+      name: "poolMustBeClosed",
+      msg: "Operator pool must be closed to sweep dust",
+    },
+    {
+      code: 6039,
+      name: "poolClosedEpochInvalid",
+      msg: "Operator pool must be closed before the current epoch",
+    },
+    {
+      code: 6040,
+      name: "poolIsNotEmpty",
+      msg: "Pool is not empty",
+    },
+    {
+      code: 6041,
+      name: "finalUnstakeEpochInvalid",
+      msg: "Pool must be closed before the current epoch for the operator to unstake",
+    },
   ],
   types: [
     {
@@ -1639,63 +2032,6 @@ const _IDL = {
       },
     },
     {
-      name: "claimUnstakeEvent",
-      type: {
-        kind: "struct",
-        fields: [
-          {
-            name: "stakingRecord",
-            type: "pubkey",
-          },
-          {
-            name: "operatorPool",
-            type: "pubkey",
-          },
-          {
-            name: "unstakeAmount",
-            docs: ["Amount being of tokens being claimed."],
-            type: "u64",
-          },
-          {
-            name: "totalStakedAmount",
-            docs: ["Total amount of remaining tokens staked in pool."],
-            type: "u64",
-          },
-          {
-            name: "totalUnstaking",
-            docs: [
-              "Total amount of remaining tokens being unstaked in the pool.",
-            ],
-            type: "u64",
-          },
-        ],
-      },
-    },
-    {
-      name: "completeAccrueRewardEvent",
-      type: {
-        kind: "struct",
-        fields: [
-          {
-            name: "operatorPool",
-            type: "pubkey",
-          },
-          {
-            name: "totalStakedAmount",
-            docs: ["Total amount of remaining tokens staked in pool."],
-            type: "u64",
-          },
-          {
-            name: "totalUnstaking",
-            docs: [
-              "Total amount of remaining tokens being unstaked in the pool.",
-            ],
-            type: "u64",
-          },
-        ],
-      },
-    },
-    {
       name: "createOperatorPoolArgs",
       type: {
         kind: "struct",
@@ -1705,7 +2041,7 @@ const _IDL = {
             type: "bool",
           },
           {
-            name: "commissionRateBps",
+            name: "rewardCommissionRateBps",
             type: "u16",
           },
           {
@@ -1741,6 +2077,10 @@ const _IDL = {
                 vec: "pubkey",
               },
             },
+          },
+          {
+            name: "usdcCommissionRateBps",
+            type: "u16",
           },
         ],
       },
@@ -1881,12 +2221,12 @@ const _IDL = {
             type: "bool",
           },
           {
-            name: "commissionRateBps",
-            docs: ["Commission Rate for Epoch Rewards. Capped at 100%."],
+            name: "rewardCommissionRateBps",
+            docs: ["Commission Rate for Epoch Token Rewards. Capped at 100%."],
             type: "u16",
           },
           {
-            name: "newCommissionRateBps",
+            name: "newRewardCommissionRateBps",
             docs: [
               "Commission Rate that will take place next Epoch, if set. Capped at 100%.",
             ],
@@ -1970,17 +2310,36 @@ const _IDL = {
           {
             name: "accruedUsdcPayout",
             docs: [
-              "USDC that have been calculated in `accrueRewards`, that are yet to be physically transferred to payout wallet.",
+              "USDC commission that have been calculated in `accrueRewards`, that are yet to be physically transferred to USDC fee account.",
               "Used to optimize compute.",
             ],
             type: "u64",
           },
           {
-            name: "usdcPayoutWallet",
+            name: "usdcCommissionRateBps",
+            docs: ["USDC commission rate in basis points (0-10000)"],
+            type: "u16",
+          },
+          {
+            name: "newUsdcCommissionRateBps",
+            docs: ["Pending USDC commission rate for next epoch"],
+            type: {
+              option: "u16",
+            },
+          },
+          {
+            name: "cumulativeUsdcPerShare",
             docs: [
-              "Destination wallet for USDC payouts for this operator pool.",
+              "Cumulative USDC per share (scaled by USDC_PRECISION_FACTOR)",
             ],
-            type: "pubkey",
+            type: "u128",
+          },
+          {
+            name: "accruedDelegatorUsdc",
+            docs: [
+              "USDC earned by delegators, yet to be transferred to the pool vault. Used to optimize compute.",
+            ],
+            type: "u64",
           },
         ],
       },
@@ -2185,72 +2544,6 @@ const _IDL = {
       },
     },
     {
-      name: "slashStakeEvent",
-      type: {
-        kind: "struct",
-        fields: [
-          {
-            name: "stakingRecord",
-            type: "pubkey",
-          },
-          {
-            name: "operatorPool",
-            type: "pubkey",
-          },
-          {
-            name: "slashedAmount",
-            docs: ["Amount being of tokens being slashed."],
-            type: "u64",
-          },
-          {
-            name: "totalStakedAmount",
-            docs: ["Total amount of remaining tokens staked in pool."],
-            type: "u64",
-          },
-          {
-            name: "totalUnstaking",
-            docs: [
-              "Total amount of remaining tokens being unstaked in the pool.",
-            ],
-            type: "u64",
-          },
-        ],
-      },
-    },
-    {
-      name: "stakeEvent",
-      type: {
-        kind: "struct",
-        fields: [
-          {
-            name: "stakingRecord",
-            type: "pubkey",
-          },
-          {
-            name: "operatorPool",
-            type: "pubkey",
-          },
-          {
-            name: "stakeAmount",
-            docs: ["Amount being of tokens being delegated to pool."],
-            type: "u64",
-          },
-          {
-            name: "totalStakedAmount",
-            docs: ["Total amount of remaining tokens staked in pool."],
-            type: "u64",
-          },
-          {
-            name: "totalUnstaking",
-            docs: [
-              "Total amount of remaining tokens being unstaked in the pool.",
-            ],
-            type: "u64",
-          },
-        ],
-      },
-    },
-    {
       name: "stakingRecord",
       type: {
         kind: "struct",
@@ -2280,37 +2573,14 @@ const _IDL = {
             docs: ["Amount of tokens to be unstaked"],
             type: "u64",
           },
-        ],
-      },
-    },
-    {
-      name: "unstakeEvent",
-      type: {
-        kind: "struct",
-        fields: [
           {
-            name: "stakingRecord",
-            type: "pubkey",
+            name: "lastSettledUsdcPerShare",
+            docs: ["USDC per share value at last settlement"],
+            type: "u128",
           },
           {
-            name: "operatorPool",
-            type: "pubkey",
-          },
-          {
-            name: "unstakeAmount",
-            docs: ["Amount being of tokens being unstaked from pool."],
-            type: "u64",
-          },
-          {
-            name: "totalStakedAmount",
-            docs: ["Total amount of remaining tokens staked in pool."],
-            type: "u64",
-          },
-          {
-            name: "totalUnstaking",
-            docs: [
-              "Total amount of remaining tokens being unstaked in the pool.",
-            ],
+            name: "accruedUsdcEarnings",
+            docs: ["Accrued USDC rewards available to claim"],
             type: "u64",
           },
         ],
@@ -2322,10 +2592,20 @@ const _IDL = {
         kind: "struct",
         fields: [
           {
-            name: "newCommissionRateBps",
+            name: "newRewardCommissionRateBps",
             docs: [
               "If set, the new commission rate will become active next epoch",
             ],
+            type: {
+              option: {
+                defined: {
+                  name: "newCommissionRateSetting",
+                },
+              },
+            },
+          },
+          {
+            name: "newUsdcCommissionRateBps",
             type: {
               option: {
                 defined: {

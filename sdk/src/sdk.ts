@@ -9,6 +9,7 @@ import type {
 } from "@solana/web3.js";
 import { PublicKey } from "@solana/web3.js";
 
+import { USDC_PRECISION_FACTOR } from "./constants";
 import {
   OPERATOR_POOL_DISCRIMINATOR,
   STAKING_RECORD_DISCRIMINATOR,
@@ -51,7 +52,7 @@ export class InferenceStakingProgramSdk {
   }
 
   /** ************************************************************************
-   *  PDA Methods
+   *  Program State Account PDAs
    *************************************************************************** */
 
   poolOverviewPda(): PublicKey {
@@ -82,22 +83,6 @@ export class InferenceStakingProgramSdk {
     return pda;
   }
 
-  stakedTokenPda(operatorPoolPda: PublicKey): PublicKey {
-    const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("StakedToken", "utf-8"), operatorPoolPda.toBuffer()],
-      this.program.programId
-    );
-    return pda;
-  }
-
-  feeTokenPda(operatorPoolPda: PublicKey): PublicKey {
-    const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("FeeToken", "utf-8"), operatorPoolPda.toBuffer()],
-      this.program.programId
-    );
-    return pda;
-  }
-
   rewardRecordPda(epoch: BN): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
       [
@@ -109,17 +94,65 @@ export class InferenceStakingProgramSdk {
     return pda;
   }
 
-  rewardTokenPda(): PublicKey {
+  /** ************************************************************************
+   *  Program On-Chain Vault PDAs
+   *************************************************************************** */
+
+  globalTokenRewardVaultPda(): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("RewardToken", "utf-8")],
+      [Buffer.from("GlobalTokenRewardVault", "utf-8")],
       this.program.programId
     );
     return pda;
   }
 
-  usdcTokenPda(): PublicKey {
+  globalUsdcEarningsVaultPda(): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("USDC", "utf-8")],
+      [Buffer.from("GlobalUsdcEarningsVault", "utf-8")],
+      this.program.programId
+    );
+    return pda;
+  }
+
+  poolStakedTokenVaultPda(operatorPoolPda: PublicKey): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("PoolStakedTokenVault", "utf-8"),
+        operatorPoolPda.toBuffer(),
+      ],
+      this.program.programId
+    );
+    return pda;
+  }
+
+  poolRewardCommissionTokenVaultPda(operatorPoolPda: PublicKey): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("PoolRewardCommissionTokenVault", "utf-8"),
+        operatorPoolPda.toBuffer(),
+      ],
+      this.program.programId
+    );
+    return pda;
+  }
+
+  poolUsdcCommissionTokenVaultPda(operatorPoolPda: PublicKey): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("PoolUsdcCommissionTokenVault", "utf-8"),
+        operatorPoolPda.toBuffer(),
+      ],
+      this.program.programId
+    );
+    return pda;
+  }
+
+  poolDelegatorUsdcEarningsVaultPda(operatorPoolPda: PublicKey): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("PoolDelegatorUsdcEarningsVault", "utf-8"),
+        operatorPoolPda.toBuffer(),
+      ],
       this.program.programId
     );
     return pda;
@@ -349,7 +382,7 @@ export class InferenceStakingProgramSdk {
   async fetchStakedTokenAccountBalance(
     operatorPoolPda: PublicKey
   ): Promise<BN> {
-    const stakedTokenPda = this.stakedTokenPda(operatorPoolPda);
+    const stakedTokenPda = this.poolStakedTokenVaultPda(operatorPoolPda);
     const tokenAccountInfo =
       await this.program.provider.connection.getTokenAccountBalance(
         stakedTokenPda
@@ -358,7 +391,7 @@ export class InferenceStakingProgramSdk {
   }
 
   async fetchFeeTokenAccountBalance(operatorPoolPda: PublicKey): Promise<BN> {
-    const feeTokenPda = this.feeTokenPda(operatorPoolPda);
+    const feeTokenPda = this.poolRewardCommissionTokenVaultPda(operatorPoolPda);
     const tokenAccountInfo =
       await this.program.provider.connection.getTokenAccountBalance(
         feeTokenPda
@@ -367,7 +400,7 @@ export class InferenceStakingProgramSdk {
   }
 
   async fetchRewardTokenAccountBalance(): Promise<BN> {
-    const rewardTokenPda = this.rewardTokenPda();
+    const rewardTokenPda = this.globalTokenRewardVaultPda();
     const tokenAccountInfo =
       await this.program.provider.connection.getTokenAccountBalance(
         rewardTokenPda
@@ -401,7 +434,8 @@ export class InferenceStakingProgramSdk {
       typeof this.program.methods.updateOperatorPool
     >[0];
     const empty: EmptyUpdateFields = {
-      newCommissionRateBps: null,
+      newRewardCommissionRateBps: null,
+      newUsdcCommissionRateBps: null,
       autoStakeFees: null,
       allowDelegation: null,
       name: null,
@@ -411,6 +445,43 @@ export class InferenceStakingProgramSdk {
       operatorAuthKeys: null,
     };
     return empty;
+  }
+
+  /**
+   * Calculates the total available USDC earnings for a staking record,
+   * including both settled (accrued_usdc_earnings) and unsettled amounts.
+   *
+   * This mirrors the calculation logic in has_unclaimed_usdc_earnings.
+   */
+  getAvailableUsdcEarningsForStakingRecord(args: {
+    accruedUsdcEarnings: string;
+    cumulativeUsdcPerShare: string;
+    lastSettledUsdcPerShare: string;
+    stakingRecordShares: string;
+  }): BN {
+    let totalEarnings = new BN(args.accruedUsdcEarnings);
+
+    const cumulativeUsdcPerShare = new BN(
+      args.cumulativeUsdcPerShare.toString()
+    );
+    const lastSettledUsdcPerShare = new BN(
+      args.lastSettledUsdcPerShare.toString()
+    );
+
+    const usdcPerShareSettlementDelta = cumulativeUsdcPerShare.sub(
+      lastSettledUsdcPerShare
+    );
+
+    const shares = new BN(args.stakingRecordShares);
+    if (usdcPerShareSettlementDelta.gt(new BN(0)) && shares.gt(new BN(0))) {
+      const unsettled = shares
+        .mul(usdcPerShareSettlementDelta)
+        .div(USDC_PRECISION_FACTOR);
+
+      totalEarnings = totalEarnings.add(unsettled);
+    }
+
+    return totalEarnings;
   }
 
   /** ************************************************************************

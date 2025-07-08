@@ -244,7 +244,8 @@ describe("Additional tests for instruction constraints", () => {
       await program.methods
         .createOperatorPool({
           autoStakeFees,
-          commissionRateBps: 110_00,
+          rewardCommissionRateBps: 110_00,
+          usdcCommissionRateBps: 500,
           allowDelegation,
           name: setup.pool1.name,
           description: setup.pool1.description,
@@ -258,21 +259,23 @@ describe("Additional tests for instruction constraints", () => {
           operatorPool: setup.pool1.pool,
           stakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
-          usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           adminTokenAccount: setup.pool1.adminTokenAccount,
           registrationFeePayoutTokenAccount:
             setup.registrationFeePayoutTokenAccount,
+          operatorUsdcVault: setup.pool1.poolUsdcVault,
+          usdcMint: setup.usdcTokenMint,
         })
         .signers([setup.payerKp, setup.pool1.adminKp])
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "RequireGteViolated");
+      assertStakingProgramError(error, "invalidCommissionRate");
     }
   });
 

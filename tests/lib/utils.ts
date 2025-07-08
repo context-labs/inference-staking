@@ -20,7 +20,6 @@ import type {
 import type { InferenceStaking } from "@sdk/src/idl";
 import { InferenceStakingProgramSdk } from "@sdk/src/sdk";
 
-import { TEST_WITH_RELAY } from "@tests/lib/const";
 import type { ConstructMerkleTreeInput } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
 import type { SetupTestResult } from "@tests/lib/setup";
@@ -57,6 +56,14 @@ export const randomIntInRange = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
+export const randomBigIntInRange = (
+  min: number,
+  max: number,
+  scaleFactor: bigint
+): bigint => {
+  return BigInt(randomIntInRange(min, max)) * scaleFactor;
+};
+
 export const debug = (msg: string) => {
   if (process.env.ENABLE_DEBUG_LOGS === "true") {
     console.debug(msg);
@@ -67,9 +74,45 @@ export const formatBN = (bn: anchor.BN): string => {
   try {
     return bn.toNumber().toLocaleString();
   } catch {
-    return bn.toString();
+    return bn.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 };
+
+const TOKEN_PRECISION = 1_000_000_000n;
+const USDC_PRECISION = 1_000_000n;
+
+const AMOUNT_RANGES = {
+  "0": {
+    MIN_AMOUNT: 0,
+    MAX_AMOUNT: 3,
+  },
+  "1": {
+    MIN_AMOUNT: 0,
+    MAX_AMOUNT: 100,
+  },
+  "2": {
+    MIN_AMOUNT: 1_000,
+    MAX_AMOUNT: 10_000,
+  },
+  "3": {
+    MIN_AMOUNT: 10_000,
+    MAX_AMOUNT: 100_000,
+  },
+  "4": {
+    MIN_AMOUNT: 100_000,
+    MAX_AMOUNT: 1_000_000,
+  },
+  "5": {
+    MIN_AMOUNT: 1_000_000,
+    MAX_AMOUNT: 10_000_000,
+  },
+  "6": {
+    MIN_AMOUNT: 10_000_000,
+    MAX_AMOUNT: 100_000_000,
+  },
+};
+
+const { MIN_AMOUNT, MAX_AMOUNT } = AMOUNT_RANGES["6"];
 
 export const generateRewardsForEpoch = (
   publicKeys: PublicKey[]
@@ -78,8 +121,8 @@ export const generateRewardsForEpoch = (
   for (const publicKey of publicKeys) {
     input.push({
       address: publicKey.toString(),
-      tokenAmount: BigInt(randomIntInRange(1, 1_000_000)),
-      usdcAmount: BigInt(randomIntInRange(1, 10_000)),
+      tokenAmount: randomBigIntInRange(MIN_AMOUNT, MAX_AMOUNT, TOKEN_PRECISION),
+      usdcAmount: randomBigIntInRange(MIN_AMOUNT, MAX_AMOUNT, USDC_PRECISION),
     });
   }
   return MerkleUtils.sortAddressList(input);
@@ -91,6 +134,11 @@ export function assertStakingProgramError(
 ) {
   const errorName =
     InferenceStakingProgramSdk.getErrorNameFromTransactionError(error);
+
+  if (errorName !== code) {
+    console.error(error);
+  }
+
   assert.equal(errorName, code);
 }
 
@@ -136,7 +184,7 @@ export const confirmTransaction = async (
   });
 };
 
-export const setEpochFinalizationState = async ({
+export const handleMarkEpochAsFinalizing = async ({
   setup,
   program,
 }: {
@@ -237,36 +285,53 @@ export const assertStakingRecordCreatedState = ({
 
 // Helper function for end-to-end local testing.
 export const resetDatabaseState = async () => {
-  if (!TEST_WITH_RELAY) {
+  if (process.env.SHOULD_RESET_DATABASE !== "true") {
     return;
   }
 
   try {
     const host = process.env.SOLANA_PROGRAMS_DB_HOST;
-    if (host != null) {
-      console.warn("\n- Local DB host provided, database state will be reset.");
-      const pool = new Pool({
-        host,
-        port: Number(process.env.SOLANA_PROGRAMS_DB_PORT),
-        user: process.env.SOLANA_PROGRAMS_DB_USERNAME,
-        password: process.env.SOLANA_PROGRAMS_DB_PASSWORD,
-        database: process.env.SOLANA_PROGRAMS_DB_NAME,
-        ssl: false,
-      });
-
-      const query = `
-        truncate pool_overview;
-        truncate operator_pools cascade;
-        truncate staking_records;
-        truncate reward_records;
-        truncate operator_pool_reward_claims;
-        truncate solana_transactions cascade;
-        truncate epoch_finalizations cascade;
-      `;
-
-      await pool.query(query);
-      console.warn("- Database state reset successfully.\n");
+    const port = process.env.SOLANA_PROGRAMS_DB_PORT;
+    const user = process.env.SOLANA_PROGRAMS_DB_USERNAME;
+    const password = process.env.SOLANA_PROGRAMS_DB_PASSWORD;
+    const database = process.env.SOLANA_PROGRAMS_DB_NAME;
+    if (
+      host == null ||
+      port == null ||
+      isNaN(Number(port)) ||
+      user == null ||
+      password == null ||
+      database == null
+    ) {
+      console.warn(
+        "- Invalid database credentials provided, skipping database state reset."
+      );
+      return;
     }
+
+    console.warn("\n- Resetting database state...");
+    const pool = new Pool({
+      host,
+      port: Number(port),
+      user,
+      password,
+      database,
+      ssl: false,
+    });
+
+    const tables = process.env.SOLANA_DB_TABLE_NAMES ?? "";
+    const names = tables.split(",");
+    if (names.length === 0) {
+      console.warn("- No tables to truncate, skipping database state reset.");
+      return;
+    }
+
+    const query = `${names
+      .map((name) => `truncate ${name} cascade;`)
+      .join("\n")}`;
+
+    await pool.query(query);
+    console.warn("- Database state reset successfully.\n");
   } catch (err) {
     console.error("Failed to reset database state");
     console.error(err);

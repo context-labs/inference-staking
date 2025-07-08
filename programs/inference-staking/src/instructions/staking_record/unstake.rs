@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
-use crate::events::UnstakeEvent;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 
 #[derive(Accounts)]
@@ -70,7 +69,7 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
     require_gte!(staking_record.shares, share_amount);
 
     // Calculate number of tokens to unstake, and update token and share amounts on OperatorPool.
-    let tokens_unstaked = operator_pool.unstake_tokens(share_amount);
+    let tokens_unstaked = operator_pool.unstake_tokens(staking_record, share_amount)?;
 
     // Determine the correct unstake cooldown period on whether it's a delegator
     // or operator.
@@ -91,25 +90,32 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
         .checked_add(unstake_delay_seconds.try_into().unwrap())
         .unwrap();
 
-    // If Operator is unstaking and pool is not closed, check that they still
-    // maintain min. share percentage of pool after.
-    if is_operator_unstaking && operator_pool.closed_at.is_none() {
-        let min_operator_token_stake = pool_overview.min_operator_token_stake;
-        let operator_stake = operator_pool.calc_tokens_for_share_amount(staking_record.shares);
-        require_gte!(
-            operator_stake,
-            min_operator_token_stake,
-            ErrorCode::MinOperatorTokenStakeNotMet
-        );
+    // If Operator is unstaking and:
+    // 1. Pool is closed, check that the unstake is after the final epoch. This is to prevent
+    //    a pool becoming fully unstaked before its final reward epoch distribution.
+    // 2. Pool is not closed, check that they still maintain min. token stake of pool after.
+    if is_operator_unstaking {
+        match operator_pool.closed_at {
+            Some(closed_at) => {
+                let completed_reward_epoch = pool_overview.completed_reward_epoch;
+                require_gte!(
+                    completed_reward_epoch.checked_add(1).unwrap(),
+                    closed_at,
+                    ErrorCode::FinalUnstakeEpochInvalid
+                );
+            }
+            None => {
+                let min_operator_token_stake = pool_overview.min_operator_token_stake;
+                let operator_stake =
+                    operator_pool.calc_tokens_for_share_amount(staking_record.shares);
+                require_gte!(
+                    operator_stake,
+                    min_operator_token_stake,
+                    ErrorCode::MinOperatorTokenStakeNotMet
+                );
+            }
+        }
     }
-
-    emit!(UnstakeEvent {
-        staking_record: staking_record.key(),
-        operator_pool: operator_pool.key(),
-        unstake_amount: tokens_unstaked,
-        total_staked_amount: operator_pool.total_staked_amount,
-        total_unstaking: operator_pool.total_unstaking
-    });
 
     Ok(())
 }

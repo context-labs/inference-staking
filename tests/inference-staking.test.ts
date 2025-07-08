@@ -9,13 +9,6 @@ import type { Connection } from "@solana/web3.js";
 import { Keypair, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
-import type {
-  StakeEvent,
-  UnstakeEvent,
-  CompleteAccrueRewardEvent,
-  ClaimUnstakeEvent,
-  SlashStakeEvent,
-} from "@sdk/src/eventTypes";
 import type { InferenceStaking } from "@sdk/src/idl";
 
 import type { GenerateMerkleProofInput } from "@tests/lib/merkle";
@@ -26,7 +19,7 @@ import {
   assertError,
   assertStakingProgramError,
   sleep,
-  setEpochFinalizationState,
+  handleMarkEpochAsFinalizing,
   setStakingHalted,
   shortId,
 } from "@tests/lib/utils";
@@ -39,7 +32,8 @@ describe("inference-staking program tests", () => {
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
   const autoStakeFees = false;
-  const commissionRateBps = 1_500;
+  const rewardCommissionRateBps = 1_500;
+  const usdcCommissionRateBps = 1_500;
   const allowDelegation = true;
   const allowPoolCreation = true;
   const operatorPoolRegistrationFee = new anchor.BN(1_000);
@@ -95,7 +89,8 @@ describe("inference-staking program tests", () => {
       await program.methods
         .createOperatorPool({
           autoStakeFees,
-          commissionRateBps,
+          rewardCommissionRateBps,
+          usdcCommissionRateBps,
           allowDelegation,
           name: setup.pool1.name,
           description: setup.pool1.description,
@@ -109,15 +104,17 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           stakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
-          usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           systemProgram: SystemProgram.programId,
           adminTokenAccount: setup.pool1.adminTokenAccount,
           registrationFeePayoutTokenAccount:
             setup.registrationFeePayoutTokenAccount,
+          operatorUsdcVault: setup.pool1.poolUsdcVault,
+          usdcMint: setup.usdcTokenMint,
         })
         .signers([setup.payerKp, setup.pool1.adminKp])
         .rpc();
@@ -259,7 +256,7 @@ describe("inference-staking program tests", () => {
   });
 
   it("Creating RewardRecord 1 successfully", async () => {
-    await setEpochFinalizationState({
+    await handleMarkEpochAsFinalizing({
       setup,
       program,
     });
@@ -314,18 +311,19 @@ describe("inference-staking program tests", () => {
   });
 
   it("Create OperatorPool 1 successfully", async () => {
-    const adminTokenBalancePre = await connection.getTokenAccountBalance(
-      setup.pool1.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePre =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePre, registrationFeePayoutBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool1.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
+        usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool1.name,
         description: setup.pool1.description,
@@ -339,27 +337,29 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         stakingRecord: setup.pool1.stakingRecord,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
-        usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         adminTokenAccount: setup.pool1.adminTokenAccount,
         registrationFeePayoutTokenAccount:
           setup.registrationFeePayoutTokenAccount,
+        operatorUsdcVault: setup.pool1.poolUsdcVault,
+        usdcMint: setup.usdcTokenMint,
       })
       .signers([setup.payerKp, setup.pool1.adminKp])
       .rpc();
 
     // Verify registration fee transfer occurred
-    const adminTokenBalancePost = await connection.getTokenAccountBalance(
-      setup.pool1.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePost =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePost, registrationFeePayoutBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool1.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     assert(
       new anchor.BN(adminTokenBalancePre.value.amount)
@@ -384,8 +384,8 @@ describe("inference-staking program tests", () => {
       operatorPool.operatorStakingRecord.equals(setup.pool1.stakingRecord)
     );
     assert.equal(operatorPool.autoStakeFees, autoStakeFees);
-    assert.equal(operatorPool.commissionRateBps, commissionRateBps);
-    assert.isNull(operatorPool.newCommissionRateBps);
+    assert.equal(operatorPool.rewardCommissionRateBps, rewardCommissionRateBps);
+    assert.isNull(operatorPool.newRewardCommissionRateBps);
     assert.equal(operatorPool.allowDelegation, allowDelegation);
     assert(operatorPool.totalStakedAmount.isZero());
     assert(operatorPool.totalShares.isZero());
@@ -412,7 +412,8 @@ describe("inference-staking program tests", () => {
       await program.methods
         .createOperatorPool({
           autoStakeFees: true,
-          commissionRateBps: 2000,
+          rewardCommissionRateBps: 2_000,
+          usdcCommissionRateBps: 2_000,
           allowDelegation: false,
           name: "Different Pool Name",
           description: "Different description",
@@ -426,15 +427,17 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           stakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
-          usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           adminTokenAccount: setup.pool1.adminTokenAccount,
           registrationFeePayoutTokenAccount:
             setup.registrationFeePayoutTokenAccount,
+          operatorUsdcVault: setup.pool1.poolUsdcVault,
+          usdcMint: setup.usdcTokenMint,
         })
         .signers([setup.payerKp, setup.pool1.adminKp])
         .rpc();
@@ -493,7 +496,6 @@ describe("inference-staking program tests", () => {
     const accounts = {
       admin: setup.pool1.admin,
       operatorPool: setup.pool1.pool,
-      usdcPayoutWallet: null,
     } as const;
 
     const signers = [setup.pool1.adminKp];
@@ -585,64 +587,25 @@ describe("inference-staking program tests", () => {
       await program.methods
         .updateOperatorPool({
           ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
-          newCommissionRateBps: { rateBps: 150_00 },
+          newRewardCommissionRateBps: { rateBps: 150_00 },
           autoStakeFees: true,
           allowDelegation: false,
         })
         .accountsStrict({
           admin: setup.pool1.admin,
           operatorPool: setup.pool1.pool,
-          usdcPayoutWallet: null,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
       assert(false);
     } catch (error) {
-      assertError(error, "RequireGteViolated");
+      assertStakingProgramError(error, "invalidCommissionRate");
     }
   });
 
-  it("Should update OperatorPool USDC payout destination successfully", async () => {
-    const operatorPoolPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    const owner = Keypair.generate();
-    await program.methods
-      .updateOperatorPool(
-        setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction()
-      )
-      .accountsStrict({
-        admin: setup.pool1.admin,
-        operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: owner.publicKey,
-      })
-      .signers([setup.pool1.adminKp])
-      .rpc();
-
-    const operatorPool = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    assert(operatorPool.usdcPayoutWallet.equals(owner.publicKey));
-    assert(
-      operatorPoolPre.usdcPayoutWallet.toString() !==
-        operatorPool.usdcPayoutWallet.toString()
-    );
-
-    await program.methods
-      .updateOperatorPool(
-        setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction()
-      )
-      .accountsStrict({
-        admin: setup.pool1.admin,
-        operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: operatorPoolPre.usdcPayoutWallet,
-      })
-      .signers([setup.pool1.adminKp])
-      .rpc();
-  });
-
   it("Should update OperatorPool successfully", async () => {
-    const newCommissionRateBps = 5_500;
+    const newRewardCommissionRateBps = 5_500;
+    const newUsdcCommissionRateBps = 8_500;
 
     const newName = `Test Operator ${shortId()}`;
     const newDescription = `Test Description ${shortId()}`;
@@ -651,7 +614,8 @@ describe("inference-staking program tests", () => {
 
     await program.methods
       .updateOperatorPool({
-        newCommissionRateBps: { rateBps: newCommissionRateBps },
+        newRewardCommissionRateBps: { rateBps: newRewardCommissionRateBps },
+        newUsdcCommissionRateBps: { rateBps: newUsdcCommissionRateBps },
         autoStakeFees: true,
         allowDelegation: false,
         name: newName,
@@ -663,7 +627,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -672,7 +635,7 @@ describe("inference-staking program tests", () => {
       setup.pool1.pool
     );
     assert(
-      operatorPool.newCommissionRateBps === newCommissionRateBps,
+      operatorPool.newRewardCommissionRateBps === newRewardCommissionRateBps,
       "New commission rate should be set"
     );
     assert(operatorPool.autoStakeFees === true, "Auto stake should be true");
@@ -698,21 +661,20 @@ describe("inference-staking program tests", () => {
     await program.methods
       .updateOperatorPool({
         ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
-        newCommissionRateBps: { rateBps: null },
+        newRewardCommissionRateBps: { rateBps: null },
         autoStakeFees,
         allowDelegation,
       })
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
 
     operatorPool = await program.account.operatorPool.fetch(setup.pool1.pool);
     assert.isNull(
-      operatorPool.newCommissionRateBps,
+      operatorPool.newRewardCommissionRateBps,
       "New commission rate should be set back to None"
     );
     assert(
@@ -742,7 +704,6 @@ describe("inference-staking program tests", () => {
         .accountsStrict({
           admin: setup.pool1.admin,
           operatorPool: setup.pool1.pool,
-          usdcPayoutWallet: null,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -772,7 +733,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -820,7 +780,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -849,7 +808,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -961,13 +919,6 @@ describe("inference-staking program tests", () => {
     );
     const stakeAmount = new anchor.BN(150_000);
 
-    const eventPromise = new Promise<StakeEvent>((resolve) => {
-      const listenerId = program.addEventListener("stakeEvent", (event) => {
-        void program.removeEventListener(listenerId);
-        resolve(event);
-      });
-    });
-
     await program.methods
       .stake(stakeAmount)
       .accountsStrict({
@@ -983,16 +934,9 @@ describe("inference-staking program tests", () => {
       .signers([setup.pool1.adminKp])
       .rpc();
 
-    const event = await eventPromise;
-
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(event.stakingRecord.equals(setup.pool1.stakingRecord));
-    assert(event.operatorPool.equals(setup.pool1.pool));
-    assert(event.stakeAmount.eq(stakeAmount));
-    assert(event.totalStakedAmount.eq(operatorPool.totalStakedAmount));
-    assert(event.totalUnstaking.eq(operatorPool.totalUnstaking));
 
     assert(operatorPool.totalStakedAmount.eq(stakeAmount));
     assert(operatorPool.totalShares.eq(stakeAmount));
@@ -1040,7 +984,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -1101,7 +1044,6 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -1117,12 +1059,11 @@ describe("inference-staking program tests", () => {
       setup.pool1.pool
     );
 
-    const ownerTokenAccountBalancePre = await connection.getTokenAccountBalance(
-      ownerTokenAccount
-    );
-
-    const programTokenAccountBalancePre =
-      await connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount);
+    const [ownerTokenAccountBalancePre, programTokenAccountBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(ownerTokenAccount),
+        connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      ]);
 
     await program.methods
       .stake(stakeAmount)
@@ -1162,11 +1103,11 @@ describe("inference-staking program tests", () => {
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
 
-    const ownerTokenAccountBalancePost =
-      await connection.getTokenAccountBalance(ownerTokenAccount);
-
-    const programTokenAccountBalancePost =
-      await connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount);
+    const [ownerTokenAccountBalancePost, programTokenAccountBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(ownerTokenAccount),
+        connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      ]);
 
     assert(
       new anchor.BN(ownerTokenAccountBalancePre.value.amount)
@@ -1189,6 +1130,7 @@ describe("inference-staking program tests", () => {
           receiver: setup.payer,
           owner: setup.delegator1,
           ownerStakingRecord: setup.pool1.delegatorStakingRecord,
+          operatorPool: setup.pool1.pool,
           systemProgram: SystemProgram.programId,
         })
         .signers([setup.delegator1Kp])
@@ -1336,21 +1278,12 @@ describe("inference-staking program tests", () => {
 
   it("Unstake for delegator successfully", async () => {
     const unstakeAmount = new anchor.BN(10_000);
-    const operatorPoolPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.delegatorStakingRecord
-    );
+    const [operatorPoolPre, stakingRecordPre] = await Promise.all([
+      program.account.operatorPool.fetch(setup.pool1.pool),
+      program.account.stakingRecord.fetch(setup.pool1.delegatorStakingRecord),
+    ]);
 
     // Expect unstaking to be successful even when operator falls below min. share.
-    const eventPromise = new Promise<UnstakeEvent>((resolve) => {
-      const listenerId = program.addEventListener("unstakeEvent", (event) => {
-        void program.removeEventListener(listenerId);
-        resolve(event);
-      });
-    });
-
     await program.methods
       .unstake(unstakeAmount)
       .accountsStrict({
@@ -1363,16 +1296,9 @@ describe("inference-staking program tests", () => {
       .signers([setup.delegator1Kp])
       .rpc();
 
-    const event = await eventPromise;
-
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(event.stakingRecord.equals(setup.pool1.delegatorStakingRecord));
-    assert(event.operatorPool.equals(setup.pool1.pool));
-    assert(event.unstakeAmount.eq(unstakeAmount));
-    assert(event.totalStakedAmount.eq(operatorPool.totalStakedAmount));
-    assert(event.totalUnstaking.eq(operatorPool.totalUnstaking));
 
     assert(
       operatorPoolPre.totalStakedAmount
@@ -1472,12 +1398,10 @@ describe("inference-staking program tests", () => {
 
   it("Cancel unstake successfully", async () => {
     const unstakeAmount = new anchor.BN(10_000);
-    const operatorPoolPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.stakingRecord
-    );
+    const [operatorPoolPre, stakingRecordPre] = await Promise.all([
+      program.account.operatorPool.fetch(setup.pool1.pool),
+      program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
+    ]);
 
     await program.methods
       .cancelUnstake()
@@ -1567,7 +1491,8 @@ describe("inference-staking program tests", () => {
   it("Fail to create an OperatorPool with a name that is too long or invalid", async () => {
     const args = {
       autoStakeFees,
-      commissionRateBps,
+      rewardCommissionRateBps,
+      usdcCommissionRateBps,
       allowDelegation,
       name: "Test",
       description: setup.pool2.description,
@@ -1582,15 +1507,17 @@ describe("inference-staking program tests", () => {
       operatorPool: setup.pool2.pool,
       stakingRecord: setup.pool2.stakingRecord,
       stakedTokenAccount: setup.pool2.stakedTokenAccount,
-      feeTokenAccount: setup.pool2.feeTokenAccount,
+      rewardFeeTokenAccount: setup.pool2.rewardCommissionFeeTokenVault,
       poolOverview: setup.poolOverview,
       mint: setup.tokenMint,
-      usdcPayoutWallet: setup.pool2.usdcTokenAccount,
+      usdcFeeTokenAccount: setup.pool2.usdcCommissionFeeTokenVault,
       tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
       adminTokenAccount: setup.pool2.adminTokenAccount,
       registrationFeePayoutTokenAccount:
         setup.registrationFeePayoutTokenAccount,
+      operatorUsdcVault: setup.pool2.poolUsdcVault,
+      usdcMint: setup.usdcTokenMint,
     } as const;
 
     const signers = [setup.payerKp, setup.pool2.adminKp];
@@ -1616,6 +1543,8 @@ describe("inference-staking program tests", () => {
       await program.methods
         .createOperatorPool({
           ...args,
+          websiteUrl: null,
+          avatarImageUrl: null,
           description: longDescription,
         })
         .accountsStrict(accounts)
@@ -1677,18 +1606,19 @@ describe("inference-staking program tests", () => {
   });
 
   it("Create OperatorPool 2 successfully", async () => {
-    const adminTokenBalancePre = await connection.getTokenAccountBalance(
-      setup.pool2.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePre =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePre, registrationFeePayoutBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool2.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
+        usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool2.name,
         description: setup.pool2.description,
@@ -1702,27 +1632,29 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool2.pool,
         stakingRecord: setup.pool2.stakingRecord,
         stakedTokenAccount: setup.pool2.stakedTokenAccount,
-        feeTokenAccount: setup.pool2.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool2.rewardCommissionFeeTokenVault,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
-        usdcPayoutWallet: setup.pool2.usdcPayoutWallet,
+        usdcFeeTokenAccount: setup.pool2.usdcCommissionFeeTokenVault,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         adminTokenAccount: setup.pool2.adminTokenAccount,
         registrationFeePayoutTokenAccount:
           setup.registrationFeePayoutTokenAccount,
+        operatorUsdcVault: setup.pool2.poolUsdcVault,
+        usdcMint: setup.usdcTokenMint,
       })
       .signers([setup.payerKp, setup.pool2.adminKp])
       .rpc();
 
     // Verify registration fee transfer occurred
-    const adminTokenBalancePost = await connection.getTokenAccountBalance(
-      setup.pool2.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePost =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePost, registrationFeePayoutBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool2.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     assert(
       new anchor.BN(adminTokenBalancePre.value.amount)
@@ -1747,8 +1679,8 @@ describe("inference-staking program tests", () => {
       operatorPool.operatorStakingRecord.equals(setup.pool2.stakingRecord)
     );
     assert.equal(operatorPool.autoStakeFees, autoStakeFees);
-    assert.equal(operatorPool.commissionRateBps, commissionRateBps);
-    assert.isNull(operatorPool.newCommissionRateBps);
+    assert.equal(operatorPool.rewardCommissionRateBps, rewardCommissionRateBps);
+    assert.isNull(operatorPool.newRewardCommissionRateBps);
     assert.equal(operatorPool.allowDelegation, allowDelegation);
     assert(operatorPool.totalStakedAmount.isZero());
     assert(operatorPool.totalShares.isZero());
@@ -1774,33 +1706,37 @@ describe("inference-staking program tests", () => {
     const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
+      totalRewards = totalRewards.add(
+        new anchor.BN(addressInput.tokenAmount.toString())
+      );
     }
     let totalUsdcAmount = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalUsdcAmount = totalUsdcAmount.addn(Number(addressInput.usdcAmount));
+      totalUsdcAmount = totalUsdcAmount.add(
+        new anchor.BN(addressInput.usdcAmount.toString())
+      );
     }
 
-    // Fund rewardTokenAccount
-    await mintTo(
-      connection,
-      setup.payerKp,
-      setup.tokenMint,
-      setup.rewardTokenAccount,
-      setup.tokenHolderKp,
-      totalRewards.toNumber()
-    );
+    await Promise.all([
+      mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        setup.rewardTokenAccount,
+        setup.tokenHolderKp,
+        BigInt(totalRewards.toString())
+      ),
+      mintTo(
+        connection,
+        setup.payerKp,
+        setup.usdcTokenMint,
+        setup.usdcTokenAccount,
+        setup.tokenHolderKp,
+        BigInt(totalUsdcAmount.toString())
+      ),
+    ]);
 
-    await mintTo(
-      connection,
-      setup.payerKp,
-      setup.usdcTokenMint,
-      setup.usdcTokenAccount,
-      setup.tokenHolderKp,
-      totalUsdcAmount.toNumber()
-    );
-
-    await setEpochFinalizationState({
+    await handleMarkEpochAsFinalizing({
       setup,
       program,
     });
@@ -2024,37 +1960,30 @@ describe("inference-staking program tests", () => {
     } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
-    const poolOverviewPre = await program.account.poolOverview.fetch(
-      setup.poolOverview
-    );
-    const operatorPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-    const operatorStakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.stakingRecord
-    );
-    const rewardBalancePre = await connection.getTokenAccountBalance(
-      setup.rewardTokenAccount
-    );
-    const stakedBalancePre = await connection.getTokenAccountBalance(
-      setup.pool1.stakedTokenAccount
-    );
-    const feeBalancePre = await connection.getTokenAccountBalance(
-      setup.pool1.feeTokenAccount
-    );
+    const [
+      poolOverviewPre,
+      operatorPre,
+      operatorStakingRecordPre,
+      rewardBalancePre,
+      stakedBalancePre,
+      feeBalancePre,
+      usdcFeeBalancePre,
+    ] = await Promise.all([
+      program.account.poolOverview.fetch(setup.poolOverview),
+      program.account.operatorPool.fetch(setup.pool1.pool),
+      program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
+      connection.getTokenAccountBalance(setup.rewardTokenAccount),
+      connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
+      connection.getTokenAccountBalance(
+        setup.pool1.usdcCommissionFeeTokenVault
+      ),
+    ]);
 
-    const rewardAmount = new anchor.BN(Number(proofInputs.tokenAmount));
-    const usdcAmount = new anchor.BN(Number(proofInputs.usdcAmount));
-
-    const eventPromise = new Promise<CompleteAccrueRewardEvent>((resolve) => {
-      const listenerId = program.addEventListener(
-        "completeAccrueRewardEvent",
-        (event) => {
-          void program.removeEventListener(listenerId);
-          resolve(event);
-        }
-      );
-    });
+    const rewardAmount = new anchor.BN(proofInputs.tokenAmount.toString());
+    const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
 
     await program.methods
       .accrueReward({
@@ -2071,21 +2000,20 @@ describe("inference-staking program tests", () => {
         operatorStakingRecord: setup.pool1.stakingRecord,
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
         usdcTokenAccount: setup.usdcTokenAccount,
-        usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+        poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+          setup.pool1.pool
+        ),
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
 
-    const event = await eventPromise;
-
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(event.operatorPool.equals(setup.pool1.pool));
-    assert(event.totalStakedAmount.eq(operatorPool.totalStakedAmount));
-    assert(event.totalUnstaking.eq(operatorPool.totalUnstaking));
+
     // Verify that unclaimedRewards on PoolOverview is updated.
     const poolOverview = await program.account.poolOverview.fetch(
       setup.poolOverview
@@ -2096,8 +2024,14 @@ describe("inference-staking program tests", () => {
         .eq(rewardAmount)
     );
 
-    const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
+    const commissionFees = rewardAmount
+      .mul(new anchor.BN(rewardCommissionRateBps))
+      .div(new anchor.BN(10_000));
     const delegatorRewards = rewardAmount.sub(commissionFees);
+
+    const usdcCommissionFees = usdcAmount
+      .mul(new anchor.BN(usdcCommissionRateBps))
+      .div(new anchor.BN(10_000));
 
     // Verify that claimed delegator rewards are added to OperatorPool
     // and rewardLastClaimedEpoch is updated.
@@ -2111,7 +2045,7 @@ describe("inference-staking program tests", () => {
     assert(operatorPool.totalUnstaking.eq(operatorPre.totalUnstaking));
     assert(operatorPool.accruedRewards.isZero());
     assert(operatorPool.accruedCommission.isZero());
-    assert.isNull(operatorPool.newCommissionRateBps);
+    assert.isNull(operatorPool.newRewardCommissionRateBps);
 
     // Verify that operator's shares remain unchanged with auto-stake disabled.
     const operatorStakingRecord = await program.account.stakingRecord.fetch(
@@ -2120,31 +2054,46 @@ describe("inference-staking program tests", () => {
     assert(operatorStakingRecordPre.shares.eq(operatorStakingRecord.shares));
 
     // Verify that token balance changes are correct.
-    const rewardBalance = await connection.getTokenAccountBalance(
-      setup.rewardTokenAccount
-    );
-    const stakedBalance = await connection.getTokenAccountBalance(
-      setup.pool1.stakedTokenAccount
-    );
-    const feeBalance = await connection.getTokenAccountBalance(
-      setup.pool1.feeTokenAccount
-    );
+    const [rewardBalance, stakedBalance, feeBalance] = await Promise.all([
+      connection.getTokenAccountBalance(setup.rewardTokenAccount),
+      connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
+    ]);
     assert(
-      rewardAmount.eqn(
-        Number(rewardBalancePre.value.amount) -
-          Number(rewardBalance.value.amount)
+      rewardAmount.eq(
+        new anchor.BN(rewardBalancePre.value.amount.toString()).sub(
+          new anchor.BN(rewardBalance.value.amount.toString())
+        )
       )
     );
     assert(
-      commissionFees.eqn(
-        Number(feeBalance.value.amount) - Number(feeBalancePre.value.amount)
+      commissionFees.eq(
+        new anchor.BN(feeBalance.value.amount.toString()).sub(
+          new anchor.BN(feeBalancePre.value.amount.toString())
+        )
       )
     );
     assert(
-      delegatorRewards.eqn(
-        Number(stakedBalance.value.amount) -
-          Number(stakedBalancePre.value.amount)
+      delegatorRewards.eq(
+        new anchor.BN(stakedBalance.value.amount.toString()).sub(
+          new anchor.BN(stakedBalancePre.value.amount.toString())
+        )
       )
+    );
+
+    // Verify USDC commission was transferred to USDC fee account
+    const usdcFeeBalance = await connection.getTokenAccountBalance(
+      setup.pool1.usdcCommissionFeeTokenVault
+    );
+    assert(
+      usdcCommissionFees.eq(
+        new anchor.BN(usdcFeeBalance.value.amount.toString()).sub(
+          new anchor.BN(usdcFeeBalancePre.value.amount.toString())
+        )
+      ),
+      "USDC commission should be transferred to USDC fee account"
     );
   });
 
@@ -2201,11 +2150,10 @@ describe("inference-staking program tests", () => {
   });
 
   it("Fail to claim unstake for operator if operator falls below min token stake", async () => {
-    // Change min token stake to 10M
     await program.methods
       .updatePoolOverview({
         ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
-        minOperatorTokenStake: new anchor.BN(10_000_000),
+        minOperatorTokenStake: new anchor.BN("1000000000000000000"),
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
@@ -2257,28 +2205,13 @@ describe("inference-staking program tests", () => {
       setup.tokenMint,
       setup.delegator1
     );
-    const tokenBalancePre = await connection.getTokenAccountBalance(
-      ownerTokenAccount
-    );
-    const operatorPoolPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
+    const [tokenBalancePre, operatorPoolPre, stakingRecordPre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(ownerTokenAccount),
+        program.account.operatorPool.fetch(setup.pool1.pool),
+        program.account.stakingRecord.fetch(setup.pool1.delegatorStakingRecord),
+      ]);
 
-    const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.delegatorStakingRecord
-    );
-
-    const eventPromise = new Promise<ClaimUnstakeEvent>((resolve) => {
-      const listenerId = program.addEventListener(
-        "claimUnstakeEvent",
-        (event) => {
-          void program.removeEventListener(listenerId);
-          resolve(event);
-        }
-      );
-    });
-
-    // Call the claimUnstake method
     await program.methods
       .claimUnstake()
       .accountsStrict({
@@ -2293,16 +2226,9 @@ describe("inference-staking program tests", () => {
       })
       .rpc();
 
-    const event = await eventPromise;
-
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(event.stakingRecord.equals(setup.pool1.delegatorStakingRecord));
-    assert(event.operatorPool.equals(setup.pool1.pool));
-    assert(event.unstakeAmount.eq(stakingRecordPre.tokensUnstakeAmount));
-    assert(event.totalStakedAmount.eq(operatorPool.totalStakedAmount));
-    assert(event.totalUnstaking.eq(operatorPool.totalUnstaking));
 
     assert(
       operatorPoolPre.totalUnstaking
@@ -2316,11 +2242,11 @@ describe("inference-staking program tests", () => {
     const tokenBalancePost = await connection.getTokenAccountBalance(
       ownerTokenAccount
     );
-    const amountClaimed =
-      Number(tokenBalancePost.value.amount) -
-      Number(tokenBalancePre.value.amount);
+    const amountClaimed = new anchor.BN(
+      tokenBalancePost.value.amount.toString()
+    ).sub(new anchor.BN(tokenBalancePre.value.amount.toString()));
 
-    assert(stakingRecordPre.tokensUnstakeAmount.eqn(amountClaimed));
+    assert(stakingRecordPre.tokensUnstakeAmount.eq(amountClaimed));
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
@@ -2380,16 +2306,12 @@ describe("inference-staking program tests", () => {
       setup.tokenMint,
       setup.pool1.admin
     );
-    const tokenBalancePre = await connection.getTokenAccountBalance(
-      ownerTokenAccount
-    );
-    const operatorPoolPre = await program.account.operatorPool.fetch(
-      setup.pool1.pool
-    );
-
-    const stakingRecordPre = await program.account.stakingRecord.fetch(
-      setup.pool1.stakingRecord
-    );
+    const [tokenBalancePre, operatorPoolPre, stakingRecordPre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(ownerTokenAccount),
+        program.account.operatorPool.fetch(setup.pool1.pool),
+        program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
+      ]);
 
     await program.methods
       .claimUnstake()
@@ -2421,11 +2343,11 @@ describe("inference-staking program tests", () => {
     const tokenBalancePost = await connection.getTokenAccountBalance(
       ownerTokenAccount
     );
-    const amountClaimed =
-      Number(tokenBalancePost.value.amount) -
-      Number(tokenBalancePre.value.amount);
+    const amountClaimed = new anchor.BN(
+      tokenBalancePost.value.amount.toString()
+    ).sub(new anchor.BN(tokenBalancePre.value.amount.toString()));
 
-    assert(stakingRecordPre.tokensUnstakeAmount.eqn(amountClaimed));
+    assert(stakingRecordPre.tokensUnstakeAmount.eq(amountClaimed));
     assert(stakingRecord.tokensUnstakeAmount.isZero());
     assert(stakingRecord.unstakeAtTimestamp.isZero());
   });
@@ -2446,6 +2368,13 @@ describe("inference-staking program tests", () => {
           operatorStakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           destination: destinationTokenAccount,
+          poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+            setup.pool1.pool
+          ),
+          destinationUsdcAccount: getAssociatedTokenAddressSync(
+            setup.usdcTokenMint,
+            setup.pool1.admin
+          ),
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .signers([setup.pool1.adminKp])
@@ -2480,15 +2409,6 @@ describe("inference-staking program tests", () => {
       .mul(sharesToSlash)
       .div(operatorPoolPre.totalShares);
 
-    const eventPromise = new Promise<SlashStakeEvent>((resolve) => {
-      const listenerId = program.addEventListener(
-        "slashStakeEvent",
-        (event) => {
-          void program.removeEventListener(listenerId);
-          resolve(event);
-        }
-      );
-    });
     await program.methods
       .slashStake({ sharesAmount: sharesToSlash })
       .accountsStrict({
@@ -2498,12 +2418,17 @@ describe("inference-staking program tests", () => {
         operatorStakingRecord: setup.pool1.stakingRecord,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         destination: destinationTokenAccount,
+        poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+          setup.pool1.pool
+        ),
+        destinationUsdcAccount: getAssociatedTokenAddressSync(
+          setup.usdcTokenMint,
+          setup.pool1.admin
+        ),
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([setup.slashingAuthorityKp])
       .rpc();
-
-    const event = await eventPromise;
 
     const [
       destinationBalancePost,
@@ -2516,12 +2441,6 @@ describe("inference-staking program tests", () => {
       program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
       program.account.operatorPool.fetch(setup.pool1.pool),
     ]);
-
-    assert(event.stakingRecord.equals(setup.pool1.stakingRecord));
-    assert(event.operatorPool.equals(setup.pool1.pool));
-    assert(event.slashedAmount.eq(expectedStakeRemoved));
-    assert(event.totalStakedAmount.eq(operatorPoolPost.totalStakedAmount));
-    assert(event.totalUnstaking.eq(operatorPoolPost.totalUnstaking));
 
     // Assert change in Operator stake
     assert(
@@ -2671,12 +2590,12 @@ describe("inference-staking program tests", () => {
   it("Fail to withdraw Operator commission if pool is halted", async () => {
     try {
       await program.methods
-        .withdrawOperatorCommission()
+        .withdrawOperatorRewardCommission()
         .accountsStrict({
           admin: setup.pool1.admin,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
           destination: getAssociatedTokenAddressSync(
             setup.tokenMint,
             setup.pool1.admin
@@ -2709,6 +2628,55 @@ describe("inference-staking program tests", () => {
     assert(!operatorPool.isHalted, "OperatorPool must be unhalted");
   });
 
+  it("Fail to withdraw Operator USDC commission if pool is halted", async () => {
+    // Set pool to halted
+    await program.methods
+      .setHaltStatus({
+        isHalted: true,
+      })
+      .accountsStrict({
+        authority: setup.haltingAuthorityKp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.haltingAuthorityKp])
+      .rpc();
+
+    try {
+      await program.methods
+        .withdrawOperatorUsdcCommission()
+        .accountsStrict({
+          admin: setup.pool1.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+          destination: getAssociatedTokenAddressSync(
+            setup.usdcTokenMint,
+            setup.pool1.admin
+          ),
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([setup.pool1.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "operatorPoolHalted");
+    }
+
+    // Set back to unhalted
+    await program.methods
+      .setHaltStatus({
+        isHalted: false,
+      })
+      .accountsStrict({
+        authority: setup.haltingAuthorityKp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+      })
+      .signers([setup.haltingAuthorityKp])
+      .rpc();
+  });
+
   it("Fail to withdraw Operator commission if global withdrawal is halted", async () => {
     // Halt withdrawal
     await program.methods
@@ -2726,14 +2694,65 @@ describe("inference-staking program tests", () => {
 
     try {
       await program.methods
-        .withdrawOperatorCommission()
+        .withdrawOperatorRewardCommission()
         .accountsStrict({
           admin: setup.pool1.admin,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
           destination: getAssociatedTokenAddressSync(
             setup.tokenMint,
+            setup.pool1.admin
+          ),
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([setup.pool1.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "withdrawalsHalted");
+    }
+
+    // Revert halt withdrawal
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        isWithdrawalHalted: false,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
+  it("Fail to withdraw Operator USDC commission if global withdrawal is halted", async () => {
+    // Halt withdrawal
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        isWithdrawalHalted: true,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    try {
+      await program.methods
+        .withdrawOperatorUsdcCommission()
+        .accountsStrict({
+          admin: setup.pool1.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+          destination: getAssociatedTokenAddressSync(
+            setup.usdcTokenMint,
             setup.pool1.admin
           ),
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -2766,17 +2785,19 @@ describe("inference-staking program tests", () => {
       setup.pool1.admin
     );
     const [feeTokenAccountPre, destinationPre] = await Promise.all([
-      connection.getTokenAccountBalance(setup.pool1.feeTokenAccount),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
       connection.getTokenAccountBalance(destinationTokenAccount),
     ]);
 
     await program.methods
-      .withdrawOperatorCommission()
+      .withdrawOperatorRewardCommission()
       .accountsStrict({
         admin: setup.pool1.admin,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
         destination: destinationTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -2784,7 +2805,9 @@ describe("inference-staking program tests", () => {
       .rpc();
 
     const [feeTokenAccountPost, destinationPost] = await Promise.all([
-      connection.getTokenAccountBalance(setup.pool1.feeTokenAccount),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
       connection.getTokenAccountBalance(destinationTokenAccount),
     ]);
 
@@ -2800,6 +2823,53 @@ describe("inference-staking program tests", () => {
         .sub(new anchor.BN(destinationPre.value.amount))
         .eq(new anchor.BN(feeTokenAccountPre.value.amount)),
       "Destination must receive the fee balance"
+    );
+  });
+
+  it("OperatorPool 1 Admin should be able to withdraw USDC commission", async () => {
+    const destinationUsdcAccount = getAssociatedTokenAddressSync(
+      setup.usdcTokenMint,
+      setup.pool1.admin
+    );
+    const [usdcFeeTokenAccountPre, destinationPre] = await Promise.all([
+      connection.getTokenAccountBalance(
+        setup.pool1.usdcCommissionFeeTokenVault
+      ),
+      connection.getTokenAccountBalance(destinationUsdcAccount),
+    ]);
+
+    await program.methods
+      .withdrawOperatorUsdcCommission()
+      .accountsStrict({
+        admin: setup.pool1.admin,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+        destination: destinationUsdcAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([setup.pool1.adminKp])
+      .rpc();
+
+    const [usdcFeeTokenAccountPost, destinationPost] = await Promise.all([
+      connection.getTokenAccountBalance(
+        setup.pool1.usdcCommissionFeeTokenVault
+      ),
+      connection.getTokenAccountBalance(destinationUsdcAccount),
+    ]);
+
+    // Assert USDC Fee TokenAccount has 0 balance
+    assert(
+      usdcFeeTokenAccountPost.value.amount === "0",
+      "USDC Fee TokenAccount must have 0 balance"
+    );
+
+    // Assert USDC fee balance was transferred to destination
+    assert(
+      new anchor.BN(destinationPost.value.amount)
+        .sub(new anchor.BN(destinationPre.value.amount))
+        .eq(new anchor.BN(usdcFeeTokenAccountPre.value.amount)),
+      "Destination must receive the USDC fee balance"
     );
   });
 
@@ -2882,6 +2952,7 @@ describe("inference-staking program tests", () => {
           receiver: setup.payer,
           owner: setup.delegator1,
           ownerStakingRecord: setup.pool1.delegatorStakingRecord,
+          operatorPool: setup.pool1.pool,
           systemProgram: SystemProgram.programId,
         })
         .signers([setup.delegator1Kp])
@@ -2919,6 +2990,7 @@ describe("inference-staking program tests", () => {
         receiver: setup.payer,
         owner: setup.delegator2,
         ownerStakingRecord: delegator2StakingRecord,
+        operatorPool: setup.pool1.pool,
         systemProgram: SystemProgram.programId,
       })
       .signers([setup.delegator2Kp])
@@ -3064,7 +3136,7 @@ describe("inference-staking program tests", () => {
   });
 
   it("Creating an operator pool during finalization defaults the operator pool reward epoch to the next epoch", async () => {
-    await setEpochFinalizationState({
+    await handleMarkEpochAsFinalizing({
       setup,
       program,
     });
@@ -3073,18 +3145,19 @@ describe("inference-staking program tests", () => {
       setup.poolOverview
     );
 
-    const adminTokenBalancePre = await connection.getTokenAccountBalance(
-      setup.pool3.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePre =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePre, registrationFeePayoutBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool3.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
+        usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool3.name,
         description: setup.pool3.description,
@@ -3098,27 +3171,29 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool3.pool,
         stakingRecord: setup.pool3.stakingRecord,
         stakedTokenAccount: setup.pool3.stakedTokenAccount,
-        feeTokenAccount: setup.pool3.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool3.rewardCommissionFeeTokenVault,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
-        usdcPayoutWallet: setup.pool3.usdcPayoutWallet,
+        usdcFeeTokenAccount: setup.pool3.usdcCommissionFeeTokenVault,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         adminTokenAccount: setup.pool3.adminTokenAccount,
         registrationFeePayoutTokenAccount:
           setup.registrationFeePayoutTokenAccount,
+        operatorUsdcVault: setup.pool3.poolUsdcVault,
+        usdcMint: setup.usdcTokenMint,
       })
       .signers([setup.payerKp, setup.pool3.adminKp])
       .rpc();
 
     // Verify registration fee transfer occurred
-    const adminTokenBalancePost = await connection.getTokenAccountBalance(
-      setup.pool3.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePost =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePost, registrationFeePayoutBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool3.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     assert(
       new anchor.BN(adminTokenBalancePre.value.amount)
@@ -3154,18 +3229,19 @@ describe("inference-staking program tests", () => {
 
     const mockDescription = `NodeOperator-XYZ: High-performance validator with 99.8% uptime. Specialized in Solana infrastructure since 2021. Our setup includes redundant systems and 24/7 monitoring. We are good. #ReliableStaking`;
 
-    const adminTokenBalancePre = await connection.getTokenAccountBalance(
-      setup.pool4.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePre =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePre, registrationFeePayoutBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool4.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
+        usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool4.name,
         description: mockDescription,
@@ -3179,27 +3255,29 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool4.pool,
         stakingRecord: setup.pool4.stakingRecord,
         stakedTokenAccount: setup.pool4.stakedTokenAccount,
-        feeTokenAccount: setup.pool4.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool4.rewardCommissionFeeTokenVault,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
-        usdcPayoutWallet: setup.pool4.usdcPayoutWallet,
+        usdcFeeTokenAccount: setup.pool4.usdcCommissionFeeTokenVault,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         adminTokenAccount: setup.pool4.adminTokenAccount,
         registrationFeePayoutTokenAccount:
           setup.registrationFeePayoutTokenAccount,
+        operatorUsdcVault: setup.pool4.poolUsdcVault,
+        usdcMint: setup.usdcTokenMint,
       })
       .signers([setup.payerKp, setup.pool4.adminKp])
       .rpc();
 
     // Verify registration fee transfer occurred
-    const adminTokenBalancePost = await connection.getTokenAccountBalance(
-      setup.pool4.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePost =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePost, registrationFeePayoutBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool4.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     assert(
       new anchor.BN(adminTokenBalancePre.value.amount)
@@ -3244,69 +3322,55 @@ describe("inference-staking program tests", () => {
       .signers([setup.poolOverviewAdminKp])
       .rpc();
 
-    const pool5 = {
-      name: `Test Operator ${setup.pool5.name.slice(-8)}`,
-      description: `Test Description ${
-        setup.pool5.description?.slice(-8) || ""
-      }`,
-      websiteUrl: setup.pool5.websiteUrl,
-      avatarImageUrl: setup.pool5.avatarImageUrl,
-      admin: setup.pool5.admin,
-      adminKp: setup.pool5.adminKp,
-      pool: setup.pool5.pool,
-      stakingRecord: setup.pool5.stakingRecord,
-      stakedTokenAccount: setup.pool5.stakedTokenAccount,
-      feeTokenAccount: setup.pool5.feeTokenAccount,
-      usdcPayoutWallet: setup.pool5.usdcPayoutWallet,
-      adminTokenAccount: setup.pool5.adminTokenAccount,
-    };
-
-    const adminTokenBalancePre = await connection.getTokenAccountBalance(
-      pool5.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePre =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePre, registrationFeePayoutBalancePre] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool5.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
+        usdcCommissionRateBps,
         allowDelegation,
-        name: pool5.name,
-        description: pool5.description,
-        websiteUrl: pool5.websiteUrl,
-        avatarImageUrl: pool5.avatarImageUrl,
+        name: setup.pool5.name,
+        description: setup.pool5.description,
+        websiteUrl: setup.pool5.websiteUrl,
+        avatarImageUrl: setup.pool5.avatarImageUrl,
         operatorAuthKeys: null,
       })
       .accountsStrict({
         payer: setup.payer,
-        admin: pool5.admin,
-        operatorPool: pool5.pool,
-        stakingRecord: pool5.stakingRecord,
-        stakedTokenAccount: pool5.stakedTokenAccount,
-        feeTokenAccount: pool5.feeTokenAccount,
+        admin: setup.pool5.admin,
+        operatorPool: setup.pool5.pool,
+        stakingRecord: setup.pool5.stakingRecord,
+        stakedTokenAccount: setup.pool5.stakedTokenAccount,
+        rewardFeeTokenAccount: setup.pool5.rewardCommissionFeeTokenVault,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
-        usdcPayoutWallet: pool5.usdcPayoutWallet,
+        usdcFeeTokenAccount: setup.pool5.usdcCommissionFeeTokenVault,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-        adminTokenAccount: pool5.adminTokenAccount,
+        adminTokenAccount: setup.pool5.adminTokenAccount,
         registrationFeePayoutTokenAccount:
           setup.registrationFeePayoutTokenAccount,
+        operatorUsdcVault: setup.pool5.poolUsdcVault,
+        usdcMint: setup.usdcTokenMint,
       })
-      .signers([setup.payerKp, pool5.adminKp])
+      .signers([setup.payerKp, setup.pool5.adminKp])
       .rpc();
 
     // Verify no registration fee transfer occurred
-    const adminTokenBalancePost = await connection.getTokenAccountBalance(
-      pool5.adminTokenAccount
-    );
-    const registrationFeePayoutBalancePost =
-      await connection.getTokenAccountBalance(
-        setup.registrationFeePayoutTokenAccount
-      );
+    const [adminTokenBalancePost, registrationFeePayoutBalancePost] =
+      await Promise.all([
+        connection.getTokenAccountBalance(setup.pool5.adminTokenAccount),
+        connection.getTokenAccountBalance(
+          setup.registrationFeePayoutTokenAccount
+        ),
+      ]);
 
     assert(
       new anchor.BN(adminTokenBalancePre.value.amount).eq(
@@ -3351,7 +3415,8 @@ describe("inference-staking program tests", () => {
       await program.methods
         .createOperatorPool({
           autoStakeFees,
-          commissionRateBps,
+          rewardCommissionRateBps,
+          usdcCommissionRateBps,
           allowDelegation,
           name: setup.pool6.name,
           description: setup.pool6.description,
@@ -3365,15 +3430,17 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool6.pool,
           stakingRecord: setup.pool6.stakingRecord,
           stakedTokenAccount: setup.pool6.stakedTokenAccount,
-          feeTokenAccount: setup.pool6.feeTokenAccount,
+          rewardFeeTokenAccount: setup.pool6.rewardCommissionFeeTokenVault,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
-          usdcPayoutWallet: setup.pool6.usdcPayoutWallet,
+          usdcFeeTokenAccount: setup.pool6.usdcCommissionFeeTokenVault,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           adminTokenAccount: setup.pool6.adminTokenAccount,
           registrationFeePayoutTokenAccount:
             setup.registrationFeePayoutTokenAccount,
+          operatorUsdcVault: setup.pool6.poolUsdcVault,
+          usdcMint: setup.usdcTokenMint,
         })
         .signers([setup.payerKp, setup.pool6.adminKp])
         .rpc();

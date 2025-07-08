@@ -21,7 +21,7 @@ import { setupTests } from "@tests/lib/setup";
 import {
   assertError,
   assertStakingProgramError,
-  setEpochFinalizationState,
+  handleMarkEpochAsFinalizing,
 } from "@tests/lib/utils";
 
 describe("Reward creation and accrual tests", () => {
@@ -30,8 +30,10 @@ describe("Reward creation and accrual tests", () => {
   let program: anchor.Program<InferenceStaking>;
 
   const autoStakeFees = true;
-  const commissionRateBps = 1_500;
-  const newCommissionRateBps = 0;
+  const rewardCommissionRateBps = 1_500;
+  const newRewardCommissionRateBps = 0;
+  const usdcCommissionRateBps = 10_000;
+  const newUsdcCommissionRateBps = 10_000;
   const allowDelegation = true;
   const allowPoolCreation = true;
   const operatorPoolRegistrationFee = new anchor.BN(1_000);
@@ -108,7 +110,7 @@ describe("Reward creation and accrual tests", () => {
       const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
       const root = MerkleUtils.getTreeRoot(merkleTree);
       const merkleRoots = [Array.from(root)];
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -134,7 +136,7 @@ describe("Reward creation and accrual tests", () => {
 
   it("Create RewardRecord should require amounts to be zero if no merkle roots are provided", async () => {
     try {
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots: [],
@@ -159,7 +161,7 @@ describe("Reward creation and accrual tests", () => {
   });
 
   it("Create RewardRecord 1 successfully", async () => {
-    await setEpochFinalizationState({ program, setup });
+    await handleMarkEpochAsFinalizing({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots: [],
@@ -183,7 +185,8 @@ describe("Reward creation and accrual tests", () => {
     await program.methods
       .createOperatorPool({
         autoStakeFees,
-        commissionRateBps,
+        rewardCommissionRateBps,
+        usdcCommissionRateBps,
         allowDelegation,
         name: setup.pool1.name,
         description: setup.pool1.description,
@@ -197,15 +200,19 @@ describe("Reward creation and accrual tests", () => {
         operatorPool: setup.pool1.pool,
         stakingRecord: setup.pool1.stakingRecord,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
         poolOverview: setup.poolOverview,
         mint: setup.tokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-        usdcPayoutWallet: setup.pool1.usdcPayoutWallet,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         adminTokenAccount: setup.pool1.adminTokenAccount,
         registrationFeePayoutTokenAccount:
           setup.registrationFeePayoutTokenAccount,
+        operatorUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+          setup.pool1.pool
+        ),
+        usdcMint: setup.usdcTokenMint,
       })
       .signers([setup.payerKp, setup.pool1.adminKp])
       .rpc();
@@ -261,7 +268,8 @@ describe("Reward creation and accrual tests", () => {
 
     await program.methods
       .updateOperatorPool({
-        newCommissionRateBps: { rateBps: newCommissionRateBps },
+        newRewardCommissionRateBps: { rateBps: newRewardCommissionRateBps },
+        newUsdcCommissionRateBps: { rateBps: newUsdcCommissionRateBps },
         autoStakeFees: true,
         allowDelegation: false,
         name: setup.pool1.name,
@@ -273,7 +281,6 @@ describe("Reward creation and accrual tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
-        usdcPayoutWallet: null,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -284,7 +291,7 @@ describe("Reward creation and accrual tests", () => {
       const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
       const root = MerkleUtils.getTreeRoot(merkleTree);
       const merkleRoots = [Array.from(root)];
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -313,7 +320,7 @@ describe("Reward creation and accrual tests", () => {
       const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
       const root = MerkleUtils.getTreeRoot(merkleTree);
       const merkleRoots = [Array.from(root)];
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -343,16 +350,20 @@ describe("Reward creation and accrual tests", () => {
     const merkleRoots = [Array.from(root)];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
+      totalRewards = totalRewards.add(
+        new anchor.BN(addressInput.tokenAmount.toString())
+      );
     }
     let totalUSDC = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalUSDC = totalUSDC.addn(Number(addressInput.usdcAmount));
+      totalUSDC = totalUSDC.add(
+        new anchor.BN(addressInput.usdcAmount.toString())
+      );
     }
 
     // Should fail with insufficient rewards.
     try {
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -375,18 +386,17 @@ describe("Reward creation and accrual tests", () => {
       assertStakingProgramError(error, "insufficientRewards");
     }
 
-    // Fund rewardTokenAccount
     await mintTo(
       connection,
       setup.payerKp,
       setup.tokenMint,
       setup.rewardTokenAccount,
       setup.tokenHolderKp,
-      totalRewards.toNumber()
+      BigInt(totalRewards.toString())
     );
 
     try {
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -409,18 +419,17 @@ describe("Reward creation and accrual tests", () => {
       assertStakingProgramError(error, "insufficientUsdc");
     }
 
-    // Fund usdcTokenAccount
     await mintTo(
       connection,
       setup.payerKp,
       setup.usdcTokenMint,
       setup.usdcTokenAccount,
       setup.tokenHolderKp,
-      totalUSDC.toNumber()
+      BigInt(totalUSDC.toString())
     );
 
     // Should succeed with sufficient rewards.
-    await setEpochFinalizationState({ program, setup });
+    await handleMarkEpochAsFinalizing({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
@@ -462,11 +471,15 @@ describe("Reward creation and accrual tests", () => {
     ];
     let totalRewards = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[3]) {
-      totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
+      totalRewards = totalRewards.add(
+        new anchor.BN(addressInput.tokenAmount.toString())
+      );
     }
     let totalUsdcAmount = new anchor.BN(0);
     for (const addressInput of setup.rewardEpochs[2]) {
-      totalUsdcAmount = totalUsdcAmount.addn(Number(addressInput.usdcAmount));
+      totalUsdcAmount = totalUsdcAmount.add(
+        new anchor.BN(addressInput.usdcAmount.toString())
+      );
     }
 
     await mintTo(
@@ -475,7 +488,7 @@ describe("Reward creation and accrual tests", () => {
       setup.tokenMint,
       setup.rewardTokenAccount,
       setup.tokenHolderKp,
-      totalRewards.toNumber()
+      BigInt(totalRewards.toString())
     );
 
     await mintTo(
@@ -484,10 +497,10 @@ describe("Reward creation and accrual tests", () => {
       setup.usdcTokenMint,
       setup.usdcTokenAccount,
       setup.tokenHolderKp,
-      totalUsdcAmount.toNumber()
+      BigInt(totalUsdcAmount.toString())
     );
 
-    await setEpochFinalizationState({ program, setup });
+    await handleMarkEpochAsFinalizing({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
@@ -549,9 +562,10 @@ describe("Reward creation and accrual tests", () => {
           operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -605,9 +619,10 @@ describe("Reward creation and accrual tests", () => {
           operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -637,9 +652,10 @@ describe("Reward creation and accrual tests", () => {
           operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -657,7 +673,7 @@ describe("Reward creation and accrual tests", () => {
           proofPath: validProofPath,
           rewardAmount: new anchor.BN(
             (
-              Number(setup.rewardEpochs[2][nodeIndex]?.tokenAmount ?? 0) + 1
+              (setup.rewardEpochs[2][nodeIndex]?.tokenAmount ?? 0n) + 1n
             ).toString()
           ),
           usdcAmount: new anchor.BN(
@@ -671,9 +687,10 @@ describe("Reward creation and accrual tests", () => {
           operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -694,7 +711,7 @@ describe("Reward creation and accrual tests", () => {
           ),
           usdcAmount: new anchor.BN(
             (
-              Number(setup.rewardEpochs[2][nodeIndex]?.usdcAmount ?? 0) + 1
+              (setup.rewardEpochs[2][nodeIndex]?.usdcAmount ?? 0n) + 1n
             ).toString()
           ),
         })
@@ -705,9 +722,10 @@ describe("Reward creation and accrual tests", () => {
           operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -759,9 +777,10 @@ describe("Reward creation and accrual tests", () => {
           operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -822,22 +841,28 @@ describe("Reward creation and accrual tests", () => {
         operatorStakingRecord: setup.pool1.stakingRecord,
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
-        usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         usdcTokenAccount: setup.usdcTokenAccount,
+        poolUsdcVault: setup.pool1.poolUsdcVault,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
 
-    const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
+    const commissionFees = rewardAmount
+      .mul(new anchor.BN(rewardCommissionRateBps))
+      .div(new anchor.BN(10_000));
     const delegatorRewards = rewardAmount.sub(commissionFees);
 
     // Check that OperatorPool's commission rate is not updated since there's 1 more epoch to claim.
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert.equal(operatorPool.newCommissionRateBps, newCommissionRateBps);
-    assert.equal(operatorPool.commissionRateBps, commissionRateBps);
+    assert.equal(
+      operatorPool.newRewardCommissionRateBps,
+      newRewardCommissionRateBps
+    );
+    assert.equal(operatorPool.rewardCommissionRateBps, rewardCommissionRateBps);
 
     // Check that rewards accrued are accumulated.
     assert(operatorPool.accruedCommission.eq(commissionFees));
@@ -856,6 +881,8 @@ describe("Reward creation and accrual tests", () => {
     );
     assert(poolOverview.unclaimedRewards.eq(poolOverviewPre.unclaimedRewards));
 
+    // Verify operator's USDC account balance remains unchanged
+    // (USDC is only accumulated on-chain, not distributed to operator's wallet)
     const usdcBalancePost = await connection.getTokenAccountBalance(
       setup.pool1.usdcTokenAccount
     );
@@ -863,7 +890,8 @@ describe("Reward creation and accrual tests", () => {
     assert(
       new anchor.BN(usdcBalancePost.value.amount).eq(
         new anchor.BN(usdcBalancePre.value.amount)
-      )
+      ),
+      "Operator's USDC account should remain unchanged"
     );
   });
 
@@ -894,9 +922,10 @@ describe("Reward creation and accrual tests", () => {
           operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           usdcTokenAccount: setup.usdcTokenAccount,
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -931,11 +960,11 @@ describe("Reward creation and accrual tests", () => {
     const stakedBalancePre = await connection.getTokenAccountBalance(
       setup.pool1.stakedTokenAccount
     );
-    const usdcTokenAccountPre = await connection.getTokenAccountBalance(
-      setup.pool1.usdcTokenAccount
+    const usdcFeeTokenAccountPre = await connection.getTokenAccountBalance(
+      setup.pool1.usdcCommissionFeeTokenVault
     );
-    const usdcBalancePre = await connection.getTokenAccountBalance(
-      setup.pool1.usdcTokenAccount
+    const poolUsdcVaultPre = await connection.getTokenAccountBalance(
+      setup.pool1.poolUsdcVault
     );
 
     const rewardAmount = new anchor.BN(proofInputs.tokenAmount.toString());
@@ -955,14 +984,17 @@ describe("Reward creation and accrual tests", () => {
         operatorStakingRecord: setup.pool1.stakingRecord,
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
-        usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         usdcTokenAccount: setup.usdcTokenAccount,
+        poolUsdcVault: setup.pool1.poolUsdcVault,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
 
-    const commissionFees = rewardAmount.muln(commissionRateBps / 10_000);
+    const commissionFees = rewardAmount
+      .mul(new anchor.BN(rewardCommissionRateBps))
+      .div(new anchor.BN(10_000));
 
     const delegatorRewards = rewardAmount.sub(commissionFees);
     const totalTokensTransferred = commissionFees
@@ -970,7 +1002,15 @@ describe("Reward creation and accrual tests", () => {
       .add(operatorPre.accruedCommission)
       .add(operatorPre.accruedRewards);
 
-    const totalUsdcTransferred = operatorPre.accruedUsdcPayout.add(usdcAmount);
+    // Calculate USDC commission
+    const usdcCommissionRateBps = operatorPre.usdcCommissionRateBps;
+    const usdcCommissionFees = operatorPre.accruedUsdcPayout
+      .add(usdcAmount)
+      .mul(new anchor.BN(usdcCommissionRateBps))
+      .div(new anchor.BN(10_000));
+    const delegatorUsdcEarnings = operatorPre.accruedUsdcPayout
+      .add(usdcAmount)
+      .sub(usdcCommissionFees);
 
     const amountToStakedAccount = operatorPre.totalStakedAmount.add(
       operatorPre.accruedRewards.add(delegatorRewards)
@@ -985,8 +1025,11 @@ describe("Reward creation and accrual tests", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert.isNull(operatorPool.newCommissionRateBps);
-    assert.equal(operatorPool.commissionRateBps, newCommissionRateBps);
+    assert.isNull(operatorPool.newRewardCommissionRateBps);
+    assert.equal(
+      operatorPool.rewardCommissionRateBps,
+      newRewardCommissionRateBps
+    );
 
     // Check that total staked and shares are updated for auto-stake and rewards accrual.
     assert(
@@ -1022,39 +1065,44 @@ describe("Reward creation and accrual tests", () => {
       setup.pool1.stakedTokenAccount
     );
     const feeBalance = await connection.getTokenAccountBalance(
-      setup.pool1.feeTokenAccount
+      setup.pool1.rewardCommissionFeeTokenVault
     );
     assert(
-      totalTokensTransferred.eqn(
-        Number(rewardBalancePre.value.amount) -
-          Number(rewardBalance.value.amount)
+      totalTokensTransferred.eq(
+        new anchor.BN(rewardBalancePre.value.amount).sub(
+          new anchor.BN(rewardBalance.value.amount)
+        )
       )
     );
     assert(
-      totalTokensTransferred.eqn(
-        Number(stakedBalance.value.amount) -
-          Number(stakedBalancePre.value.amount)
+      totalTokensTransferred.eq(
+        new anchor.BN(stakedBalance.value.amount).sub(
+          new anchor.BN(stakedBalancePre.value.amount)
+        )
       )
     );
-    assert.equal(Number(feeBalance.value.amount), 0); // All fees are auto-staked
+    assert(new anchor.BN(feeBalance.value.amount).isZero());
 
-    const usdcTokenAccountPost = await connection.getTokenAccountBalance(
-      setup.pool1.usdcTokenAccount
+    // Verify USDC commission went to fee vault
+    const usdcFeeTokenAccountPost = await connection.getTokenAccountBalance(
+      setup.pool1.usdcCommissionFeeTokenVault
     );
-    const usdcBalancePost = await connection.getTokenAccountBalance(
-      setup.pool1.usdcTokenAccount
+    const poolUsdcVaultPost = await connection.getTokenAccountBalance(
+      setup.pool1.poolUsdcVault
     );
 
     assert(
-      new anchor.BN(usdcTokenAccountPost.value.amount)
-        .sub(totalUsdcTransferred)
-        .eq(new anchor.BN(usdcTokenAccountPre.value.amount))
+      new anchor.BN(usdcFeeTokenAccountPost.value.amount)
+        .sub(new anchor.BN(usdcFeeTokenAccountPre.value.amount))
+        .eq(usdcCommissionFees),
+      "USDC commission should be transferred to USDC fee vault"
     );
 
     assert(
-      new anchor.BN(usdcBalancePost.value.amount).eq(
-        totalUsdcTransferred.addn(Number(usdcBalancePre.value.amount))
-      )
+      new anchor.BN(poolUsdcVaultPost.value.amount)
+        .sub(new anchor.BN(poolUsdcVaultPre.value.amount))
+        .eq(delegatorUsdcEarnings),
+      "Delegator USDC earnings should be transferred to pool USDC vault"
     );
   });
 
@@ -1067,8 +1115,8 @@ describe("Reward creation and accrual tests", () => {
         tokenAmount: BigInt(i * 100),
         usdcAmount: BigInt(i * 100),
       });
-      totalRewards = totalRewards.addn(i * 100);
-      totalUSDC = totalUSDC.addn(i * 100);
+      totalRewards = totalRewards.add(new anchor.BN((i * 100).toString()));
+      totalUSDC = totalUSDC.add(new anchor.BN((i * 100).toString()));
     }
 
     // Add OperatorPool 1 as a recipient.
@@ -1088,7 +1136,7 @@ describe("Reward creation and accrual tests", () => {
       setup.tokenMint,
       setup.rewardTokenAccount,
       setup.tokenHolderKp,
-      totalRewards.toNumber()
+      BigInt(totalRewards.toString())
     );
 
     await mintTo(
@@ -1097,10 +1145,10 @@ describe("Reward creation and accrual tests", () => {
       setup.usdcTokenMint,
       setup.usdcTokenAccount,
       setup.tokenHolderKp,
-      totalUSDC.toNumber()
+      BigInt(totalUSDC.toString())
     );
 
-    await setEpochFinalizationState({ program, setup });
+    await handleMarkEpochAsFinalizing({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
@@ -1148,9 +1196,10 @@ describe("Reward creation and accrual tests", () => {
         operatorStakingRecord: setup.pool1.stakingRecord,
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
-        usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         usdcTokenAccount: setup.usdcTokenAccount,
+        poolUsdcVault: setup.pool1.poolUsdcVault,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
@@ -1173,11 +1222,15 @@ describe("Reward creation and accrual tests", () => {
       const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
       let totalRewards = new anchor.BN(0);
       for (const addressInput of setup.rewardEpochs[2]) {
-        totalRewards = totalRewards.addn(Number(addressInput.tokenAmount));
+        totalRewards = totalRewards.add(
+          new anchor.BN(addressInput.tokenAmount.toString())
+        );
       }
       let totalUsdcAmount = new anchor.BN(0);
       for (const addressInput of setup.rewardEpochs[2]) {
-        totalUsdcAmount = totalUsdcAmount.addn(Number(addressInput.usdcAmount));
+        totalUsdcAmount = totalUsdcAmount.add(
+          new anchor.BN(addressInput.usdcAmount.toString())
+        );
       }
 
       await mintTo(
@@ -1186,7 +1239,7 @@ describe("Reward creation and accrual tests", () => {
         setup.tokenMint,
         setup.rewardTokenAccount,
         setup.tokenHolderKp,
-        totalRewards.toNumber()
+        BigInt(totalRewards.toString())
       );
 
       await mintTo(
@@ -1195,10 +1248,10 @@ describe("Reward creation and accrual tests", () => {
         setup.usdcTokenMint,
         setup.usdcTokenAccount,
         setup.tokenHolderKp,
-        totalUsdcAmount.toNumber()
+        BigInt(totalUsdcAmount.toString())
       );
 
-      await setEpochFinalizationState({ program, setup });
+      await handleMarkEpochAsFinalizing({ program, setup });
       await program.methods
         .createRewardRecord({
           merkleRoots,
@@ -1242,14 +1295,15 @@ describe("Reward creation and accrual tests", () => {
         usdcAmount: new anchor.BN(proofInputs.usdcAmount.toString()),
       })
       .accountsStrict({
+        poolUsdcVault: setup.pool1.poolUsdcVault,
         poolOverview: setup.poolOverview,
         rewardRecord: setup.rewardRecords[5],
         operatorPool: setup.pool1.pool,
         operatorStakingRecord: setup.pool1.stakingRecord,
         rewardTokenAccount: setup.rewardTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        feeTokenAccount: setup.pool1.feeTokenAccount,
-        usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         usdcTokenAccount: setup.usdcTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -1275,14 +1329,15 @@ describe("Reward creation and accrual tests", () => {
           usdcAmount: new anchor.BN(proofInputs.usdcAmount.toString()),
         })
         .accountsStrict({
+          poolUsdcVault: setup.pool1.poolUsdcVault,
           poolOverview: setup.poolOverview,
           rewardRecord: setup.rewardRecords[6],
           operatorPool: setup.pool1.pool,
           operatorStakingRecord: setup.pool1.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          feeTokenAccount: setup.pool1.feeTokenAccount,
-          usdcPayoutTokenAccount: setup.pool1.usdcTokenAccount,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         })

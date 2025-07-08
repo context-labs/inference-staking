@@ -15,8 +15,9 @@ import { deserializeMerkleProof, executeWithRetries } from "@sdk/src/utils";
 import {
   EPOCH_CLAIM_FREQUENCY,
   NUMBER_OF_EPOCHS,
-  SHOULD_CLOSE_ACCOUNTS,
-  SHOULD_UNSTAKE,
+  PREVENT_CLOSE_ACCOUNTS,
+  SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS,
+  PREVENT_UNSTAKE,
   TEST_WITH_RELAY,
 } from "@tests/lib/const";
 import type {
@@ -28,13 +29,16 @@ import type { SetupPoolType, SetupTestResult } from "@tests/lib/setup";
 import { setupTests } from "@tests/lib/setup";
 import { TrpcHttpClient } from "@tests/lib/trpc";
 import {
+  assertError,
   assertStakingRecordCreatedState,
   convertToTokenUnitAmount,
   debug,
   formatBN,
   generateRewardsForEpoch,
   randomIntInRange,
-  setEpochFinalizationState,
+  handleMarkEpochAsFinalizing,
+  range,
+  shuffleArray,
 } from "@tests/lib/utils";
 
 type GetRewardClaimInputsInput = {
@@ -50,6 +54,17 @@ type GetRewardClaimInputsOutput = {
   proofPath: boolean[];
   rewardAmount: anchor.BN;
   usdcAmount: anchor.BN;
+};
+
+const MIN_STAKE_AMOUNT = 1_000_000;
+const MAX_STAKE_AMOUNT = 10_000_000;
+
+const getStakeAmount = (): anchor.BN => {
+  return new anchor.BN(
+    convertToTokenUnitAmount(
+      randomIntInRange(MIN_STAKE_AMOUNT, MAX_STAKE_AMOUNT)
+    )
+  );
 };
 
 async function getRewardClaimInputs({
@@ -146,8 +161,14 @@ async function handleAccrueRewardForEpochs({
   program: Program<InferenceStaking>;
   connection: Connection;
   trpc: TrpcHttpClient;
-}) {
+}): Promise<{
+  totalClaimedRewards: anchor.BN;
+  totalClaimedUsdc: anchor.BN;
+}> {
   const commissionFeeMap = new Map<string, anchor.BN>();
+  let totalClaimedRewards = new anchor.BN(0);
+  let totalClaimedUsdc = new anchor.BN(0);
+
   const poolOverview = await program.account.poolOverview.fetch(
     setup.poolOverview
   );
@@ -169,21 +190,21 @@ async function handleAccrueRewardForEpochs({
       epoch++
     ) {
       const isFinalEpochClaim = epoch === currentCompletedEpoch;
-      const poolOverviewPre = await program.account.poolOverview.fetch(
-        setup.poolOverview
-      );
-      const operatorPre = await program.account.operatorPool.fetch(pool.pool);
-      const operatorStakingRecordPre =
-        await program.account.stakingRecord.fetch(pool.stakingRecord);
-      const rewardBalancePre = await connection.getTokenAccountBalance(
-        setup.rewardTokenAccount
-      );
-      const stakedBalancePre = await connection.getTokenAccountBalance(
-        pool.stakedTokenAccount
-      );
-      const feeBalancePre = await connection.getTokenAccountBalance(
-        pool.feeTokenAccount
-      );
+      const [
+        poolOverviewPre,
+        operatorPre,
+        operatorStakingRecordPre,
+        rewardBalancePre,
+        stakedBalancePre,
+        feeBalancePre,
+      ] = await Promise.all([
+        program.account.poolOverview.fetch(setup.poolOverview),
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.stakingRecord.fetch(pool.stakingRecord),
+        connection.getTokenAccountBalance(setup.rewardTokenAccount),
+        connection.getTokenAccountBalance(pool.stakedTokenAccount),
+        connection.getTokenAccountBalance(pool.rewardCommissionFeeTokenVault),
+      ]);
       const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(epoch));
 
       const claimData = await getRewardClaimInputs({
@@ -204,10 +225,15 @@ async function handleAccrueRewardForEpochs({
       const usdc = formatBN(usdcAmount);
 
       debug(
-        `- Claiming Epoch ${epoch} rewards for Operator Pool ${pool.pool.toString()} - rewardAmount = ${tokens} - usdcAmount = ${usdc}`
+        `- Claiming Epoch ${epoch} rewards for Operator Pool ${pool.pool.toString()}`
       );
+      debug(` - Epoch rewardAmount = ${tokens} - usdcAmount = ${usdc}`);
 
       rewardClaimsForPool.push(rewardAmount);
+
+      // Track total claimed amounts
+      totalClaimedRewards = totalClaimedRewards.add(rewardAmount);
+      totalClaimedUsdc = totalClaimedUsdc.add(usdcAmount);
 
       const signature = await program.methods
         .accrueReward({
@@ -224,9 +250,10 @@ async function handleAccrueRewardForEpochs({
           operatorStakingRecord: pool.stakingRecord,
           rewardTokenAccount: setup.rewardTokenAccount,
           stakedTokenAccount: pool.stakedTokenAccount,
-          feeTokenAccount: pool.feeTokenAccount,
+          rewardFeeTokenAccount: pool.rewardCommissionFeeTokenVault,
           usdcTokenAccount: setup.usdcTokenAccount,
-          usdcPayoutTokenAccount: pool.usdcTokenAccount,
+          usdcFeeTokenAccount: pool.usdcCommissionFeeTokenVault,
+          poolUsdcVault: pool.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -236,7 +263,7 @@ async function handleAccrueRewardForEpochs({
       }
 
       const commissionFees = rewardAmount
-        .mul(new anchor.BN(pool.commissionRateBps))
+        .mul(new anchor.BN(pool.rewardCommissionRateBps))
         .div(new anchor.BN(10_000));
       const currentCommissionFeesForPool =
         commissionFeeMap.get(pool.pool.toString()) ?? new anchor.BN(0);
@@ -259,7 +286,7 @@ async function handleAccrueRewardForEpochs({
         "Total unstaking should remain unchanged"
       );
       assert.isNull(
-        operatorPool.newCommissionRateBps,
+        operatorPool.newRewardCommissionRateBps,
         "New commission rate should be null"
       );
 
@@ -291,24 +318,20 @@ async function handleAccrueRewardForEpochs({
               new anchor.BN(0)
             );
 
-        const poolOverview = await program.account.poolOverview.fetch(
-          setup.poolOverview
-        );
+        const [poolOverview, rewardBalance, stakedBalance, feeBalance] =
+          await Promise.all([
+            program.account.poolOverview.fetch(setup.poolOverview),
+            connection.getTokenAccountBalance(setup.rewardTokenAccount),
+            connection.getTokenAccountBalance(pool.stakedTokenAccount),
+            connection.getTokenAccountBalance(
+              pool.rewardCommissionFeeTokenVault
+            ),
+          ]);
         assert(
           poolOverviewPre.unclaimedRewards
             .sub(poolOverview.unclaimedRewards)
             .eq(totalClaimedRewardsForPool),
           "Unclaimed rewards should be reduced by the total claimed amount"
-        );
-
-        const rewardBalance = await connection.getTokenAccountBalance(
-          setup.rewardTokenAccount
-        );
-        const stakedBalance = await connection.getTokenAccountBalance(
-          pool.stakedTokenAccount
-        );
-        const feeBalance = await connection.getTokenAccountBalance(
-          pool.feeTokenAccount
         );
 
         const diff = new anchor.BN(rewardBalancePre.value.amount).sub(
@@ -323,7 +346,6 @@ async function handleAccrueRewardForEpochs({
         assert(commissionFees != null, "Commission fees should be tracked");
         const delegatorRewards = totalClaimedRewardsForPool.sub(commissionFees);
 
-        // Verify that claimed delegator rewards are added to OperatorPool
         const stakedAmountDiff = operatorPool.totalStakedAmount.sub(
           operatorPre.totalStakedAmount
         );
@@ -345,7 +367,6 @@ async function handleAccrueRewardForEpochs({
           `Accrued USDC payout should be zero, was ${operatorPool.accruedUsdcPayout.toString()}`
         );
 
-        // Verify token balances
         const feeBalanceDiff = new anchor.BN(feeBalance.value.amount).sub(
           new anchor.BN(feeBalancePre.value.amount)
         );
@@ -363,6 +384,11 @@ async function handleAccrueRewardForEpochs({
       }
     }
   }
+
+  return {
+    totalClaimedRewards,
+    totalClaimedUsdc,
+  };
 }
 
 describe("multi-epoch lifecycle tests", () => {
@@ -371,19 +397,413 @@ describe("multi-epoch lifecycle tests", () => {
   let program: Program<InferenceStaking>;
 
   let totalDistributedRewards = new anchor.BN(0);
+  let totalDistributedUsdc = new anchor.BN(0);
+  let totalClaimedRewards = new anchor.BN(0);
+  let totalClaimedUsdc = new anchor.BN(0);
+  let totalWithdrawnUsdcEarnings = new anchor.BN(0);
+  let totalOriginalStakes = new anchor.BN(0);
+  let totalTokensWithdrawnFromUnstake = new anchor.BN(0);
+  let totalCommissionWithdrawn = new anchor.BN(0);
   const epochRewards: ConstructMerkleTreeInput[][] = [];
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
   const allowDelegation = true;
   const allowPoolCreation = true;
-  const operatorPoolRegistrationFee = new anchor.BN(1_000);
+  const operatorPoolRegistrationFee = convertToTokenUnitAmount(50);
   const minOperatorTokenStake = new anchor.BN(1_000);
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const isAccrueRewardHalted = false;
 
   const trpc = new TrpcHttpClient();
+
+  const handleEpochFinalization = async (epoch: number, counter: number) => {
+    if (TEST_WITH_RELAY) {
+      debug(
+        `- End-to-end test flow is enabled, submitting epoch finalization request for epoch ${epoch}...`
+      );
+
+      await executeWithRetries(
+        async () => {
+          const response = await trpc.executeEpochFinalization();
+          if (response.status !== "200") {
+            console.error(response);
+            throw new Error(
+              "executeEpochFinalization returned with non-200 status"
+            );
+          }
+        },
+        {
+          retries: 10,
+          retryDelayMs: 100,
+        }
+      );
+
+      const claims = await trpc.getRewardClaimsForEpoch(BigInt(epoch));
+
+      for (const claim of claims.rewardClaims) {
+        assert(claim.proof != null);
+        assert(claim.proofPath != null);
+        assert(claim.merkleTreeIndex != null);
+        assert(claim.merkleUsdcAmount != null);
+        assert(claim.merkleRewardAmount != null);
+      }
+
+      const totalRewards = claims.rewardClaims.reduce((acc, claim) => {
+        assert(
+          claim.merkleRewardAmount != null,
+          "merkleRewardAmount cannot be null"
+        );
+        return acc.add(new anchor.BN(claim.merkleRewardAmount.toString()));
+      }, new anchor.BN(0));
+
+      const totalUsdcAmount = claims.rewardClaims.reduce((acc, claim) => {
+        assert(
+          claim.merkleUsdcAmount != null,
+          "merkleUsdcAmount cannot be null"
+        );
+        return acc.add(new anchor.BN(claim.merkleUsdcAmount.toString()));
+      }, new anchor.BN(0));
+
+      const expectedEpochRewards = await trpc.getRewardEmissionsForEpoch(
+        BigInt(epoch)
+      );
+
+      const expectedTotalRewards =
+        expectedEpochRewards.rewardEmissions.totalRewards;
+      assert(
+        new anchor.BN(expectedTotalRewards.toString()).eq(totalRewards),
+        `Total rewards for epoch ${epoch}: ${totalRewards.toString()} do not match expected rewards: ${expectedTotalRewards.toString()}`
+      );
+
+      totalDistributedRewards = totalDistributedRewards.add(totalRewards);
+      totalDistributedUsdc = totalDistributedUsdc.add(totalUsdcAmount);
+
+      const totalRewardsString = formatBN(totalRewards);
+      debug(
+        `- ✅ Total rewards for epoch ${epoch} match expected epoch reward emissions: ${totalRewardsString}`
+      );
+
+      await executeWithRetries(
+        async () => {
+          const response = await trpc.createRewardRecord();
+          if (response.status !== "200") {
+            console.error(response);
+            throw new Error("createRewardRecord returned with non-200 status");
+          }
+        },
+        {
+          retries: 10,
+          retryDelayMs: 100,
+        }
+      );
+    } else {
+      const poolOverview = await program.account.poolOverview.fetch(
+        setup.poolOverview
+      );
+      const currentCompletedEpoch =
+        poolOverview.completedRewardEpoch.toNumber();
+
+      const pools = await Promise.all(
+        setup.pools.map(async (pool) => {
+          const operatorPool = await program.account.operatorPool.fetch(
+            pool.pool
+          );
+          return {
+            ...pool,
+            operatorPool,
+          };
+        })
+      );
+      const activePools = pools.filter(
+        (pool) =>
+          pool.operatorPool.closedAt == null ||
+          pool.operatorPool.closedAt.toNumber() === currentCompletedEpoch
+      );
+      const rewards = generateRewardsForEpoch(
+        activePools.map((pool) => pool.pool)
+      );
+      epochRewards.push(rewards);
+      const merkleTree = MerkleUtils.constructMerkleTree(rewards);
+      const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
+      let totalRewards = new anchor.BN(0);
+      for (const addressInput of rewards) {
+        totalRewards = totalRewards.add(
+          new anchor.BN(addressInput.tokenAmount.toString())
+        );
+      }
+      let totalUsdcAmount = new anchor.BN(0);
+      for (const addressInput of rewards) {
+        totalUsdcAmount = totalUsdcAmount.add(
+          new anchor.BN(addressInput.usdcAmount.toString())
+        );
+      }
+
+      // Track total distributed amounts
+      totalDistributedRewards = totalDistributedRewards.add(totalRewards);
+      totalDistributedUsdc = totalDistributedUsdc.add(totalUsdcAmount);
+
+      await Promise.all([
+        mintTo(
+          connection,
+          setup.payerKp,
+          setup.tokenMint,
+          setup.rewardTokenAccount,
+          setup.tokenHolderKp,
+          BigInt(totalRewards.toString())
+        ),
+        mintTo(
+          connection,
+          setup.payerKp,
+          setup.usdcTokenMint,
+          setup.usdcTokenAccount,
+          setup.tokenHolderKp,
+          BigInt(totalUsdcAmount.toString())
+        ),
+      ]);
+
+      await handleMarkEpochAsFinalizing({
+        setup,
+        program,
+      });
+
+      const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(epoch));
+
+      const tokens = formatBN(totalRewards);
+      const usdc = formatBN(totalUsdcAmount);
+      const tracker = `${counter}/${NUMBER_OF_EPOCHS}`;
+      debug(
+        `- [${tracker}] Creating RewardRecord for epoch ${epoch} - total token reward = ${tokens} - total USDC payout = ${usdc}`
+      );
+      counter++;
+
+      await program.methods
+        .createRewardRecord({
+          merkleRoots,
+          totalRewards,
+          totalUsdcPayout: totalUsdcAmount,
+        })
+        .accountsStrict({
+          payer: setup.payer,
+          authority: setup.rewardDistributionAuthority,
+          poolOverview: setup.poolOverview,
+          rewardRecord,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
+        .rpc();
+
+      const rewardRecordAccount = await program.account.rewardRecord.fetch(
+        rewardRecord
+      );
+      assert(rewardRecordAccount.epoch.eqn(epoch));
+      assert(rewardRecordAccount.totalRewards.eq(totalRewards));
+      for (let i = 0; i < rewardRecordAccount.merkleRoots.length; i++) {
+        assert.deepEqual(
+          rewardRecordAccount.merkleRoots[i],
+          Array.from(merkleRoots[i] ?? [])
+        );
+      }
+    }
+
+    if (epoch % EPOCH_CLAIM_FREQUENCY === 0) {
+      debug(
+        `\nStart reward claims for all existing rewards up to epoch ${epoch}`
+      );
+      const claimResult = await handleAccrueRewardForEpochs({
+        connection,
+        epochRewards,
+        program,
+        setup,
+        trpc,
+      });
+      totalClaimedRewards = totalClaimedRewards.add(
+        claimResult.totalClaimedRewards
+      );
+      totalClaimedUsdc = totalClaimedUsdc.add(claimResult.totalClaimedUsdc);
+      debug("");
+    }
+  };
+
+  const handleStakeForOperatorAdmins = async (
+    shouldAssertCreatedState = false
+  ) => {
+    debug(
+      `\nPerforming admin stake instructions for ${setup.pools.length} operator pools`
+    );
+    let counter = 1;
+    for (const pool of setup.pools) {
+      const stakeAmount = getStakeAmount();
+
+      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        pool.admin
+      );
+
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        ownerTokenAccount.address,
+        setup.tokenHolderKp,
+        BigInt(stakeAmount.toString())
+      );
+
+      const [poolPre, stakingRecordPre] = await Promise.all([
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.stakingRecord.fetch(pool.stakingRecord),
+      ]);
+
+      await program.methods
+        .stake(stakeAmount)
+        .accountsStrict({
+          owner: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          ownerStakingRecord: pool.stakingRecord,
+          operatorStakingRecord: pool.stakingRecord,
+          stakedTokenAccount: pool.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount: ownerTokenAccount.address,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const [poolPost, stakingRecordPost] = await Promise.all([
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.stakingRecord.fetch(pool.stakingRecord),
+      ]);
+
+      if (shouldAssertCreatedState) {
+        assertStakingRecordCreatedState({
+          poolPost,
+          poolPre,
+          stakingRecordPost,
+          stakingRecordPre,
+          stakeAmount,
+        });
+      }
+
+      totalOriginalStakes = totalOriginalStakes.add(stakeAmount);
+
+      const stakeAmountString = formatBN(stakeAmount);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(
+        `- [${tracker}] Staked ${stakeAmountString} tokens for Operator Pool ${pool.pool.toString()}`
+      );
+      counter++;
+    }
+  };
+
+  const handleStakeForDelegators = async (shouldAssertCreatedState = false) => {
+    debug(
+      `\nPerforming delegator stake instructions for ${setup.delegatorKeypairs.length} delegators`
+    );
+    let counter = 1;
+    for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
+      const delegatorKp = setup.delegatorKeypairs[i];
+      assert(delegatorKp != null);
+      const pool = setup.pools[i % setup.pools.length];
+      assert(pool != null);
+
+      const stakingRecord = setup.sdk.stakingRecordPda(
+        pool.pool,
+        delegatorKp.publicKey
+      );
+
+      const stakingRecordPreCreate =
+        await program.account.stakingRecord.fetchNullable(stakingRecord);
+
+      if (stakingRecordPreCreate == null) {
+        await program.methods
+          .createStakingRecord()
+          .accountsStrict({
+            payer: setup.payer,
+            owner: delegatorKp.publicKey,
+            operatorPool: pool.pool,
+            ownerStakingRecord: stakingRecord,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([setup.payerKp, delegatorKp])
+          .rpc();
+      }
+
+      const [poolPre, stakingRecordPre] = await Promise.all([
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.stakingRecord.fetch(stakingRecord),
+      ]);
+
+      if (shouldAssertCreatedState) {
+        assert(stakingRecordPre.owner.equals(delegatorKp.publicKey));
+        assert(stakingRecordPre.operatorPool.equals(pool.pool));
+        assert(stakingRecordPre.shares.isZero());
+        assert(stakingRecordPre.tokensUnstakeAmount.isZero());
+        assert(stakingRecordPre.unstakeAtTimestamp.isZero());
+      }
+
+      const stakeAmount = getStakeAmount();
+
+      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        delegatorKp.publicKey
+      );
+
+      await mintTo(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        ownerTokenAccount.address,
+        setup.tokenHolderKp,
+        BigInt(stakeAmount.toString())
+      );
+
+      await program.methods
+        .stake(stakeAmount)
+        .accountsStrict({
+          owner: delegatorKp.publicKey,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          ownerStakingRecord: stakingRecord,
+          operatorStakingRecord: pool.stakingRecord,
+          stakedTokenAccount: pool.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount: ownerTokenAccount.address,
+        })
+        .signers([delegatorKp])
+        .rpc();
+
+      const [poolPost, stakingRecordPost] = await Promise.all([
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.stakingRecord.fetch(stakingRecord),
+      ]);
+
+      if (shouldAssertCreatedState) {
+        assertStakingRecordCreatedState({
+          poolPost,
+          poolPre,
+          stakingRecordPost,
+          stakingRecordPre,
+          stakeAmount,
+        });
+      }
+
+      totalOriginalStakes = totalOriginalStakes.add(stakeAmount);
+
+      const stakeAmountString = formatBN(stakeAmount);
+      const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
+      debug(
+        `- [${tracker}] Staked ${stakeAmountString} tokens for delegator ${delegatorKp.publicKey.toString()} to pool ${pool.pool.toString()}`
+      );
+      counter++;
+    }
+  };
 
   before(async () => {
     setup = await setupTests();
@@ -530,7 +950,8 @@ describe("multi-epoch lifecycle tests", () => {
       await program.methods
         .createOperatorPool({
           autoStakeFees: pool.autoStakeFees,
-          commissionRateBps: pool.commissionRateBps,
+          rewardCommissionRateBps: pool.rewardCommissionRateBps,
+          usdcCommissionRateBps: pool.usdcCommissionRateBps,
           allowDelegation,
           name: pool.name,
           description: pool.description,
@@ -544,15 +965,19 @@ describe("multi-epoch lifecycle tests", () => {
           operatorPool: pool.pool,
           stakingRecord: pool.stakingRecord,
           stakedTokenAccount: pool.stakedTokenAccount,
-          feeTokenAccount: pool.feeTokenAccount,
+          rewardFeeTokenAccount: pool.rewardCommissionFeeTokenVault,
           poolOverview: setup.poolOverview,
           mint: setup.tokenMint,
-          usdcPayoutWallet: pool.usdcPayoutWallet,
+          usdcFeeTokenAccount: pool.usdcCommissionFeeTokenVault,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           adminTokenAccount: pool.adminTokenAccount,
           registrationFeePayoutTokenAccount:
             setup.registrationFeePayoutTokenAccount,
+          operatorUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+            pool.pool
+          ),
+          usdcMint: setup.usdcTokenMint,
         })
         .signers([setup.payerKp, pool.adminKp])
         .rpc();
@@ -562,8 +987,15 @@ describe("multi-epoch lifecycle tests", () => {
       assert(operatorPool.initialPoolAdmin.equals(pool.admin));
       assert(operatorPool.operatorStakingRecord.equals(pool.stakingRecord));
       assert.equal(operatorPool.autoStakeFees, pool.autoStakeFees);
-      assert.equal(operatorPool.commissionRateBps, pool.commissionRateBps);
-      assert.isNull(operatorPool.newCommissionRateBps);
+      assert.equal(
+        operatorPool.rewardCommissionRateBps,
+        pool.rewardCommissionRateBps
+      );
+      assert.equal(
+        operatorPool.usdcCommissionRateBps,
+        pool.usdcCommissionRateBps
+      );
+      assert.isNull(operatorPool.newRewardCommissionRateBps);
       assert.equal(operatorPool.allowDelegation, allowDelegation);
       assert(operatorPool.totalStakedAmount.isZero());
       assert(operatorPool.totalShares.isZero());
@@ -585,78 +1017,136 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
-  it("Stake all operator pool admins", async () => {
-    debug(
-      `\nPerforming admin stake instructions for ${setup.pools.length} operator pools`
-    );
-    let counter = 1;
-    for (const pool of setup.pools) {
-      const stakeAmount = new anchor.BN(
-        convertToTokenUnitAmount(randomIntInRange(1_000_000, 10_000_000))
-      );
+  it("[1/2] Stake all operator pool admins", async () => {
+    await handleStakeForOperatorAdmins(true);
+  });
 
-      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
-        connection,
-        setup.payerKp,
-        setup.tokenMint,
-        pool.admin
-      );
+  it("[1/2] Stake for every delegator", async () => {
+    await handleStakeForDelegators(true);
+  });
 
-      await mintTo(
-        connection,
-        setup.payerKp,
-        setup.tokenMint,
-        ownerTokenAccount.address,
-        setup.tokenHolderKp,
-        BigInt(stakeAmount.toString())
-      );
-
-      const poolPre = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
-
-      await program.methods
-        .stake(stakeAmount)
-        .accountsStrict({
-          owner: pool.admin,
-          poolOverview: setup.poolOverview,
-          operatorPool: pool.pool,
-          ownerStakingRecord: pool.stakingRecord,
-          operatorStakingRecord: pool.stakingRecord,
-          stakedTokenAccount: pool.stakedTokenAccount,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          ownerTokenAccount: ownerTokenAccount.address,
-        })
-        .signers([pool.adminKp])
-        .rpc();
-
-      const poolPost = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
-
-      assertStakingRecordCreatedState({
-        poolPost,
-        poolPre,
-        stakingRecordPost,
-        stakingRecordPre,
-        stakeAmount,
-      });
-
-      const stakeAmountString = formatBN(stakeAmount);
-      const tracker = `${counter}/${setup.pools.length}`;
-      debug(
-        `- [${tracker}] Staked ${stakeAmountString} tokens for Operator Pool ${pool.pool.toString()}`
-      );
-      counter++;
+  it("[1/2] Create reward records", async () => {
+    debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
+    const counter = 1;
+    for (let epoch = 1; epoch <= NUMBER_OF_EPOCHS; epoch++) {
+      await handleEpochFinalization(epoch, counter);
     }
   });
 
-  it("Stake for every delegator", async () => {
-    debug(
-      `\nPerforming delegator stake instructions for ${setup.delegatorKeypairs.length} delegators`
+  it("[1/2] Accrue Rewards for any remaining epochs", async () => {
+    const claimResult = await handleAccrueRewardForEpochs({
+      connection,
+      epochRewards,
+      program,
+      setup,
+      trpc,
+    });
+    totalClaimedRewards = totalClaimedRewards.add(
+      claimResult.totalClaimedRewards
     );
+    totalClaimedUsdc = totalClaimedUsdc.add(claimResult.totalClaimedUsdc);
+  });
+
+  const performAdditionalStakingActions = async () => {
+    for (const _ of range(3)) {
+      const actions = [handleStakeForDelegators, handleStakeForOperatorAdmins];
+      const randomOrder = shuffleArray(actions);
+      for (const action of randomOrder) {
+        await action();
+      }
+    }
+  };
+
+  it("[2/2] Repeat staking actions for operators and delegators", async () => {
+    if (!SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS) {
+      debug(
+        "Skipping additional staking actions as SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS is false"
+      );
+      return;
+    }
+
+    await performAdditionalStakingActions();
+  });
+
+  const finalizeAdditionalEpochs = async () => {
+    debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
+    const counter = 1;
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    const startingEpoch = poolOverview.completedRewardEpoch.toNumber() + 1;
+    const endEpoch = startingEpoch + NUMBER_OF_EPOCHS;
+    for (let epoch = startingEpoch; epoch <= endEpoch; epoch++) {
+      await handleEpochFinalization(epoch, counter);
+    }
+
+    const claimResult = await handleAccrueRewardForEpochs({
+      connection,
+      epochRewards,
+      program,
+      setup,
+      trpc,
+    });
+    totalClaimedRewards = totalClaimedRewards.add(
+      claimResult.totalClaimedRewards
+    );
+    totalClaimedUsdc = totalClaimedUsdc.add(claimResult.totalClaimedUsdc);
+  };
+
+  it("Finalize additional epochs", async () => {
+    if (!SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS) {
+      debug(
+        "Skipping additional staking actions as SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS is false"
+      );
+      return;
+    }
+
+    for (const _ of range(3)) {
+      await finalizeAdditionalEpochs();
+      await performAdditionalStakingActions();
+    }
+    await finalizeAdditionalEpochs();
+  });
+
+  const verifyTokenAccounting = async () => {
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+    assert(
+      poolOverview.unclaimedRewards.isZero(),
+      `Unclaimed rewards should be zero, was ${poolOverview.unclaimedRewards.toString()}`
+    );
+    assert(
+      poolOverview.unclaimedUsdcPayout.isZero(),
+      `Unclaimed USDC payout should be zero, was ${poolOverview.unclaimedUsdcPayout.toString()}`
+    );
+
+    const tokenVault = setup.sdk.globalTokenRewardVaultPda();
+    const usdcVault = setup.sdk.globalUsdcEarningsVaultPda();
+    const [tokenBalance, usdcBalance] = await Promise.all([
+      connection.getTokenAccountBalance(tokenVault),
+      connection.getTokenAccountBalance(usdcVault),
+    ]);
+    assert(
+      new anchor.BN(tokenBalance.value.amount).isZero(),
+      `Token balance should be zero, was ${tokenBalance.value.amount}`
+    );
+
+    assert(
+      new anchor.BN(usdcBalance.value.amount).isZero(),
+      `USDC balance should be zero, was ${usdcBalance.value.amount}`
+    );
+  };
+
+  it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
+    await verifyTokenAccounting();
+  });
+
+  it("Claim USDC earnings for all delegators successfully", async () => {
+    debug(
+      `\nClaiming USDC earnings for ${setup.delegatorKeypairs.length} delegators`
+    );
+
     let counter = 1;
     for (let i = 0; i < setup.delegatorKeypairs.length; i++) {
       const delegatorKp = setup.delegatorKeypairs[i];
@@ -669,301 +1159,208 @@ describe("multi-epoch lifecycle tests", () => {
         delegatorKp.publicKey
       );
 
-      await program.methods
-        .createStakingRecord()
-        .accountsStrict({
-          payer: setup.payer,
-          owner: delegatorKp.publicKey,
-          operatorPool: pool.pool,
-          ownerStakingRecord: stakingRecord,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([setup.payerKp, delegatorKp])
-        .rpc();
-
-      const poolPre = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-
-      assert(stakingRecordPre.owner.equals(delegatorKp.publicKey));
-      assert(stakingRecordPre.operatorPool.equals(pool.pool));
-      assert(stakingRecordPre.shares.isZero());
-      assert(stakingRecordPre.tokensUnstakeAmount.isZero());
-      assert(stakingRecordPre.unstakeAtTimestamp.isZero());
-
-      const stakeAmount = new anchor.BN(
-        convertToTokenUnitAmount(randomIntInRange(100_000, 1_000_000))
-      );
-
-      const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
+      const delegatorUsdcAccount = await getOrCreateAssociatedTokenAccount(
         connection,
         setup.payerKp,
-        setup.tokenMint,
+        setup.usdcTokenMint,
         delegatorKp.publicKey
       );
 
-      await mintTo(
-        connection,
-        setup.payerKp,
-        setup.tokenMint,
-        ownerTokenAccount.address,
-        setup.tokenHolderKp,
-        BigInt(stakeAmount.toString())
-      );
+      const [
+        stakingRecordPre,
+        operatorPoolPre,
+        poolUsdcVaultPre,
+        delegatorUsdcBalancePre,
+      ] = await Promise.all([
+        program.account.stakingRecord.fetch(stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+        connection.getTokenAccountBalance(pool.poolUsdcVault),
+        connection.getTokenAccountBalance(delegatorUsdcAccount.address),
+      ]);
+
+      const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord({
+        accruedUsdcEarnings: stakingRecordPre.accruedUsdcEarnings.toString(),
+        cumulativeUsdcPerShare:
+          operatorPoolPre.cumulativeUsdcPerShare.toString(),
+        lastSettledUsdcPerShare:
+          stakingRecordPre.lastSettledUsdcPerShare.toString(),
+        stakingRecordShares: stakingRecordPre.shares.toString(),
+      });
+
+      if (claimedAmount.isZero()) {
+        debug(
+          `- No USDC earnings to claim for delegator ${delegatorKp.publicKey.toString()}`
+        );
+        continue;
+      }
 
       await program.methods
-        .stake(stakeAmount)
+        .claimUsdcEarnings()
         .accountsStrict({
           owner: delegatorKp.publicKey,
           poolOverview: setup.poolOverview,
           operatorPool: pool.pool,
-          ownerStakingRecord: stakingRecord,
-          operatorStakingRecord: pool.stakingRecord,
-          stakedTokenAccount: pool.stakedTokenAccount,
+          stakingRecord: stakingRecord,
+          poolUsdcVault: pool.poolUsdcVault,
+          destination: delegatorUsdcAccount.address,
           tokenProgram: TOKEN_PROGRAM_ID,
-          ownerTokenAccount: ownerTokenAccount.address,
         })
         .signers([delegatorKp])
         .rpc();
 
-      const poolPost = await program.account.operatorPool.fetch(pool.pool);
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        stakingRecord
+      const [stakingRecordPost, poolUsdcVaultPost, delegatorUsdcBalancePost] =
+        await Promise.all([
+          program.account.stakingRecord.fetch(stakingRecord),
+          connection.getTokenAccountBalance(pool.poolUsdcVault),
+          connection.getTokenAccountBalance(delegatorUsdcAccount.address),
+        ]);
+
+      // Verify USDC was transferred
+      const vaultBalanceDiff = new anchor.BN(poolUsdcVaultPre.value.amount).sub(
+        new anchor.BN(poolUsdcVaultPost.value.amount)
+      );
+      const delegatorBalanceDiff = new anchor.BN(
+        delegatorUsdcBalancePost.value.amount
+      ).sub(new anchor.BN(delegatorUsdcBalancePre.value.amount));
+
+      assert(vaultBalanceDiff.eq(delegatorBalanceDiff));
+
+      assert(
+        vaultBalanceDiff.eq(claimedAmount),
+        `Pool USDC vault balance should decrease by claimed amount: ${claimedAmount.toString()}`
+      );
+      assert(
+        delegatorBalanceDiff.eq(claimedAmount),
+        `Delegator USDC balance should increase by claimed amount: ${claimedAmount.toString()}`
       );
 
-      assertStakingRecordCreatedState({
-        poolPost,
-        poolPre,
-        stakingRecordPost,
-        stakingRecordPre,
-        stakeAmount,
-      });
+      // Verify staking record state
+      assert(
+        stakingRecordPost.accruedUsdcEarnings.isZero(),
+        "Available USDC earnings should be zero after claim"
+      );
+      assert(
+        stakingRecordPost.lastSettledUsdcPerShare.eq(
+          operatorPoolPre.cumulativeUsdcPerShare
+        ),
+        "Last settled USDC per share should match pool's cumulative USDC per share"
+      );
 
-      const stakeAmountString = formatBN(stakeAmount);
+      // Track total withdrawn USDC
+      totalWithdrawnUsdcEarnings =
+        totalWithdrawnUsdcEarnings.add(claimedAmount);
+
+      const claimedAmountString = formatBN(claimedAmount);
       const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
       debug(
-        `- [${tracker}] Staked ${stakeAmountString} tokens for delegator ${delegatorKp.publicKey.toString()} to pool ${pool.pool.toString()}`
+        `- [${tracker}] Claimed ${claimedAmountString} USDC earnings for delegator ${delegatorKp.publicKey.toString()}`
       );
       counter++;
     }
   });
 
-  it("Create reward records", async () => {
-    debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
+  it("Claim USDC earnings for all operators successfully", async () => {
+    debug(`\nClaiming USDC earnings for ${setup.pools.length} operators`);
+
     let counter = 1;
-    for (let epoch = 1; epoch <= NUMBER_OF_EPOCHS; epoch++) {
-      if (TEST_WITH_RELAY) {
+    for (const pool of setup.pools) {
+      const [
+        stakingRecordPre,
+        operatorPoolPre,
+        poolUsdcVaultPre,
+        operatorUsdcBalancePre,
+      ] = await Promise.all([
+        program.account.stakingRecord.fetch(pool.stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+        connection.getTokenAccountBalance(pool.poolUsdcVault),
+        connection.getTokenAccountBalance(pool.usdcTokenAccount),
+      ]);
+
+      // Calculate the full available amount including unsettled earnings
+      const claimedAmount = setup.sdk.getAvailableUsdcEarningsForStakingRecord({
+        accruedUsdcEarnings: stakingRecordPre.accruedUsdcEarnings.toString(),
+        cumulativeUsdcPerShare:
+          operatorPoolPre.cumulativeUsdcPerShare.toString(),
+        lastSettledUsdcPerShare:
+          stakingRecordPre.lastSettledUsdcPerShare.toString(),
+        stakingRecordShares: stakingRecordPre.shares.toString(),
+      });
+
+      if (claimedAmount.isZero()) {
         debug(
-          `- End-to-end test flow is enabled, submitting epoch finalization request for epoch ${epoch}...`
+          `- No USDC earnings to claim for operator ${pool.admin.toString()}`
         );
-
-        await executeWithRetries(
-          async () => {
-            const response = await trpc.executeEpochFinalization();
-            if (response.status !== "200") {
-              console.error(response);
-              throw new Error(
-                "executeEpochFinalization returned with non-200 status"
-              );
-            }
-          },
-          {
-            retries: 10,
-            retryDelayMs: 100,
-          }
-        );
-
-        const claims = await trpc.getRewardClaimsForEpoch(BigInt(epoch));
-
-        for (const claim of claims.rewardClaims) {
-          assert(claim.proof != null);
-          assert(claim.proofPath != null);
-          assert(claim.merkleTreeIndex != null);
-          assert(claim.merkleUsdcAmount != null);
-          assert(claim.merkleRewardAmount != null);
-        }
-
-        const totalRewards = claims.rewardClaims.reduce((acc, claim) => {
-          assert(
-            claim.merkleRewardAmount != null,
-            "merkleRewardAmount cannot be null"
-          );
-          return acc.add(new anchor.BN(claim.merkleRewardAmount.toString()));
-        }, new anchor.BN(0));
-
-        const totalUsdcAmount = claims.rewardClaims.reduce((acc, claim) => {
-          assert(
-            claim.merkleUsdcAmount != null,
-            "merkleUsdcAmount cannot be null"
-          );
-          return acc.add(new anchor.BN(claim.merkleUsdcAmount.toString()));
-        }, new anchor.BN(0));
-
-        const expectedEpochRewards = await trpc.getRewardEmissionsForEpoch(
-          BigInt(epoch)
-        );
-
-        const expectedTotalRewards =
-          expectedEpochRewards.rewardEmissions.totalRewards;
-        assert(
-          new anchor.BN(expectedTotalRewards.toString()).eq(totalRewards),
-          `Total rewards for epoch ${epoch}: ${totalRewards.toString()} do not match expected rewards: ${expectedTotalRewards.toString()}`
-        );
-
-        totalDistributedRewards = totalDistributedRewards.add(totalRewards);
-
-        const totalRewardsString = formatBN(totalRewards);
-        debug(
-          `- ✅ Total rewards for epoch ${epoch} match expected epoch reward emissions: ${totalRewardsString}`
-        );
-
-        await mintTo(
-          connection,
-          setup.payerKp,
-          setup.tokenMint,
-          setup.rewardTokenAccount,
-          setup.tokenHolderKp,
-          BigInt(totalRewards.toString())
-        );
-
-        await mintTo(
-          connection,
-          setup.payerKp,
-          setup.usdcTokenMint,
-          setup.usdcTokenAccount,
-          setup.tokenHolderKp,
-          BigInt(totalUsdcAmount.toString())
-        );
-
-        await executeWithRetries(
-          async () => {
-            const response = await trpc.createRewardRecord();
-            if (response.status !== "200") {
-              console.error(response);
-              throw new Error(
-                "createRewardRecord returned with non-200 status"
-              );
-            }
-          },
-          {
-            retries: 10,
-            retryDelayMs: 100,
-          }
-        );
-      } else {
-        const rewards = generateRewardsForEpoch(
-          setup.pools.map((pool) => pool.pool)
-        );
-        epochRewards.push(rewards);
-        const merkleTree = MerkleUtils.constructMerkleTree(rewards);
-        const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
-        let totalRewards = new anchor.BN(0);
-        for (const addressInput of rewards) {
-          totalRewards = totalRewards.add(
-            new anchor.BN(addressInput.tokenAmount.toString())
-          );
-        }
-        let totalUsdcAmount = new anchor.BN(0);
-        for (const addressInput of rewards) {
-          totalUsdcAmount = totalUsdcAmount.add(
-            new anchor.BN(addressInput.usdcAmount.toString())
-          );
-        }
-
-        await mintTo(
-          connection,
-          setup.payerKp,
-          setup.tokenMint,
-          setup.rewardTokenAccount,
-          setup.tokenHolderKp,
-          BigInt(totalRewards.toString())
-        );
-
-        await mintTo(
-          connection,
-          setup.payerKp,
-          setup.usdcTokenMint,
-          setup.usdcTokenAccount,
-          setup.tokenHolderKp,
-          BigInt(totalUsdcAmount.toString())
-        );
-
-        await setEpochFinalizationState({
-          setup,
-          program,
-        });
-
-        const rewardRecord = setup.sdk.rewardRecordPda(new anchor.BN(epoch));
-
-        const tokens = formatBN(totalRewards);
-        const usdc = formatBN(totalUsdcAmount);
-        const tracker = `${counter}/${NUMBER_OF_EPOCHS}`;
-        debug(
-          `- [${tracker}] Creating RewardRecord for epoch ${epoch} - total token reward = ${tokens} - total USDC payout = ${usdc}`
-        );
-        counter++;
-
-        await program.methods
-          .createRewardRecord({
-            merkleRoots,
-            totalRewards,
-            totalUsdcPayout: totalUsdcAmount,
-          })
-          .accountsStrict({
-            payer: setup.payer,
-            authority: setup.rewardDistributionAuthority,
-            poolOverview: setup.poolOverview,
-            rewardRecord,
-            rewardTokenAccount: setup.rewardTokenAccount,
-            usdcTokenAccount: setup.usdcTokenAccount,
-            systemProgram: SystemProgram.programId,
-          })
-          .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
-          .rpc();
-
-        const rewardRecordAccount = await program.account.rewardRecord.fetch(
-          rewardRecord
-        );
-        assert(rewardRecordAccount.epoch.eqn(epoch));
-        assert(rewardRecordAccount.totalRewards.eq(totalRewards));
-        for (let i = 0; i < rewardRecordAccount.merkleRoots.length; i++) {
-          assert.deepEqual(
-            rewardRecordAccount.merkleRoots[i],
-            Array.from(merkleRoots[i] ?? [])
-          );
-        }
+        continue;
       }
 
-      if (epoch % EPOCH_CLAIM_FREQUENCY === 0) {
-        debug(
-          `\nStart reward claims for all existing rewards up to epoch ${epoch}`
-        );
-        await handleAccrueRewardForEpochs({
-          connection,
-          epochRewards,
-          program,
-          setup,
-          trpc,
-        });
-        debug("");
-      }
+      await program.methods
+        .claimUsdcEarnings()
+        .accountsStrict({
+          owner: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          stakingRecord: pool.stakingRecord,
+          poolUsdcVault: pool.poolUsdcVault,
+          destination: pool.usdcTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const [stakingRecordPost, poolUsdcVaultPost, operatorUsdcBalancePost] =
+        await Promise.all([
+          program.account.stakingRecord.fetch(pool.stakingRecord),
+          connection.getTokenAccountBalance(pool.poolUsdcVault),
+          connection.getTokenAccountBalance(pool.usdcTokenAccount),
+        ]);
+
+      // Verify USDC was transferred
+      const vaultBalanceDiff = new anchor.BN(poolUsdcVaultPre.value.amount).sub(
+        new anchor.BN(poolUsdcVaultPost.value.amount)
+      );
+      const operatorBalanceDiff = new anchor.BN(
+        operatorUsdcBalancePost.value.amount
+      ).sub(new anchor.BN(operatorUsdcBalancePre.value.amount));
+
+      assert(vaultBalanceDiff.eq(operatorBalanceDiff));
+
+      assert(
+        vaultBalanceDiff.eq(claimedAmount),
+        `Pool USDC vault balance should decrease by claimed amount: ${claimedAmount.toString()}`
+      );
+      assert(
+        operatorBalanceDiff.eq(claimedAmount),
+        `Operator USDC balance should increase by claimed amount: ${claimedAmount.toString()}`
+      );
+
+      // Verify staking record state
+      assert(
+        stakingRecordPost.accruedUsdcEarnings.isZero(),
+        "Available USDC earnings should be zero after claim"
+      );
+      assert(
+        stakingRecordPost.lastSettledUsdcPerShare.eq(
+          operatorPoolPre.cumulativeUsdcPerShare
+        ),
+        "Last settled USDC per share should match pool's cumulative USDC per share"
+      );
+
+      // Track total withdrawn USDC
+      totalWithdrawnUsdcEarnings =
+        totalWithdrawnUsdcEarnings.add(claimedAmount);
+
+      const claimedAmountString = formatBN(claimedAmount);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(
+        `- [${tracker}] Claimed ${claimedAmountString} USDC earnings for operator ${pool.admin.toString()}`
+      );
+      counter++;
     }
   });
 
-  it("Accrue Rewards for any remaining epochs", async () => {
-    await handleAccrueRewardForEpochs({
-      connection,
-      epochRewards,
-      program,
-      setup,
-      trpc,
-    });
-  });
-
   it("Unstake for all delegators successfully", async () => {
-    if (!SHOULD_UNSTAKE) {
-      debug("End-to-end test flow is enabled, skipping unstake");
+    if (PREVENT_UNSTAKE) {
+      debug("Unstaking is disabled, skipping unstake");
       return;
     }
 
@@ -983,12 +1380,10 @@ describe("multi-epoch lifecycle tests", () => {
         delegatorKp.publicKey
       );
 
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-      const operatorPoolPre = await program.account.operatorPool.fetch(
-        pool.pool
-      );
+      const [stakingRecordPre, operatorPoolPre] = await Promise.all([
+        program.account.stakingRecord.fetch(stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+      ]);
 
       // Unstake all shares for this delegator
       await program.methods
@@ -1003,12 +1398,10 @@ describe("multi-epoch lifecycle tests", () => {
         .signers([delegatorKp])
         .rpc();
 
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-      const operatorPoolPost = await program.account.operatorPool.fetch(
-        pool.pool
-      );
+      const [stakingRecordPost, operatorPoolPost] = await Promise.all([
+        program.account.stakingRecord.fetch(stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+      ]);
 
       // Verify the shares are reduced in the staking record
       assert(
@@ -1065,8 +1458,8 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Claim unstake for all delegators successfully", async () => {
-    if (!SHOULD_UNSTAKE) {
-      debug("End-to-end test flow is enabled, skipping claim unstake");
+    if (PREVENT_UNSTAKE) {
+      debug("Unstaking is disabled, skipping claim unstake");
       return;
     }
 
@@ -1093,12 +1486,10 @@ describe("multi-epoch lifecycle tests", () => {
         delegatorKp.publicKey
       );
 
-      const stakingRecordPre = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-      const operatorPoolPre = await program.account.operatorPool.fetch(
-        pool.pool
-      );
+      const [stakingRecordPre, operatorPoolPre] = await Promise.all([
+        program.account.stakingRecord.fetch(stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+      ]);
 
       const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
         connection,
@@ -1125,15 +1516,12 @@ describe("multi-epoch lifecycle tests", () => {
         })
         .rpc();
 
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        stakingRecord
-      );
-      const operatorPoolPost = await program.account.operatorPool.fetch(
-        pool.pool
-      );
-      const tokenBalancePost = await connection.getTokenAccountBalance(
-        ownerTokenAccount.address
-      );
+      const [stakingRecordPost, operatorPoolPost, tokenBalancePost] =
+        await Promise.all([
+          program.account.stakingRecord.fetch(stakingRecord),
+          program.account.operatorPool.fetch(pool.pool),
+          connection.getTokenAccountBalance(ownerTokenAccount.address),
+        ]);
 
       // Verify staking record is properly reset
       assert(
@@ -1164,6 +1552,10 @@ describe("multi-epoch lifecycle tests", () => {
         "Amount claimed should match tokens unstake amount"
       );
 
+      // Track total unstake withdrawals
+      totalTokensWithdrawnFromUnstake =
+        totalTokensWithdrawnFromUnstake.add(amountClaimed);
+
       const amountClaimedString = formatBN(amountClaimed);
       const tracker = `${counter}/${setup.delegatorKeypairs.length}`;
       debug(
@@ -1171,11 +1563,23 @@ describe("multi-epoch lifecycle tests", () => {
       );
       counter++;
     }
+
+    // Verify all operator pools have zero total unstaking after all unstake claims
+    for (const pool of setup.pools) {
+      const operatorPoolFinal = await program.account.operatorPool.fetch(
+        pool.pool
+      );
+
+      assert(
+        operatorPoolFinal.totalUnstaking.isZero(),
+        "Operator pool total unstaking should be zero after all unstake claims"
+      );
+    }
   });
 
   it("Close staking records for all delegators successfully", async () => {
-    if (!SHOULD_CLOSE_ACCOUNTS) {
-      debug("End-to-end test flow is enabled, skipping close staking records");
+    if (PREVENT_CLOSE_ACCOUNTS) {
+      debug("Account closure is disabled, skipping close staking records");
       return;
     }
 
@@ -1201,6 +1605,7 @@ describe("multi-epoch lifecycle tests", () => {
           receiver: setup.payer,
           owner: delegatorKp.publicKey,
           ownerStakingRecord: stakingRecord,
+          operatorPool: pool.pool,
           systemProgram: SystemProgram.programId,
         })
         .signers([delegatorKp])
@@ -1227,7 +1632,7 @@ describe("multi-epoch lifecycle tests", () => {
     let counter = 1;
     for (const pool of setup.pools) {
       const feeTokenAccountPre = await connection.getTokenAccountBalance(
-        pool.feeTokenAccount
+        pool.rewardCommissionFeeTokenVault
       );
 
       if (new anchor.BN(feeTokenAccountPre.value.amount).isZero()) {
@@ -1249,24 +1654,22 @@ describe("multi-epoch lifecycle tests", () => {
       );
 
       await program.methods
-        .withdrawOperatorCommission()
+        .withdrawOperatorRewardCommission()
         .accountsStrict({
           admin: pool.admin,
           poolOverview: setup.poolOverview,
           operatorPool: pool.pool,
-          feeTokenAccount: pool.feeTokenAccount,
+          rewardFeeTokenAccount: pool.rewardCommissionFeeTokenVault,
           destination: ownerTokenAccount.address,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .signers([pool.adminKp])
         .rpc();
 
-      const feeTokenAccountPost = await connection.getTokenAccountBalance(
-        pool.feeTokenAccount
-      );
-      const ownerTokenBalancePost = await connection.getTokenAccountBalance(
-        ownerTokenAccount.address
-      );
+      const [feeTokenAccountPost, ownerTokenBalancePost] = await Promise.all([
+        connection.getTokenAccountBalance(pool.rewardCommissionFeeTokenVault),
+        connection.getTokenAccountBalance(ownerTokenAccount.address),
+      ]);
 
       // Verify fee token account is emptied
       assert.equal(
@@ -1284,6 +1687,9 @@ describe("multi-epoch lifecycle tests", () => {
         "Amount withdrawn should match fee token account balance"
       );
 
+      // Track total commission withdrawn
+      totalCommissionWithdrawn = totalCommissionWithdrawn.add(amountWithdrawn);
+
       const amountWithdrawnString = formatBN(amountWithdrawn);
       const tracker = `${counter}/${setup.pools.length}`;
       debug(
@@ -1293,37 +1699,125 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
-  it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
-    const poolOverview = await program.account.poolOverview.fetch(
-      setup.poolOverview
-    );
-    assert(
-      poolOverview.unclaimedRewards.isZero(),
-      `Unclaimed rewards should be zero, was ${poolOverview.unclaimedRewards.toString()}`
-    );
-    assert(
-      poolOverview.unclaimedUsdcPayout.isZero(),
-      `Unclaimed USDC payout should be zero, was ${poolOverview.unclaimedUsdcPayout.toString()}`
+  it("Withdraw operator USDC commissions successfully", async () => {
+    debug(
+      `\nWithdrawing USDC commission for ${setup.pools.length} operator pools`
     );
 
-    const tokenVault = setup.sdk.rewardTokenPda();
-    const tokenBalance = await connection.getTokenAccountBalance(tokenVault);
-    assert(
-      new anchor.BN(tokenBalance.value.amount).isZero(),
-      `Token balance should be zero, was ${tokenBalance.value.amount}`
-    );
+    let counter = 1;
+    let totalUsdcCommissionWithdrawn = new anchor.BN(0);
 
-    const usdcVault = setup.sdk.usdcTokenPda();
-    const usdcBalance = await connection.getTokenAccountBalance(usdcVault);
-    assert(
-      new anchor.BN(usdcBalance.value.amount).isZero(),
-      `USDC balance should be zero, was ${usdcBalance.value.amount}`
+    for (const pool of setup.pools) {
+      const usdcFeeTokenAccountPre = await connection.getTokenAccountBalance(
+        pool.usdcCommissionFeeTokenVault
+      );
+
+      if (new anchor.BN(usdcFeeTokenAccountPre.value.amount).isZero()) {
+        debug(
+          `- No USDC commission to withdraw for Operator Pool ${pool.pool.toString()}`
+        );
+        continue;
+      }
+
+      const operatorUsdcBalancePre = await connection.getTokenAccountBalance(
+        pool.usdcTokenAccount
+      );
+
+      await program.methods
+        .withdrawOperatorUsdcCommission()
+        .accountsStrict({
+          admin: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+          usdcFeeTokenAccount: pool.usdcCommissionFeeTokenVault,
+          destination: pool.usdcTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const [usdcFeeTokenAccountPost, operatorUsdcBalancePost] =
+        await Promise.all([
+          connection.getTokenAccountBalance(pool.usdcCommissionFeeTokenVault),
+          connection.getTokenAccountBalance(pool.usdcTokenAccount),
+        ]);
+
+      // Verify USDC fee token account is emptied
+      assert.equal(
+        usdcFeeTokenAccountPost.value.amount,
+        "0",
+        "USDC fee token account should be empty after withdrawal"
+      );
+
+      // Verify USDC was received in operator's account
+      const amountWithdrawn = new anchor.BN(
+        operatorUsdcBalancePost.value.amount
+      ).sub(new anchor.BN(operatorUsdcBalancePre.value.amount));
+      assert(
+        amountWithdrawn.eq(new anchor.BN(usdcFeeTokenAccountPre.value.amount)),
+        "Amount withdrawn should match USDC fee token account balance"
+      );
+
+      // Track total USDC commission withdrawn
+      totalUsdcCommissionWithdrawn =
+        totalUsdcCommissionWithdrawn.add(amountWithdrawn);
+      totalWithdrawnUsdcEarnings =
+        totalWithdrawnUsdcEarnings.add(amountWithdrawn);
+
+      const amountWithdrawnString = formatBN(amountWithdrawn);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(
+        `- [${tracker}] Withdrew ${amountWithdrawnString} USDC in commission for Operator Pool ${pool.pool.toString()}`
+      );
+      counter++;
+    }
+
+    debug(
+      `\nTotal USDC commission withdrawn: ${formatBN(
+        totalUsdcCommissionWithdrawn
+      )}`
     );
   });
 
+  it("Close all operator pools successfully", async () => {
+    if (PREVENT_CLOSE_ACCOUNTS) {
+      debug("Account closure is disabled, skipping close operator pools");
+      return;
+    }
+
+    debug(`\nClosing ${setup.pools.length} operator pools`);
+
+    let counter = 1;
+    for (const pool of setup.pools) {
+      await program.methods
+        .closeOperatorPool()
+        .accountsStrict({
+          admin: pool.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: pool.pool,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const [operatorPool, poolOverview] = await Promise.all([
+        program.account.operatorPool.fetch(pool.pool),
+        program.account.poolOverview.fetch(setup.poolOverview),
+      ]);
+
+      assert(
+        operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch.addn(1)),
+        "Operator pool closedAt should match the completed reward epoch"
+      );
+
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(`- [${tracker}] Closed Operator Pool ${pool.pool.toString()}`);
+      counter++;
+    }
+  });
+
   it("Unstake for all operator admins successfully", async () => {
-    if (!SHOULD_UNSTAKE) {
-      debug("End-to-end test flow is enabled, skipping unstake");
+    if (PREVENT_UNSTAKE) {
+      debug("Unstaking is disabled, skipping unstake");
       return;
     }
 
@@ -1361,12 +1855,10 @@ describe("multi-epoch lifecycle tests", () => {
         .signers([pool.adminKp])
         .rpc();
 
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
-      const operatorPoolPost = await program.account.operatorPool.fetch(
-        pool.pool
-      );
+      const [stakingRecordPost, operatorPoolPost] = await Promise.all([
+        program.account.stakingRecord.fetch(pool.stakingRecord),
+        program.account.operatorPool.fetch(pool.pool),
+      ]);
 
       // Verify the shares are reduced in the staking record
       assert(
@@ -1419,8 +1911,8 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Claim unstake for all operator admins successfully", async () => {
-    if (!SHOULD_UNSTAKE) {
-      debug("End-to-end test flow is enabled, skipping claim unstake");
+    if (PREVENT_UNSTAKE) {
+      debug("Unstaking is disabled, skipping claim unstake");
       return;
     }
 
@@ -1475,15 +1967,12 @@ describe("multi-epoch lifecycle tests", () => {
         })
         .rpc();
 
-      const stakingRecordPost = await program.account.stakingRecord.fetch(
-        pool.stakingRecord
-      );
-      const operatorPoolPost = await program.account.operatorPool.fetch(
-        pool.pool
-      );
-      const tokenBalancePost = await connection.getTokenAccountBalance(
-        ownerTokenAccount.address
-      );
+      const [stakingRecordPost, operatorPoolPost, tokenBalancePost] =
+        await Promise.all([
+          program.account.stakingRecord.fetch(pool.stakingRecord),
+          program.account.operatorPool.fetch(pool.pool),
+          connection.getTokenAccountBalance(ownerTokenAccount.address),
+        ]);
 
       // Verify staking record is properly reset
       assert(
@@ -1520,6 +2009,10 @@ describe("multi-epoch lifecycle tests", () => {
         "Amount claimed should match tokens unstake amount"
       );
 
+      // Track total unstake withdrawals
+      totalTokensWithdrawnFromUnstake =
+        totalTokensWithdrawnFromUnstake.add(amountClaimed);
+
       const amountClaimedString = formatBN(amountClaimed);
       const tracker = `${counter}/${setup.pools.length}`;
       debug(
@@ -1529,46 +2022,10 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
-  it("Close all operator pools successfully", async () => {
-    if (!SHOULD_CLOSE_ACCOUNTS) {
-      debug("End-to-end test flow is enabled, skipping close operator pools");
-      return;
-    }
-
-    debug(`\nClosing ${setup.pools.length} operator pools`);
-
-    let counter = 1;
-    for (const pool of setup.pools) {
-      await program.methods
-        .closeOperatorPool()
-        .accountsStrict({
-          admin: pool.admin,
-          poolOverview: setup.poolOverview,
-          operatorPool: pool.pool,
-        })
-        .signers([pool.adminKp])
-        .rpc();
-
-      const operatorPool = await program.account.operatorPool.fetch(pool.pool);
-      const poolOverview = await program.account.poolOverview.fetch(
-        setup.poolOverview
-      );
-
-      assert(
-        operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch),
-        "Operator pool closedAt should match the completed reward epoch"
-      );
-
-      const tracker = `${counter}/${setup.pools.length}`;
-      debug(`- [${tracker}] Closed Operator Pool ${pool.pool.toString()}`);
-      counter++;
-    }
-  });
-
   it("Close all operator staking records successfully", async () => {
-    if (!SHOULD_CLOSE_ACCOUNTS) {
+    if (PREVENT_CLOSE_ACCOUNTS) {
       debug(
-        "End-to-end test flow is enabled, skipping close operator staking records"
+        "Account closure is disabled, skipping close operator staking records"
       );
       return;
     }
@@ -1585,6 +2042,7 @@ describe("multi-epoch lifecycle tests", () => {
           receiver: setup.payer,
           owner: pool.admin,
           ownerStakingRecord: pool.stakingRecord,
+          operatorPool: pool.pool,
           systemProgram: SystemProgram.programId,
         })
         .signers([pool.adminKp])
@@ -1605,6 +2063,135 @@ describe("multi-epoch lifecycle tests", () => {
     }
   });
 
+  it("Finalize more epochs to allow pool sweep to proceed", async () => {
+    if (PREVENT_CLOSE_ACCOUNTS) {
+      debug(
+        "Account closure is disabled, skipping finalize more epochs for pool sweep"
+      );
+      return;
+    }
+
+    const advanceEpoch = async () => {
+      await handleMarkEpochAsFinalizing({
+        setup,
+        program,
+      });
+      const poolOverview = await program.account.poolOverview.fetch(
+        setup.poolOverview
+      );
+      const currentCompletedEpoch =
+        poolOverview.completedRewardEpoch.toNumber();
+      const rewardRecord = setup.sdk.rewardRecordPda(
+        new anchor.BN(currentCompletedEpoch + 1)
+      );
+
+      await program.methods
+        .createRewardRecord({
+          merkleRoots: [],
+          totalRewards: new anchor.BN(0),
+          totalUsdcPayout: new anchor.BN(0),
+        })
+        .accountsStrict({
+          payer: setup.payer,
+          authority: setup.rewardDistributionAuthority,
+          poolOverview: setup.poolOverview,
+          rewardRecord,
+          rewardTokenAccount: setup.rewardTokenAccount,
+          usdcTokenAccount: setup.usdcTokenAccount,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([setup.payerKp, setup.rewardDistributionAuthorityKp])
+        .rpc();
+    };
+
+    await advanceEpoch();
+    await advanceEpoch();
+  });
+
+  it("Sweep closed pool USDC dust successfully", async () => {
+    if (PREVENT_CLOSE_ACCOUNTS) {
+      debug("Account closure is disabled, skipping sweep USDC dust");
+      return;
+    }
+
+    debug(`\nSweeping USDC dust from ${setup.pools.length} closed pools`);
+
+    let counter = 1;
+    for (const pool of setup.pools) {
+      const [poolUsdcVaultPre, adminUsdcBalancePre] = await Promise.all([
+        connection.getTokenAccountBalance(pool.poolUsdcVault),
+        connection.getTokenAccountBalance(pool.usdcTokenAccount),
+      ]);
+
+      await program.methods
+        .sweepClosedPoolUsdcDust()
+        .accountsStrict({
+          admin: pool.admin,
+          operatorPool: pool.pool,
+          operatorUsdcVault: pool.poolUsdcVault,
+          adminUsdcAccount: pool.usdcTokenAccount,
+          poolOverview: setup.poolOverview,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([pool.adminKp])
+        .rpc();
+
+      const adminUsdcBalancePost = await connection.getTokenAccountBalance(
+        pool.usdcTokenAccount
+      );
+
+      // Verify admin received the dust
+      const dustAmount = new anchor.BN(poolUsdcVaultPre.value.amount);
+      const adminBalanceDiff = new anchor.BN(
+        adminUsdcBalancePost.value.amount
+      ).sub(new anchor.BN(adminUsdcBalancePre.value.amount));
+
+      assert(
+        adminBalanceDiff.eq(dustAmount),
+        `Admin USDC balance should increase by dust amount: ${dustAmount.toString()}`
+      );
+
+      // Verify vault account was closed
+      try {
+        await connection.getTokenAccountBalance(pool.poolUsdcVault);
+        assert.fail("Pool USDC vault should have been closed");
+      } catch (error) {
+        assertError(error, "Invalid param: could not find account");
+      }
+
+      // Track total withdrawn USDC (dust)
+      totalWithdrawnUsdcEarnings = totalWithdrawnUsdcEarnings.add(dustAmount);
+
+      const dustAmountString = formatBN(dustAmount);
+      const tracker = `${counter}/${setup.pools.length}`;
+      debug(
+        `- [${tracker}] Swept ${dustAmountString} USDC dust from closed pool ${pool.pool.toString()}`
+      );
+      counter++;
+    }
+  });
+
+  it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
+    await verifyTokenAccounting();
+
+    if (PREVENT_CLOSE_ACCOUNTS) {
+      debug(
+        "Account closure is disabled, skipping operator pool usdc vaults verification"
+      );
+      return;
+    }
+
+    for (const pool of setup.pools) {
+      try {
+        await connection.getTokenAccountBalance(pool.poolUsdcVault);
+        assert(false);
+      } catch (err) {
+        assertError(err, "Invalid param: could not find account");
+      }
+    }
+  });
+
   it("Final state validation check", async () => {
     if (!TEST_WITH_RELAY) {
       debug(
@@ -1619,7 +2206,72 @@ describe("multi-epoch lifecycle tests", () => {
     assert(result.isStateValid, "Program account state validation failed.");
 
     const totalDistributedRewardsString = formatBN(totalDistributedRewards);
+    const totalDistributedUsdcString = formatBN(totalDistributedUsdc);
     debug("✅ Program account state is valid. Test completed successfully.");
     debug(`Total rewards distributed: ${totalDistributedRewardsString}`);
+    debug(`Total USDC distributed: ${totalDistributedUsdcString}`);
+  });
+
+  it("Verify total claimed amounts match total distributed amounts", () => {
+    if (TEST_WITH_RELAY) {
+      debug("Testing with Relay is enabled, skipping final accounting checks");
+      return;
+    }
+
+    debug("\n🔍 Verifying reward distribution and claiming totals...");
+
+    const totalClaimedRewardsString = formatBN(totalClaimedRewards);
+    const totalClaimedUsdcString = formatBN(totalClaimedUsdc);
+    const totalDistributedRewardsString = formatBN(totalDistributedRewards);
+    const totalDistributedUsdcString = formatBN(totalDistributedUsdc);
+    const totalWithdrawnUsdcString = formatBN(totalWithdrawnUsdcEarnings);
+
+    const totalRewardTokensWithdrawn = totalTokensWithdrawnFromUnstake
+      .add(totalCommissionWithdrawn)
+      .sub(totalOriginalStakes);
+    const totalRewardsWithdrawnString = formatBN(totalRewardTokensWithdrawn);
+
+    debug(`- Total rewards distributed:    ${totalDistributedRewardsString}`);
+    debug(`- Total rewards claimed:        ${totalClaimedRewardsString}`);
+    debug(`- Net reward tokens withdrawn:  ${totalRewardsWithdrawnString}`);
+    debug(`- Total USDC distributed:       ${totalDistributedUsdcString}`);
+    debug(`- Total USDC claimed:           ${totalClaimedUsdcString}`);
+    debug(`- Total USDC withdrawn:         ${totalWithdrawnUsdcString}`);
+
+    assert(
+      totalClaimedRewards.eq(totalDistributedRewards),
+      `Total claimed rewards (${totalClaimedRewardsString}) should equal total distributed rewards (${totalDistributedRewardsString})`
+    );
+
+    if (!PREVENT_CLOSE_ACCOUNTS) {
+      assert(
+        totalRewardTokensWithdrawn.eq(totalClaimedRewards),
+        `Net reward tokens withdrawn (${totalRewardsWithdrawnString}) should equal total claimed rewards (${totalClaimedRewardsString})`
+      );
+
+      assert(
+        totalRewardTokensWithdrawn.eq(totalDistributedRewards),
+        `Net reward tokens withdrawn (${totalRewardsWithdrawnString}) should equal total distributed rewards (${totalDistributedRewardsString})`
+      );
+
+      assert(
+        totalClaimedUsdc.eq(totalDistributedUsdc),
+        `Total claimed USDC (${totalClaimedUsdcString}) should equal total distributed USDC (${totalDistributedUsdcString})`
+      );
+
+      assert(
+        totalWithdrawnUsdcEarnings.eq(totalDistributedUsdc),
+        `Total withdrawn USDC earnings (${totalWithdrawnUsdcString}) should equal total distributed USDC (${totalDistributedUsdcString})`
+      );
+
+      assert(
+        totalWithdrawnUsdcEarnings.eq(totalClaimedUsdc),
+        `Total withdrawn USDC earnings (${totalWithdrawnUsdcString}) should equal total claimed USDC (${totalClaimedUsdcString})`
+      );
+    }
+
+    debug(
+      "\n✅ All distributed rewards and USDC passed final accounting checks successfully."
+    );
   });
 });

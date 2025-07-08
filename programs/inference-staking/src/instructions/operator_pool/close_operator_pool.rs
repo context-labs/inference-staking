@@ -26,8 +26,11 @@ pub fn handler(ctx: Context<CloseOperatorPool>) -> Result<()> {
     require!(!operator_pool.is_halted, ErrorCode::OperatorPoolHalted);
     require!(operator_pool.closed_at.is_none(), ErrorCode::ClosedPool);
 
-    // The closed_at field is set to the next epoch after the current epoch.
-    // This allows pools to still be distributed and claim rewards for the current epoch.
+    // The closed_at field is set to the next epoch after the current epoch, which
+    // serves two functions:
+    // 1. Ensures the pool is included in final epoch payouts and distributions.
+    // 2. Enforces some delay before the operator can fully unstake, which extends
+    //    the window for any potential final slashing actions.
     let current_epoch = match pool_overview.is_epoch_finalizing {
         true => pool_overview.completed_reward_epoch.checked_add(1).unwrap(),
         false => pool_overview.completed_reward_epoch,
