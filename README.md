@@ -138,4 +138,4 @@ You can deploy the program with the `deploy-localnet.sh` script in the `scripts`
 
 # SDK
 
-A TypeScript client SDK is defined in the `sdk` package.
+A TypeScript client SDK is provided in the `sdk` package.
