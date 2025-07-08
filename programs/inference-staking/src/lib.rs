@@ -24,7 +24,7 @@ security_txt! {
     contacts: "email:security@inference.net",
     policy: "https://docs.devnet.inference.net/devnet-epoch-3/bug-bounty-program",
     source_code: "https://github.com/context-labs/inference-staking",
-    auditors: "TBD"
+    auditors: "Zellic"
 }
 
 #[program]
