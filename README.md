@@ -103,8 +103,9 @@ bun install
 
 # Install SDK dependencies
 cd sdk && bun install
+cd ..
 
-# Setup
+# Setup (back at root level)
 bun run setup
 
 # Run formatting
