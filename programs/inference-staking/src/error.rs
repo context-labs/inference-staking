@@ -74,8 +74,6 @@ pub enum ErrorCode {
     UnclaimedUsdcEarnings,
     #[msg("No USDC earnings to claim")]
     NoUsdcEarningsToClaim,
-    #[msg("USDC earnings must be settled")]
-    UsdcEarningsSettlementRequired,
     #[msg("Insufficient USDC in pool vault")]
     InsufficientPoolUsdcVaultBalance,
     #[msg("Invalid commission rate")]

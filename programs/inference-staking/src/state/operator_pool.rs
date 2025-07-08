@@ -148,7 +148,7 @@ impl OperatorPool {
         staking_record: &mut StakingRecord,
         token_amount: u64,
     ) -> Result<u64> {
-        self.check_usdc_settlement_delta(staking_record)?;
+        self.settle_usdc_earnings(staking_record)?;
 
         let shares_created = self.calc_shares_for_token_amount(token_amount);
         self.total_staked_amount = self.total_staked_amount.checked_add(token_amount).unwrap();
@@ -165,7 +165,7 @@ impl OperatorPool {
         staking_record: &mut StakingRecord,
         share_amount: u64,
     ) -> Result<u64> {
-        self.check_usdc_settlement_delta(staking_record)?;
+        self.settle_usdc_earnings(staking_record)?;
 
         let tokens_unstaked = self.calc_tokens_for_share_amount(share_amount);
         self.total_staked_amount = self
@@ -187,7 +187,7 @@ impl OperatorPool {
         staking_record: &mut StakingRecord,
         shares_amount: u64,
     ) -> Result<u64> {
-        self.check_usdc_settlement_delta(staking_record)?;
+        self.settle_usdc_earnings(staking_record)?;
 
         staking_record.shares = staking_record.shares.checked_sub(shares_amount).unwrap();
         self.total_shares = self.total_shares.checked_sub(shares_amount).unwrap();
@@ -215,8 +215,8 @@ impl OperatorPool {
         Ok(())
     }
 
-    /// Settle USDC rewards for a staking record
-    /// Must be called before any share modifications
+    /// Settle USDC rewards for a staking record.
+    /// Must be called before any share modifications.
     pub fn settle_usdc_earnings(
         &self,
         staking_record: &mut crate::state::StakingRecord,
@@ -244,7 +244,7 @@ impl OperatorPool {
         Ok(())
     }
 
-    /// Check if a staking record has unclaimed USDC
+    /// Check if a staking record has unclaimed USDC.
     pub fn has_unclaimed_usdc_earnings(
         &self,
         staking_record: &crate::state::StakingRecord,
@@ -267,19 +267,6 @@ impl OperatorPool {
         }
 
         false
-    }
-
-    /// Any function which mutates staking shares must settle any outstanding USDC earnings
-    /// first. This check should be called at the beginning any of the other functions which
-    /// mutate staking record shares.
-    pub fn check_usdc_settlement_delta(&self, staking_record: &StakingRecord) -> Result<()> {
-        require_eq!(
-            staking_record.last_settled_usdc_per_share,
-            self.cumulative_usdc_per_share,
-            ErrorCode::UsdcEarningsSettlementRequired
-        );
-
-        Ok(())
     }
 
     /// Updates reward commission to new rate. Called after accrual of all issued rewards.

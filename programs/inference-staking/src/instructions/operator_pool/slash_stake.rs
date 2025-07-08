@@ -73,9 +73,6 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
     let operator_staking_record = &mut ctx.accounts.operator_staking_record;
 
-    // First settle USDC to get clean accounting
-    operator_pool.settle_usdc_earnings(operator_staking_record)?;
-
     // Confiscate any accrued USDC the operator may have
     if operator_staking_record.accrued_usdc_earnings > 0 {
         let usdc_amount = operator_staking_record.accrued_usdc_earnings;
