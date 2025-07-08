@@ -293,6 +293,16 @@ const _IDL = {
         },
         {
           name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
         },
         {
           name: "operatorPool",
@@ -619,6 +629,16 @@ const _IDL = {
         },
         {
           name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
         },
         {
           name: "operatorPool",

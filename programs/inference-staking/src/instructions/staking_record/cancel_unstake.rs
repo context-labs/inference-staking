@@ -6,6 +6,10 @@ use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 pub struct CancelUnstake<'info> {
     pub owner: Signer<'info>,
 
+    #[account(
+        seeds = [b"PoolOverview".as_ref()],
+        bump = pool_overview.bump,
+    )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
 
     #[account(mut)]
