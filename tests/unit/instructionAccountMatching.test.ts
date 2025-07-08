@@ -61,6 +61,8 @@ describe("Instruction Account Matching", () => {
         case "usdcFeeTokenAccount":
         case "usdcMint":
         case "usdcTokenAccount":
+        case "currentPoolRewardRecord":
+        case "nextPoolRewardRecord":
           assert.ok(seen.get(account) === 1);
           break;
         default: {
