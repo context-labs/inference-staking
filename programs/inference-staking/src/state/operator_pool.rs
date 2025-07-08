@@ -189,10 +189,9 @@ impl OperatorPool {
     ) -> Result<u64> {
         self.settle_usdc_earnings(staking_record)?;
 
-        staking_record.shares = staking_record.shares.checked_sub(shares_amount).unwrap();
-        self.total_shares = self.total_shares.checked_sub(shares_amount).unwrap();
         let token_amount = self.calc_tokens_for_share_amount(shares_amount);
         self.total_staked_amount = self.total_staked_amount.checked_sub(token_amount).unwrap();
+        self.total_shares = self.total_shares.checked_sub(shares_amount).unwrap();
 
         Ok(token_amount)
     }
