@@ -24,12 +24,12 @@ export const TEST_WITH_RELAY = process.env.TEST_WITH_RELAY
   ? process.env.TEST_WITH_RELAY === "true"
   : false;
 
-export const SHOULD_UNSTAKE = process.env.SHOULD_UNSTAKE
-  ? process.env.SHOULD_UNSTAKE === "true"
+export const PREVENT_UNSTAKE = process.env.PREVENT_UNSTAKE
+  ? process.env.PREVENT_UNSTAKE === "true"
   : false;
 
-export const SHOULD_CLOSE_ACCOUNTS = process.env.SHOULD_CLOSE_ACCOUNTS
-  ? process.env.SHOULD_CLOSE_ACCOUNTS === "true"
+export const PREVENT_CLOSE_ACCOUNTS = process.env.PREVENT_CLOSE_ACCOUNTS
+  ? process.env.PREVENT_CLOSE_ACCOUNTS === "true"
   : false;
 
 export const SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS = process.env

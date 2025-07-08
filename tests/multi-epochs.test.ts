@@ -15,9 +15,9 @@ import { deserializeMerkleProof, executeWithRetries } from "@sdk/src/utils";
 import {
   EPOCH_CLAIM_FREQUENCY,
   NUMBER_OF_EPOCHS,
-  SHOULD_CLOSE_ACCOUNTS,
+  PREVENT_CLOSE_ACCOUNTS,
   SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS,
-  SHOULD_UNSTAKE,
+  PREVENT_UNSTAKE,
   TEST_WITH_RELAY,
 } from "@tests/lib/const";
 import type {
@@ -1359,8 +1359,8 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Unstake for all delegators successfully", async () => {
-    if (!SHOULD_UNSTAKE) {
-      debug("End-to-end test flow is enabled, skipping unstake");
+    if (PREVENT_UNSTAKE) {
+      debug("PREVENT_UNSTAKE is enabled, skipping unstake");
       return;
     }
 
@@ -1458,8 +1458,8 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Claim unstake for all delegators successfully", async () => {
-    if (!SHOULD_UNSTAKE) {
-      debug("End-to-end test flow is enabled, skipping claim unstake");
+    if (PREVENT_UNSTAKE) {
+      debug("PREVENT_UNSTAKE is enabled, skipping claim unstake");
       return;
     }
 
@@ -1578,8 +1578,10 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Close staking records for all delegators successfully", async () => {
-    if (!SHOULD_CLOSE_ACCOUNTS) {
-      debug("End-to-end test flow is enabled, skipping close staking records");
+    if (PREVENT_CLOSE_ACCOUNTS) {
+      debug(
+        "PREVENT_CLOSE_ACCOUNTS is enabled, skipping close staking records"
+      );
       return;
     }
 
@@ -1780,8 +1782,8 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Close all operator pools successfully", async () => {
-    if (!SHOULD_CLOSE_ACCOUNTS) {
-      debug("End-to-end test flow is enabled, skipping close operator pools");
+    if (PREVENT_CLOSE_ACCOUNTS) {
+      debug("PREVENT_CLOSE_ACCOUNTS is enabled, skipping close operator pools");
       return;
     }
 
@@ -1816,8 +1818,8 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Unstake for all operator admins successfully", async () => {
-    if (!SHOULD_UNSTAKE) {
-      debug("End-to-end test flow is enabled, skipping unstake");
+    if (PREVENT_UNSTAKE) {
+      debug("PREVENT_UNSTAKE is enabled, skipping unstake");
       return;
     }
 
@@ -1911,8 +1913,8 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Claim unstake for all operator admins successfully", async () => {
-    if (!SHOULD_UNSTAKE) {
-      debug("End-to-end test flow is enabled, skipping claim unstake");
+    if (PREVENT_UNSTAKE) {
+      debug("PREVENT_UNSTAKE is enabled, skipping claim unstake");
       return;
     }
 
@@ -2023,9 +2025,9 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Close all operator staking records successfully", async () => {
-    if (!SHOULD_CLOSE_ACCOUNTS) {
+    if (PREVENT_CLOSE_ACCOUNTS) {
       debug(
-        "End-to-end test flow is enabled, skipping close operator staking records"
+        "PREVENT_CLOSE_ACCOUNTS is enabled, skipping close operator staking records"
       );
       return;
     }
@@ -2064,9 +2066,9 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Finalize more epochs to allow pool sweep to proceed", async () => {
-    if (!SHOULD_CLOSE_ACCOUNTS) {
+    if (PREVENT_CLOSE_ACCOUNTS) {
       debug(
-        "End-to-end test flow is enabled, skipping finalize more epochs for pool sweep"
+        "PREVENT_CLOSE_ACCOUNTS is enabled, skipping finalize more epochs for pool sweep"
       );
       return;
     }
@@ -2109,8 +2111,8 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Sweep closed pool USDC dust successfully", async () => {
-    if (!SHOULD_CLOSE_ACCOUNTS) {
-      debug("End-to-end test flow is enabled, skipping sweep USDC dust");
+    if (PREVENT_CLOSE_ACCOUNTS) {
+      debug("PREVENT_CLOSE_ACCOUNTS is enabled, skipping sweep USDC dust");
       return;
     }
 
@@ -2175,9 +2177,9 @@ describe("multi-epoch lifecycle tests", () => {
   it("Verify token accounting and token vault balances - all should be reset to zero", async () => {
     await verifyTokenAccounting();
 
-    if (!SHOULD_CLOSE_ACCOUNTS) {
+    if (PREVENT_CLOSE_ACCOUNTS) {
       debug(
-        "End-to-end test flow is enabled, skipping operator pool usdc vaults verification"
+        "PREVENT_CLOSE_ACCOUNTS is enabled, skipping operator pool usdc vaults verification"
       );
       return;
     }
@@ -2243,7 +2245,7 @@ describe("multi-epoch lifecycle tests", () => {
       `Total claimed rewards (${totalClaimedRewardsString}) should equal total distributed rewards (${totalDistributedRewardsString})`
     );
 
-    if (SHOULD_CLOSE_ACCOUNTS) {
+    if (!PREVENT_CLOSE_ACCOUNTS) {
       assert(
         totalRewardTokensWithdrawn.eq(totalClaimedRewards),
         `Net reward tokens withdrawn (${totalRewardsWithdrawnString}) should equal total claimed rewards (${totalClaimedRewardsString})`

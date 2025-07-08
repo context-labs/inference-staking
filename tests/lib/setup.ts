@@ -6,18 +6,11 @@ import { InferenceStakingProgramSdk } from "@sdk/src";
 import { limitConcurrency } from "@sdk/src/utils";
 
 import {
-  API_URL,
   DELEGATOR_COUNT,
-  EPOCH_CLAIM_FREQUENCY,
-  NUMBER_OF_EPOCHS,
   OPERATOR_POOL_SIZE,
   PAYER_KEYPAIR,
   PROGRAM_ADMIN_KEYPAIR,
   REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR,
-  SHOULD_CLOSE_ACCOUNTS,
-  SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS,
-  SHOULD_UNSTAKE,
-  TEST_WITH_RELAY,
   TOKEN_MINT_OWNER_KEYPAIR,
 } from "@tests/lib/const";
 import {
@@ -88,20 +81,6 @@ export async function setupTests() {
   debug(
     `- Running test setup for ${OPERATOR_POOL_SIZE} operator pools and ${DELEGATOR_COUNT} delegators`
   );
-
-  debug(`- Test configuration:`);
-  debug(`- OPERATOR_POOL_SIZE: ${OPERATOR_POOL_SIZE}`);
-  debug(`- DELEGATOR_COUNT: ${DELEGATOR_COUNT}`);
-  debug(`- NUMBER_OF_EPOCHS: ${NUMBER_OF_EPOCHS}`);
-  debug(`- EPOCH_CLAIM_FREQUENCY: ${EPOCH_CLAIM_FREQUENCY}`);
-  debug(`- TEST_WITH_RELAY: ${TEST_WITH_RELAY}`);
-  debug(`- SHOULD_UNSTAKE: ${SHOULD_UNSTAKE}`);
-  debug(`- SHOULD_CLOSE_ACCOUNTS: ${SHOULD_CLOSE_ACCOUNTS}`);
-  debug(
-    `- SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS: ${SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS}`
-  );
-  debug(`- API_URL: ${API_URL}`);
-  debug("");
 
   const payerKp = PAYER_KEYPAIR ?? new Keypair();
   const registrationFeePayoutWalletKp = new Keypair();
