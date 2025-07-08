@@ -9,6 +9,9 @@ import bs58 from "bs58";
  * the monorepo include unit tests.
  ******************************************************************************* */
 
+const LEAF_PREFIX = new Uint8Array([0x00]);
+const NODE_PREFIX = new Uint8Array([0x01]);
+
 function isValidPublicKey(address: string | undefined | null): boolean {
   try {
     if (address == null) {
@@ -146,10 +149,19 @@ function constructMerkleTree(
       if (!node1 || !node2) {
         throw new Error("Node is undefined");
       }
-      const combined = new Uint8Array(node1.length + node2.length);
-      combined.set(node1);
-      combined.set(node2, node1.length);
-      const hash = sha256(combined);
+
+      const combinedHashes = new Uint8Array(node1.length + node2.length);
+      combinedHashes.set(node1);
+      combinedHashes.set(node2, node1.length);
+
+      // Prepend the node prefix before hashing.
+      const dataToHash = new Uint8Array(
+        NODE_PREFIX.length + combinedHashes.length
+      );
+      dataToHash.set(NODE_PREFIX);
+      dataToHash.set(combinedHashes, NODE_PREFIX.length);
+
+      const hash = sha256(dataToHash);
       tree[level + 1]?.push(hash);
     }
     level += 1;
@@ -168,8 +180,11 @@ function getTreeRoot(tree: Uint8Array[][]): Uint8Array {
 
 function hashLeafNode(leaf: ConstructMerkleTreeInput): Uint8Array {
   const encoder = new TextEncoder();
-  const data = encoder.encode(formatLeaf(leaf));
-  return sha256(data);
+  const leafData = encoder.encode(formatLeaf(leaf));
+  const dataToHash = new Uint8Array(LEAF_PREFIX.length + leafData.length);
+  dataToHash.set(LEAF_PREFIX);
+  dataToHash.set(leafData, LEAF_PREFIX.length);
+  return sha256(dataToHash);
 }
 
 export type GenerateMerkleProofInput = {
@@ -276,19 +291,26 @@ function verifyProof(
     // If proofPath[i] is true, sibling is on the left
     // So combine = sibling + currentHash
     // Otherwise, combine = currentHash + sibling
-    let combined: Uint8Array;
+    let combinedHashes: Uint8Array;
 
     if (proofPath[i]) {
-      combined = new Uint8Array(sibling.length + currentHash.length);
-      combined.set(sibling);
-      combined.set(currentHash, sibling.length);
+      combinedHashes = new Uint8Array(sibling.length + currentHash.length);
+      combinedHashes.set(sibling);
+      combinedHashes.set(currentHash, sibling.length);
     } else {
-      combined = new Uint8Array(currentHash.length + sibling.length);
-      combined.set(currentHash);
-      combined.set(sibling, currentHash.length);
+      combinedHashes = new Uint8Array(currentHash.length + sibling.length);
+      combinedHashes.set(currentHash);
+      combinedHashes.set(sibling, currentHash.length);
     }
 
-    currentHash = sha256(combined);
+    // Prepend the node prefix before hashing.
+    const dataToHash = new Uint8Array(
+      NODE_PREFIX.length + combinedHashes.length
+    );
+    dataToHash.set(NODE_PREFIX);
+    dataToHash.set(combinedHashes, NODE_PREFIX.length);
+
+    currentHash = sha256(dataToHash);
   }
 
   return arraysShallowEqual(currentHash, root);

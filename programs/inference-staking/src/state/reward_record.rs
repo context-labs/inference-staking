@@ -41,17 +41,32 @@ impl RewardRecord {
         let root = self.merkle_roots.get(usize::from(merkle_index)).unwrap();
 
         let leaf_data = format!("{},{},{}", pool_address, reward_amount, usdc_amount);
-        let mut node = hash::hash(leaf_data.as_bytes());
+
+        // Define distinct prefixes for hashing.
+        const LEAF_PREFIX: &[u8] = &[0x00];
+        const NODE_PREFIX: &[u8] = &[0x01];
+
+        // Prepend a '0x00' byte to the leaf data to distinguish it from an intermediate node.
+        let mut data_to_hash = LEAF_PREFIX.to_vec();
+        data_to_hash.extend_from_slice(leaf_data.as_bytes());
+        let mut node = hash::hash(&data_to_hash);
 
         for i in 0..proof.len() {
             let sibling_node = proof[i];
 
-            // If sibling node is to the left of the current node.
-            if proof_path[i] {
-                node = hash::hash(&[sibling_node, node.to_bytes()].concat().to_vec());
+            // Concatenate the two child node hashes first.
+            let concatenated_hashes = if proof_path[i] {
+                // Sibling is to the left of the current node.
+                [sibling_node, node.to_bytes()].concat()
             } else {
-                node = hash::hash(&[node.to_bytes(), sibling_node].concat().to_vec());
-            }
+                // Current node is to the left of the sibling.
+                [node.to_bytes(), sibling_node].concat()
+            };
+
+            // Prepend the '0x01' node prefix to the combined hashes before hashing again.
+            let mut data_to_hash = NODE_PREFIX.to_vec();
+            data_to_hash.extend_from_slice(&concatenated_hashes);
+            node = hash::hash(&data_to_hash);
         }
 
         if !root.eq(&node.to_bytes()) {
