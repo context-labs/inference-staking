@@ -72,8 +72,15 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
     let operator_staking_record = &mut ctx.accounts.operator_staking_record;
 
-    // First settle any unsettled USDC
-    operator_pool.settle_usdc_earnings(operator_staking_record)?;
+    // Slash tokens from operator pool, this will also settle any unsettled USDC
+    let slashed_token_amount =
+        operator_pool.slash_tokens(operator_staking_record, args.shares_amount)?;
+
+    // Decrement shares on staking record
+    operator_staking_record.shares = operator_staking_record
+        .shares
+        .checked_sub(args.shares_amount)
+        .unwrap();
 
     // Confiscate any accrued USDC the operator may have
     if operator_staking_record.accrued_usdc_earnings > 0 {
@@ -99,16 +106,6 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
 
         operator_staking_record.accrued_usdc_earnings = 0;
     }
-
-    // Slash tokens from operator pool
-    let slashed_token_amount =
-        operator_pool.slash_tokens(operator_staking_record, args.shares_amount)?;
-
-    // Decrement shares on staking record
-    operator_staking_record.shares = operator_staking_record
-        .shares
-        .checked_sub(args.shares_amount)
-        .unwrap();
 
     // Transfer slashed tokens to destination account
     token::transfer(
