@@ -102,7 +102,8 @@ Start here: [https://www.anchor-lang.com/docs/installation](https://www.anchor-l
 bun install
 
 # Install SDK dependencies
-cd sdk && bun install
+cd sdk
+bun install
 
 # Setup
 bun run setup
