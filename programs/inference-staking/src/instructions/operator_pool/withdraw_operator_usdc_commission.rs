@@ -3,6 +3,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::{
     error::ErrorCode,
+    events::WithdrawOperatorUsdcCommissionEvent,
     operator_pool_signer_seeds,
     state::{OperatorPool, PoolOverview},
 };
@@ -65,6 +66,13 @@ pub fn handler(ctx: Context<WithdrawOperatorUsdcCommission>) -> Result<()> {
         ),
         fees_amount,
     )?;
+
+    emit!(WithdrawOperatorUsdcCommissionEvent {
+        operator_pool: ctx.accounts.operator_pool.key(),
+        admin: ctx.accounts.admin.key(),
+        destination: ctx.accounts.destination.key(),
+        usdc_amount_withdrawn: fees_amount,
+    });
 
     Ok(())
 }

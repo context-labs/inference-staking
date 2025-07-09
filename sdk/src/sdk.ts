@@ -20,6 +20,11 @@ import {
   STAKING_RECORD_DISCRIMINATOR,
   REWARD_RECORD_DISCRIMINATOR,
 } from "./discriminators";
+import type {
+  ParsedEvent,
+  InferenceStakingEvents,
+  EventDataMap,
+} from "./events";
 import type { InferenceStaking } from "./idl";
 import { getIdlWithProgramId, IDL } from "./idl";
 import type {
@@ -35,9 +40,6 @@ import type {
   AccountMetaWithName,
   InferenceStakingAccountName,
   InferenceStakingAccountStructName,
-  InferenceStakingEvents,
-  ParsedEvent,
-  EventDataMap,
 } from "./types";
 import {
   batchArray,
@@ -588,6 +590,119 @@ export class InferenceStakingProgramSdk {
       (event): event is ParsedEvent<"accrueRewardEvent"> => {
         const eventName: string = event.name;
         return eventName === "accrueRewardEvent";
+      }
+    );
+  }
+
+  getCancelUnstakeEvents(logs: string[]): ParsedEvent<"cancelUnstakeEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (event): event is ParsedEvent<"cancelUnstakeEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "cancelUnstakeEvent";
+      }
+    );
+  }
+
+  getChangeOperatorAdminEvents(
+    logs: string[]
+  ): ParsedEvent<"changeOperatorAdminEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (event): event is ParsedEvent<"changeOperatorAdminEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "changeOperatorAdminEvent";
+      }
+    );
+  }
+
+  getChangeOperatorStakingRecordEvents(
+    logs: string[]
+  ): ParsedEvent<"changeOperatorStakingRecordEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (event): event is ParsedEvent<"changeOperatorStakingRecordEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "changeOperatorStakingRecordEvent";
+      }
+    );
+  }
+
+  getClaimUnstakeEvents(logs: string[]): ParsedEvent<"claimUnstakeEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (event): event is ParsedEvent<"claimUnstakeEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "claimUnstakeEvent";
+      }
+    );
+  }
+
+  getClaimUsdcEarningsEvents(
+    logs: string[]
+  ): ParsedEvent<"claimUsdcEarningsEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (event): event is ParsedEvent<"claimUsdcEarningsEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "claimUsdcEarningsEvent";
+      }
+    );
+  }
+
+  getSlashStakeEvents(logs: string[]): ParsedEvent<"slashStakeEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (event): event is ParsedEvent<"slashStakeEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "slashStakeEvent";
+      }
+    );
+  }
+
+  getStakeEvents(logs: string[]): ParsedEvent<"stakeEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (event): event is ParsedEvent<"stakeEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "stakeEvent";
+      }
+    );
+  }
+
+  getSweepClosedPoolUsdcDustEvents(
+    logs: string[]
+  ): ParsedEvent<"sweepClosedPoolUsdcDustEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (event): event is ParsedEvent<"sweepClosedPoolUsdcDustEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "sweepClosedPoolUsdcDustEvent";
+      }
+    );
+  }
+
+  getUnstakeEvents(logs: string[]): ParsedEvent<"unstakeEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (event): event is ParsedEvent<"unstakeEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "unstakeEvent";
+      }
+    );
+  }
+
+  getWithdrawOperatorRewardCommissionEvents(
+    logs: string[]
+  ): ParsedEvent<"withdrawOperatorRewardCommissionEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (
+        event
+      ): event is ParsedEvent<"withdrawOperatorRewardCommissionEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "withdrawOperatorRewardCommissionEvent";
+      }
+    );
+  }
+
+  getWithdrawOperatorUsdcCommissionEvents(
+    logs: string[]
+  ): ParsedEvent<"withdrawOperatorUsdcCommissionEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (event): event is ParsedEvent<"withdrawOperatorUsdcCommissionEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "withdrawOperatorUsdcCommissionEvent";
       }
     );
   }

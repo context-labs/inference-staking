@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 
+use crate::events::CancelUnstakeEvent;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 
 #[derive(Accounts)]
@@ -33,6 +34,12 @@ pub fn handler(ctx: Context<CancelUnstake>) -> Result<()> {
 
     let staking_record = &mut ctx.accounts.owner_staking_record;
 
+    // Store values before mutations
+    let operator_pool_key = operator_pool.key();
+    let staking_record_key = staking_record.key();
+    let owner_key = ctx.accounts.owner.key();
+    let is_operator_cancelling = operator_pool.operator_staking_record == staking_record.key();
+
     let tokens_unstake_amount = staking_record.tokens_unstake_amount;
 
     // Calculate number of shares to create, and update token and share amounts on OperatorPool.
@@ -48,6 +55,15 @@ pub fn handler(ctx: Context<CancelUnstake>) -> Result<()> {
     // Reset owner's StakingRecord.
     staking_record.unstake_at_timestamp = 0;
     staking_record.tokens_unstake_amount = 0;
+
+    emit!(CancelUnstakeEvent {
+        operator_pool: operator_pool_key,
+        staking_record: staking_record_key,
+        owner: owner_key,
+        is_operator: is_operator_cancelling,
+        token_amount: tokens_unstake_amount,
+        shares_amount: shares_created,
+    });
 
     Ok(())
 }

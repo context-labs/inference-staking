@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCode;
+use crate::events::ClaimUnstakeEvent;
 use crate::operator_pool_signer_seeds;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 
@@ -68,6 +69,11 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
     let is_operator_claiming =
         operator_staking_record.key() == ctx.accounts.owner_staking_record.key();
 
+    // Store keys before creating mutable borrows
+    let operator_pool_key = operator_pool.key();
+    let staking_record_key = ctx.accounts.owner_staking_record.key();
+    let owner_key = ctx.accounts.owner.key();
+
     // Check that operator is not claiming when pool is halted.
     require!(
         !is_operator_claiming || !operator_pool.is_halted,
@@ -130,6 +136,14 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
             ErrorCode::MinOperatorTokenStakeNotMet
         );
     }
+
+    emit!(ClaimUnstakeEvent {
+        operator_pool: operator_pool_key,
+        staking_record: staking_record_key,
+        owner: owner_key,
+        is_operator: is_operator_claiming,
+        token_amount: tokens_unstake_amount,
+    });
 
     Ok(())
 }

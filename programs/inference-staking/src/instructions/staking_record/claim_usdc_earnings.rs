@@ -4,6 +4,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use crate::{
     constants::USDC_MINT_PUBKEY,
     error::ErrorCode,
+    events::ClaimUsdcEarningsEvent,
     operator_pool_signer_seeds,
     state::{OperatorPool, PoolOverview, StakingRecord},
 };
@@ -55,6 +56,11 @@ pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
 
     let is_operator_claiming = operator_pool.operator_staking_record.key() == staking_record.key();
 
+    // Store keys before any mutations
+    let operator_pool_key = operator_pool.key();
+    let staking_record_key = staking_record.key();
+    let owner_key = ctx.accounts.owner.key();
+
     // Check that operator is not claiming when pool is halted.
     require!(
         !is_operator_claiming || !operator_pool.is_halted,
@@ -103,6 +109,15 @@ pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
 
     // Reset available USDC balance
     staking_record.accrued_usdc_earnings = 0;
+
+    emit!(ClaimUsdcEarningsEvent {
+        operator_pool: operator_pool_key,
+        staking_record: staking_record_key,
+        owner: owner_key,
+        is_operator: is_operator_claiming,
+        destination: ctx.accounts.destination.key(),
+        usdc_amount: claimable,
+    });
 
     Ok(())
 }

@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::{
     error::ErrorCode,
+    events::ChangeOperatorStakingRecordEvent,
     state::{OperatorPool, PoolOverview, StakingRecord},
 };
 
@@ -63,7 +64,17 @@ pub fn handler(ctx: Context<ChangeOperatorStakingRecord>) -> Result<()> {
     );
 
     let operator_pool = &mut ctx.accounts.operator_pool;
-    operator_pool.operator_staking_record = ctx.accounts.new_staking_record.key();
+    let old_staking_record = operator_pool.operator_staking_record;
+    let new_staking_record = ctx.accounts.new_staking_record.key();
+
+    operator_pool.operator_staking_record = new_staking_record;
+
+    emit!(ChangeOperatorStakingRecordEvent {
+        operator_pool: operator_pool.key(),
+        admin: ctx.accounts.admin.key(),
+        old_staking_record,
+        new_staking_record,
+    });
 
     Ok(())
 }

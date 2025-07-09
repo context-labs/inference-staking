@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
+use crate::events::StakeEvent;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
@@ -121,6 +122,15 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
         min_operator_token_stake,
         ErrorCode::MinOperatorTokenStakeNotMet
     );
+
+    emit!(StakeEvent {
+        operator_pool: operator_pool.key(),
+        staking_record: ctx.accounts.owner_staking_record.key(),
+        owner: ctx.accounts.owner.key(),
+        is_operator: is_operator_staking,
+        token_amount,
+        shares_amount: shares_created,
+    });
 
     Ok(())
 }

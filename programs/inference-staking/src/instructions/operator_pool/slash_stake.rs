@@ -4,6 +4,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use crate::{
     constants::USDC_MINT_PUBKEY,
     error::ErrorCode,
+    events::SlashStakeEvent,
     operator_pool_signer_seeds,
     state::{OperatorPool, PoolOverview, StakingRecord},
 };
@@ -86,6 +87,11 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
     let operator_staking_record = &mut ctx.accounts.operator_staking_record;
 
+    // Store initial values for event emission
+    let operator_pool_key = operator_pool.key();
+    let operator_staking_record_key = operator_staking_record.key();
+    let authority_key = ctx.accounts.authority.key();
+
     // Slash tokens from operator pool, this will also settle any unsettled USDC
     let slashed_token_amount =
         operator_pool.slash_tokens(operator_staking_record, args.shares_amount)?;
@@ -97,6 +103,7 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
         .unwrap();
 
     // Confiscate any accrued USDC the operator may have
+    let mut usdc_confiscated = 0;
     if operator_staking_record.accrued_usdc_earnings > 0 {
         let usdc_amount = operator_staking_record.accrued_usdc_earnings;
 
@@ -118,6 +125,7 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
             usdc_amount,
         )?;
 
+        usdc_confiscated = usdc_amount;
         // Reset accrued USDC earnings since we've confiscated all USDC earnings
         operator_staking_record.accrued_usdc_earnings = 0;
     }
@@ -169,6 +177,19 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
         ),
         slashed_token_amount,
     )?;
+
+    emit!(SlashStakeEvent {
+        operator_pool: operator_pool_key,
+        operator_staking_record: operator_staking_record_key,
+        authority: authority_key,
+        destination: ctx.accounts.destination.key(),
+        destination_usdc: ctx.accounts.destination_usdc_account.key(),
+        shares_slashed: args.shares_amount,
+        token_amount_slashed: slashed_token_amount,
+        usdc_confiscated,
+        reward_commission_confiscated: available_reward_commission,
+        usdc_commission_confiscated: available_usdc_commission,
+    });
 
     Ok(())
 }

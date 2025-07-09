@@ -4,6 +4,7 @@ use anchor_spl::token::{self, CloseAccount, Token, TokenAccount, Transfer};
 use crate::{
     constants::USDC_MINT_PUBKEY,
     error::ErrorCode,
+    events::SweepClosedPoolUsdcDustEvent,
     operator_pool_signer_seeds,
     state::{OperatorPool, PoolOverview},
 };
@@ -90,6 +91,12 @@ pub fn handler(ctx: Context<SweepClosedPoolUsdcDust>) -> Result<()> {
         },
         &[operator_pool_signer_seeds!(operator_pool)],
     ))?;
+
+    emit!(SweepClosedPoolUsdcDustEvent {
+        operator_pool: operator_pool.key(),
+        admin: ctx.accounts.admin.key(),
+        usdc_amount_swept: remaining_balance,
+    });
 
     Ok(())
 }

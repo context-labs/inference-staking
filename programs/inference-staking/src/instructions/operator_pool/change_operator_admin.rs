@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 
-use crate::{error::ErrorCode, state::OperatorPool, PoolOverview};
+use crate::{
+    error::ErrorCode, events::ChangeOperatorAdminEvent, state::OperatorPool, PoolOverview,
+};
 
 #[derive(Accounts)]
 pub struct ChangeOperatorAdmin<'info> {
@@ -29,7 +31,16 @@ pub struct ChangeOperatorAdmin<'info> {
 
 pub fn handler(ctx: Context<ChangeOperatorAdmin>) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
-    operator_pool.admin = ctx.accounts.new_admin.key();
+    let old_admin = operator_pool.admin;
+    let new_admin = ctx.accounts.new_admin.key();
+
+    operator_pool.admin = new_admin;
+
+    emit!(ChangeOperatorAdminEvent {
+        operator_pool: operator_pool.key(),
+        old_admin,
+        new_admin,
+    });
 
     Ok(())
 }

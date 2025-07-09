@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
+use crate::events::UnstakeEvent;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
 
 #[derive(Accounts)]
@@ -42,13 +43,17 @@ pub struct Unstake<'info> {
 }
 
 /// Instruction to initiate unstaking of tokens from an OperatorPool.
-pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
+pub fn handler(ctx: Context<Unstake>, shares_amount: u64) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
     let pool_overview = &ctx.accounts.pool_overview;
     let operator_staking_record = &ctx.accounts.operator_staking_record;
 
     let is_operator_unstaking =
         operator_staking_record.key() == ctx.accounts.owner_staking_record.key();
+
+    // Store the staking record key before creating mutable borrow
+    let staking_record_key = ctx.accounts.owner_staking_record.key();
+    let owner_key = ctx.accounts.owner.key();
 
     // Check that operator is not unstaking when pool is halted.
     require!(
@@ -66,10 +71,10 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
     operator_pool.check_unclaimed_rewards(pool_overview.completed_reward_epoch)?;
 
     let staking_record = &mut ctx.accounts.owner_staking_record;
-    require_gte!(staking_record.shares, share_amount);
+    require_gte!(staking_record.shares, shares_amount);
 
     // Calculate number of tokens to unstake, and update token and share amounts on OperatorPool.
-    let tokens_unstaked = operator_pool.unstake_tokens(staking_record, share_amount)?;
+    let tokens_unstaked = operator_pool.unstake_tokens(staking_record, shares_amount)?;
 
     // Determine the correct unstake cooldown period on whether it's a delegator
     // or operator.
@@ -80,7 +85,7 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
     };
 
     // Update owner's StakingRecord with new unstake details.
-    staking_record.shares = staking_record.shares.checked_sub(share_amount).unwrap();
+    staking_record.shares = staking_record.shares.checked_sub(shares_amount).unwrap();
     staking_record.tokens_unstake_amount = staking_record
         .tokens_unstake_amount
         .checked_add(tokens_unstaked)
@@ -116,6 +121,16 @@ pub fn handler(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
             }
         }
     }
+
+    emit!(UnstakeEvent {
+        operator_pool: operator_pool.key(),
+        staking_record: staking_record_key,
+        owner: owner_key,
+        is_operator: is_operator_unstaking,
+        token_amount: tokens_unstaked,
+        shares_amount,
+        unstake_at_timestamp: staking_record.unstake_at_timestamp,
+    });
 
     Ok(())
 }

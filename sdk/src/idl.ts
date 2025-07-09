@@ -1882,6 +1882,50 @@ const _IDL = {
       name: "accrueRewardEvent",
       discriminator: [11, 196, 7, 233, 111, 253, 169, 40],
     },
+    {
+      name: "cancelUnstakeEvent",
+      discriminator: [202, 68, 119, 87, 220, 185, 210, 149],
+    },
+    {
+      name: "changeOperatorAdminEvent",
+      discriminator: [143, 86, 181, 172, 159, 96, 196, 169],
+    },
+    {
+      name: "changeOperatorStakingRecordEvent",
+      discriminator: [33, 113, 141, 141, 164, 38, 251, 167],
+    },
+    {
+      name: "claimUnstakeEvent",
+      discriminator: [18, 255, 161, 59, 246, 47, 255, 127],
+    },
+    {
+      name: "claimUsdcEarningsEvent",
+      discriminator: [123, 242, 220, 20, 212, 247, 183, 251],
+    },
+    {
+      name: "slashStakeEvent",
+      discriminator: [150, 87, 165, 208, 202, 50, 106, 12],
+    },
+    {
+      name: "stakeEvent",
+      discriminator: [226, 134, 188, 173, 19, 33, 75, 175],
+    },
+    {
+      name: "sweepClosedPoolUsdcDustEvent",
+      discriminator: [215, 198, 152, 9, 89, 104, 209, 73],
+    },
+    {
+      name: "unstakeEvent",
+      discriminator: [162, 104, 137, 228, 81, 3, 79, 197],
+    },
+    {
+      name: "withdrawOperatorRewardCommissionEvent",
+      discriminator: [170, 145, 80, 127, 1, 216, 154, 83],
+    },
+    {
+      name: "withdrawOperatorUsdcCommissionEvent",
+      discriminator: [205, 80, 75, 205, 138, 230, 81, 83],
+    },
   ],
   errors: [
     {
@@ -2170,6 +2214,142 @@ const _IDL = {
           },
           {
             name: "operatorUsdcCommission",
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "cancelUnstakeEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "stakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "owner",
+            type: "pubkey",
+          },
+          {
+            name: "isOperator",
+            type: "bool",
+          },
+          {
+            name: "tokenAmount",
+            type: "u64",
+          },
+          {
+            name: "sharesAmount",
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "changeOperatorAdminEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "oldAdmin",
+            type: "pubkey",
+          },
+          {
+            name: "newAdmin",
+            type: "pubkey",
+          },
+        ],
+      },
+    },
+    {
+      name: "changeOperatorStakingRecordEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "admin",
+            type: "pubkey",
+          },
+          {
+            name: "oldStakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "newStakingRecord",
+            type: "pubkey",
+          },
+        ],
+      },
+    },
+    {
+      name: "claimUnstakeEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "stakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "owner",
+            type: "pubkey",
+          },
+          {
+            name: "isOperator",
+            type: "bool",
+          },
+          {
+            name: "tokenAmount",
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "claimUsdcEarningsEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "stakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "owner",
+            type: "pubkey",
+          },
+          {
+            name: "isOperator",
+            type: "bool",
+          },
+          {
+            name: "destination",
+            type: "pubkey",
+          },
+          {
+            name: "usdcAmount",
             type: "u64",
           },
         ],
@@ -2673,6 +2853,86 @@ const _IDL = {
       },
     },
     {
+      name: "slashStakeEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "operatorStakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "authority",
+            type: "pubkey",
+          },
+          {
+            name: "destination",
+            type: "pubkey",
+          },
+          {
+            name: "destinationUsdc",
+            type: "pubkey",
+          },
+          {
+            name: "sharesSlashed",
+            type: "u64",
+          },
+          {
+            name: "tokenAmountSlashed",
+            type: "u64",
+          },
+          {
+            name: "usdcConfiscated",
+            type: "u64",
+          },
+          {
+            name: "rewardCommissionConfiscated",
+            type: "u64",
+          },
+          {
+            name: "usdcCommissionConfiscated",
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "stakeEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "stakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "owner",
+            type: "pubkey",
+          },
+          {
+            name: "isOperator",
+            type: "bool",
+          },
+          {
+            name: "tokenAmount",
+            type: "u64",
+          },
+          {
+            name: "sharesAmount",
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
       name: "stakingRecord",
       type: {
         kind: "struct",
@@ -2711,6 +2971,62 @@ const _IDL = {
             name: "accruedUsdcEarnings",
             docs: ["Accrued USDC rewards available to claim"],
             type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "sweepClosedPoolUsdcDustEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "admin",
+            type: "pubkey",
+          },
+          {
+            name: "usdcAmountSwept",
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "unstakeEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "stakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "owner",
+            type: "pubkey",
+          },
+          {
+            name: "isOperator",
+            type: "bool",
+          },
+          {
+            name: "tokenAmount",
+            type: "u64",
+          },
+          {
+            name: "sharesAmount",
+            type: "u64",
+          },
+          {
+            name: "unstakeAtTimestamp",
+            type: "i64",
           },
         ],
       },
@@ -2874,6 +3190,54 @@ const _IDL = {
                 vec: "pubkey",
               },
             },
+          },
+        ],
+      },
+    },
+    {
+      name: "withdrawOperatorRewardCommissionEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "admin",
+            type: "pubkey",
+          },
+          {
+            name: "destination",
+            type: "pubkey",
+          },
+          {
+            name: "rewardAmountWithdrawn",
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "withdrawOperatorUsdcCommissionEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "admin",
+            type: "pubkey",
+          },
+          {
+            name: "destination",
+            type: "pubkey",
+          },
+          {
+            name: "usdcAmountWithdrawn",
+            type: "u64",
           },
         ],
       },
