@@ -83,8 +83,8 @@ pub fn handler(ctx: Context<CreateRewardRecord>, args: CreateRewardRecordArgs) -
         .unclaimed_rewards
         .checked_add(total_rewards)
         .unwrap();
-    pool_overview.unclaimed_usdc_payout = pool_overview
-        .unclaimed_usdc_payout
+    pool_overview.unclaimed_usdc = pool_overview
+        .unclaimed_usdc
         .checked_add(total_usdc_payout)
         .unwrap();
     pool_overview.completed_reward_epoch = reward_record.epoch;
@@ -104,7 +104,7 @@ pub fn handler(ctx: Context<CreateRewardRecord>, args: CreateRewardRecordArgs) -
     let usdc_token_account = &ctx.accounts.usdc_token_account;
     require_gte!(
         usdc_token_account.amount,
-        pool_overview.unclaimed_usdc_payout,
+        pool_overview.unclaimed_usdc,
         ErrorCode::InsufficientUsdc
     );
 

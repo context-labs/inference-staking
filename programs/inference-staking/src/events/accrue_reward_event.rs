@@ -9,16 +9,16 @@ pub struct AccrueRewardEvent {
     pub epoch: u64,
 
     // Total reward token payout transferred
-    pub total_reward_token_payout: u64,
+    pub total_rewards_transferred: u64,
 
     // Total accrued USDC earnings transferred
-    pub total_accrued_usdc_earnings: u64,
+    pub total_usdc_transferred: u64,
 
     // Delegator token rewards share
-    pub delegator_token_rewards: u64,
+    pub delegator_rewards: u64,
 
     // Operator token commission share
-    pub operator_token_commission: u64,
+    pub operator_reward_commission: u64,
 
     // Delegator USDC share
     pub delegator_usdc_earnings: u64,

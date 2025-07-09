@@ -2129,19 +2129,19 @@ const _IDL = {
             type: "u64",
           },
           {
-            name: "totalRewardTokenPayout",
+            name: "totalRewardsTransferred",
             type: "u64",
           },
           {
-            name: "totalAccruedUsdcEarnings",
+            name: "totalUsdcTransferred",
             type: "u64",
           },
           {
-            name: "delegatorTokenRewards",
+            name: "delegatorRewards",
             type: "u64",
           },
           {
-            name: "operatorTokenCommission",
+            name: "operatorRewardCommission",
             type: "u64",
           },
           {
@@ -2575,7 +2575,7 @@ const _IDL = {
             type: "u64",
           },
           {
-            name: "unclaimedUsdcPayout",
+            name: "unclaimedUsdc",
             docs: [
               "Total amount of USDC tokens across all epochs that are issued, but yet to be paid out.",
             ],

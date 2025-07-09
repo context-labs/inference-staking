@@ -1117,8 +1117,8 @@ describe("multi-epoch lifecycle tests", () => {
       `Unclaimed rewards should be zero, was ${poolOverview.unclaimedRewards.toString()}`
     );
     assert(
-      poolOverview.unclaimedUsdcPayout.isZero(),
-      `Unclaimed USDC payout should be zero, was ${poolOverview.unclaimedUsdcPayout.toString()}`
+      poolOverview.unclaimedUsdc.isZero(),
+      `Unclaimed USDC payout should be zero, was ${poolOverview.unclaimedUsdc.toString()}`
     );
 
     const tokenVault = setup.sdk.globalTokenRewardVaultPda();

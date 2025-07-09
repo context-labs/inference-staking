@@ -134,7 +134,10 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
     // in which the pool was closed.
     let should_transfer_rewards = is_most_recent_epoch || is_pool_closure_epoch;
 
-    let commission = u64::try_from(
+    let mut total_rewards_transferred = 0;
+    let mut total_usdc_transferred = 0;
+
+    let reward_commission = u64::try_from(
         u128::from(reward_amount)
             .checked_mul(operator_pool.reward_commission_rate_bps.into())
             .unwrap()
@@ -142,7 +145,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
             .unwrap(),
     )
     .unwrap();
-    let delegator_rewards = reward_amount.checked_sub(commission).unwrap();
+    let delegator_rewards = reward_amount.checked_sub(reward_commission).unwrap();
 
     // Calculate USDC split
     let usdc_commission = u64::try_from(
@@ -163,7 +166,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         .unwrap();
     operator_pool.accrued_reward_commission = operator_pool
         .accrued_reward_commission
-        .checked_add(commission)
+        .checked_add(reward_commission)
         .unwrap();
     operator_pool.accrued_usdc_commission = operator_pool
         .accrued_usdc_commission
@@ -299,16 +302,16 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
             .unwrap();
 
         // Update unclaimed USDC rewards
-        let total_usdc_processed = total_operator_usdc_to_transfer
+        total_usdc_transferred = total_operator_usdc_to_transfer
             .checked_add(total_delegator_usdc_to_transfer)
             .unwrap();
 
-        pool_overview.unclaimed_usdc_payout = pool_overview
-            .unclaimed_usdc_payout
-            .checked_sub(total_usdc_processed)
+        pool_overview.unclaimed_usdc = pool_overview
+            .unclaimed_usdc
+            .checked_sub(total_usdc_transferred)
             .unwrap();
 
-        let total_reward_token_payout = operator_pool
+        total_rewards_transferred = operator_pool
             .accrued_rewards
             .checked_add(operator_pool.accrued_reward_commission)
             .unwrap();
@@ -318,18 +321,18 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         operator_pool.accrued_reward_commission = 0;
         operator_pool.accrued_usdc_commission = 0;
         operator_pool.accrued_delegator_usdc = 0;
-
-        emit!(AccrueRewardEvent {
-            operator_pool: operator_pool.key(),
-            epoch: reward_record.epoch,
-            total_reward_token_payout,
-            total_accrued_usdc_earnings: total_usdc_processed,
-            delegator_token_rewards: delegator_rewards,
-            operator_token_commission: commission,
-            delegator_usdc_earnings: usdc_delegator_amount,
-            operator_usdc_commission: usdc_commission,
-        });
     }
+
+    emit!(AccrueRewardEvent {
+        operator_pool: operator_pool.key(),
+        epoch: reward_record.epoch,
+        total_rewards_transferred,
+        total_usdc_transferred,
+        delegator_rewards,
+        operator_reward_commission: reward_commission,
+        delegator_usdc_earnings: usdc_delegator_amount,
+        operator_usdc_commission: usdc_commission,
+    });
 
     Ok(())
 }

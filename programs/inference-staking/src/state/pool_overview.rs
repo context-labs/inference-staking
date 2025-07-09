@@ -65,5 +65,5 @@ pub struct PoolOverview {
     pub unclaimed_rewards: u64,
 
     /// Total amount of USDC tokens across all epochs that are issued, but yet to be paid out.
-    pub unclaimed_usdc_payout: u64,
+    pub unclaimed_usdc: u64,
 }
