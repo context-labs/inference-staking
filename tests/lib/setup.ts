@@ -11,6 +11,8 @@ import {
   PAYER_KEYPAIR,
   PROGRAM_ADMIN_KEYPAIR,
   REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR,
+  HALTING_AUTHORITY_KEYPAIR,
+  SLASHING_AUTHORITY_KEYPAIR,
   TOKEN_MINT_OWNER_KEYPAIR,
 } from "@tests/lib/const";
 import {
@@ -89,8 +91,8 @@ export async function setupTests() {
   const poolOverviewAdminKp = PROGRAM_ADMIN_KEYPAIR ?? new Keypair();
   const rewardDistributionAuthorityKp =
     REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR ?? new Keypair();
-  const haltingAuthorityKp = new Keypair();
-  const slashingAuthorityKp = new Keypair();
+  const haltingAuthorityKp = HALTING_AUTHORITY_KEYPAIR ?? new Keypair();
+  const slashingAuthorityKp = SLASHING_AUTHORITY_KEYPAIR ?? new Keypair();
   const admin1Kp = new Keypair();
   const admin2Kp = new Keypair();
   const admin3Kp = new Keypair();
