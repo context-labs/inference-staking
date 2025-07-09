@@ -12,6 +12,7 @@
         "@types/bn.js": "^5.1.0",
         "@types/bun": "^1.2.11",
         "@types/chai": "^4.3.0",
+        "@types/invariant": "^2.2.37",
         "@types/mocha": "^9.0.0",
         "@types/pg": "^8.15.1",
         "axios": "^1.9.0",
@@ -22,6 +23,7 @@
         "eslint-plugin-sort-destructure-keys": "^2.0.0",
         "eslint-plugin-sort-keys-fix": "^1.1.2",
         "eslint-plugin-typescript-sort-keys": "^3.3.0",
+        "invariant": "^2.2.4",
         "mocha": "^9.0.3",
         "pg": "^8.16.0",
         "prettier": "^2.6.2",
@@ -464,6 +466,13 @@
       "",
       {},
       "sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ=="
+    ],
+
+    "@types/invariant": [
+      "@types/invariant@2.2.37",
+      "",
+      {},
+      "sha512-IwpIMieE55oGWiXkQPSBY1nw1nFs6bsKXTFskNY8sdS17K24vyEBRQZEwlRS7ZmXCWnJcQtbxWzly+cODWGs2A=="
     ],
 
     "@types/json-schema": [
@@ -2142,6 +2151,13 @@
       "sha512-4gd7VpWNQNB4UKKCFFVcp1AVv+FMOgs9NKzjHKusc8jTMhd5eL1NqQqOpE0KzMds804/yHlglp3uxgluOqAPLw=="
     ],
 
+    "invariant": [
+      "invariant@2.2.4",
+      "",
+      { "dependencies": { "loose-envify": "^1.0.0" } },
+      "sha512-phJfQVBuaJM5raOpJjSfkiD6BpbCE4Ns//LaXl6wGYtUBY83nWS6Rf9tXm2e8VaK60JEjYldbPif/A2B1C2gNA=="
+    ],
+
     "is-array-buffer": [
       "is-array-buffer@3.0.5",
       "",
@@ -2437,6 +2453,13 @@
       "sha512-LtXh5aYZodBZ9Fc3j6f2w+MTNcnxteMOrb+QgIouguGOulWi0lieEkOUg+HkjjFs0DGoWDds6bi4E9hpNFLulQ=="
     ],
 
+    "js-tokens": [
+      "js-tokens@4.0.0",
+      "",
+      {},
+      "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="
+    ],
+
     "js-yaml": [
       "js-yaml@4.1.0",
       "",
@@ -2531,6 +2554,16 @@
         "dependencies": { "chalk": "^4.1.0", "is-unicode-supported": "^0.1.0" }
       },
       "sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg=="
+    ],
+
+    "loose-envify": [
+      "loose-envify@1.4.0",
+      "",
+      {
+        "dependencies": { "js-tokens": "^3.0.0 || ^4.0.0" },
+        "bin": { "loose-envify": "cli.js" }
+      },
+      "sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q=="
     ],
 
     "loupe": [

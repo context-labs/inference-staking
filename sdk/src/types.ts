@@ -1,4 +1,4 @@
-import type { Program } from "@coral-xyz/anchor";
+import type { Program, BN } from "@coral-xyz/anchor";
 import type { PublicKey } from "@solana/web3.js";
 
 import type { IDL, InferenceStaking } from "./idl";
@@ -52,6 +52,39 @@ type ExtractInstructionNames<T> = T extends {
   : never;
 
 export type InferenceStakingInstructions = ExtractInstructionNames<typeof IDL>;
+
+/** ******************************************************************************
+ *  Event Types
+ ******************************************************************************* */
+
+type ExtractEventNames<T> = T extends { events: { name: infer N }[] }
+  ? N
+  : never;
+
+export type InferenceStakingEvents = ExtractEventNames<typeof IDL>;
+
+// Keep in sync with program event struct
+export type AccrueRewardEventData = {
+  operatorPool: PublicKey;
+  epoch: BN;
+  totalRewardTokenPayout: BN;
+  totalAccruedUsdcEarnings: BN;
+  delegatorTokenRewards: BN;
+  operatorTokenCommission: BN;
+  delegatorUsdcEarnings: BN;
+  operatorUsdcCommission: BN;
+};
+
+export type EventDataMap = {
+  accrueRewardEvent: AccrueRewardEventData;
+};
+
+export type ParsedEvent<
+  T extends InferenceStakingEvents = InferenceStakingEvents
+> = {
+  name: T;
+  data: T extends keyof EventDataMap ? EventDataMap[T] : never;
+};
 
 /** ******************************************************************************
  *  Decoded Instructions - Fixed for nested args

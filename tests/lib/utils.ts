@@ -1,3 +1,5 @@
+import { writeFileSync } from "fs";
+
 import * as anchor from "@coral-xyz/anchor";
 import type { Program } from "@coral-xyz/anchor";
 import { createMint, TOKEN_PROGRAM_ID } from "@solana/spl-token";
@@ -376,4 +378,24 @@ export const createMintIfNotExists = async (
 
 export const convertToTokenUnitAmount = (amount: number) => {
   return new anchor.BN(amount).mul(new anchor.BN(10 ** 9));
+};
+
+export const saveTransactionReceiptForDebugging = async (
+  connection: Connection,
+  signature: string
+) => {
+  await confirmTransaction(connection, signature);
+  const tx = await connection.getTransaction(signature, {
+    maxSupportedTransactionVersion: 0,
+    commitment: "confirmed",
+  });
+  const serializedTransactionMessage = tx?.transaction.message.serialize();
+  const serializedMessage = serializedTransactionMessage?.toString("base64");
+
+  const shortSignature = signature.slice(0, 8);
+  writeFileSync(`tx-${shortSignature}.json`, JSON.stringify(tx, null, 2));
+  writeFileSync(
+    `tx-message-${shortSignature}.json`,
+    JSON.stringify(serializedMessage, null, 2)
+  );
 };

@@ -1,6 +1,11 @@
 import type { AnchorProvider, ProgramAccount } from "@coral-xyz/anchor";
 import { BN } from "@coral-xyz/anchor";
-import { Program, AnchorError, BorshCoder } from "@coral-xyz/anchor";
+import {
+  Program,
+  AnchorError,
+  BorshCoder,
+  EventParser,
+} from "@coral-xyz/anchor";
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 import type {
   AccountInfo,
@@ -30,6 +35,9 @@ import type {
   AccountMetaWithName,
   InferenceStakingAccountName,
   InferenceStakingAccountStructName,
+  InferenceStakingEvents,
+  ParsedEvent,
+  EventDataMap,
 } from "./types";
 import {
   batchArray,
@@ -548,6 +556,40 @@ export class InferenceStakingProgramSdk {
   static getErrorMsgFromTransactionLogs(logs: string[]): string | undefined {
     const errorName = this.getErrorNameFromTransactionLogs(logs);
     return this.getErrorMsgFromErrorName(errorName);
+  }
+
+  /** ************************************************************************
+   *  Event Parsing Methods
+   *************************************************************************** */
+
+  parseEventsFromTransactionLogs(logs: string[]): ParsedEvent[] {
+    const eventParser = new EventParser(this.program.programId, this.coder);
+    const parsedEvents = eventParser.parseLogs(logs);
+
+    const events: ParsedEvent[] = [];
+    for (const event of parsedEvents) {
+      try {
+        const parsedEvent: ParsedEvent = {
+          name: event.name as InferenceStakingEvents,
+          data: event.data as EventDataMap[InferenceStakingEvents],
+        };
+        events.push(parsedEvent);
+      } catch {
+        // Skip invalid events
+        continue;
+      }
+    }
+
+    return events;
+  }
+
+  getAccrueRewardEvents(logs: string[]): ParsedEvent<"accrueRewardEvent">[] {
+    return this.parseEventsFromTransactionLogs(logs).filter(
+      (event): event is ParsedEvent<"accrueRewardEvent"> => {
+        const eventName: string = event.name;
+        return eventName === "accrueRewardEvent";
+      }
+    );
   }
 
   /** ************************************************************************

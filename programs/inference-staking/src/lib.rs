@@ -6,6 +6,7 @@ use solana_security_txt::security_txt;
 
 pub mod constants;
 pub mod error;
+pub mod events;
 pub mod instructions;
 pub mod macros;
 pub mod state;

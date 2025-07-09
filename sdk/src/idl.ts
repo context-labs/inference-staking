@@ -1837,6 +1837,12 @@ const _IDL = {
       discriminator: [104, 155, 91, 97, 111, 66, 42, 128],
     },
   ],
+  events: [
+    {
+      name: "accrueRewardEvent",
+      discriminator: [11, 196, 7, 233, 111, 253, 169, 40],
+    },
+  ],
   errors: [
     {
       code: 6000,
@@ -2084,6 +2090,46 @@ const _IDL = {
           },
           {
             name: "usdcAmount",
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "accrueRewardEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "epoch",
+            type: "u64",
+          },
+          {
+            name: "totalRewardTokenPayout",
+            type: "u64",
+          },
+          {
+            name: "totalAccruedUsdcEarnings",
+            type: "u64",
+          },
+          {
+            name: "delegatorTokenRewards",
+            type: "u64",
+          },
+          {
+            name: "operatorTokenCommission",
+            type: "u64",
+          },
+          {
+            name: "delegatorUsdcEarnings",
+            type: "u64",
+          },
+          {
+            name: "operatorUsdcCommission",
             type: "u64",
           },
         ],

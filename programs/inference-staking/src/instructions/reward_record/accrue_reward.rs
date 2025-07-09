@@ -3,6 +3,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::constants::USDC_PRECISION_FACTOR;
 use crate::error::ErrorCode;
+use crate::events::AccrueRewardEvent;
 use crate::state::{OperatorPool, PoolOverview, RewardRecord, StakingRecord};
 
 #[derive(Accounts)]
@@ -307,11 +308,27 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
             .checked_sub(total_usdc_processed)
             .unwrap();
 
+        let total_reward_token_payout = operator_pool
+            .accrued_rewards
+            .checked_add(operator_pool.accrued_commission)
+            .unwrap();
+
         // Reset ALL accumulators to zero after successful processing
         operator_pool.accrued_rewards = 0;
         operator_pool.accrued_commission = 0;
         operator_pool.accrued_usdc_payout = 0;
         operator_pool.accrued_delegator_usdc = 0;
+
+        emit!(AccrueRewardEvent {
+            operator_pool: operator_pool.key(),
+            epoch: reward_record.epoch,
+            total_reward_token_payout,
+            total_accrued_usdc_earnings: total_usdc_processed,
+            delegator_token_rewards: delegator_rewards,
+            operator_token_commission: commission,
+            delegator_usdc_earnings: usdc_delegator_amount,
+            operator_usdc_commission: usdc_commission,
+        });
     }
 
     Ok(())
