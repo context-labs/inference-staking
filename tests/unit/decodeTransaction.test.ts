@@ -587,29 +587,23 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
       "invalid accrueRewardEvents"
     );
     const {
-      totalRewardTokenPayout,
-      totalAccruedUsdcEarnings,
-      delegatorTokenRewards,
-      operatorTokenCommission,
+      totalRewardsTransferred,
+      totalUsdcTransferred,
+      delegatorRewards,
+      operatorRewardCommission,
       delegatorUsdcEarnings,
       operatorUsdcCommission,
     } = event.data;
 
     assert(
-      delegatorTokenRewards
-        .add(operatorTokenCommission)
-        .eq(totalRewardTokenPayout)
+      delegatorRewards.add(operatorRewardCommission).eq(totalRewardsTransferred)
     );
     assert(
-      totalRewardTokenPayout.eq(new anchor.BN(totalRewardsShare.toString()))
+      totalRewardsTransferred.eq(new anchor.BN(totalRewardsShare.toString()))
     );
+    assert(totalUsdcTransferred.eq(new anchor.BN(totalUsdcShare.toString())));
     assert(
-      totalAccruedUsdcEarnings.eq(new anchor.BN(totalUsdcShare.toString()))
-    );
-    assert(
-      operatorUsdcCommission
-        .add(delegatorUsdcEarnings)
-        .eq(totalAccruedUsdcEarnings)
+      operatorUsdcCommission.add(delegatorUsdcEarnings).eq(totalUsdcTransferred)
     );
   });
 });

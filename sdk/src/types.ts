@@ -67,10 +67,10 @@ export type InferenceStakingEvents = ExtractEventNames<typeof IDL>;
 export type AccrueRewardEventData = {
   operatorPool: PublicKey;
   epoch: BN;
-  totalRewardTokenPayout: BN;
-  totalAccruedUsdcEarnings: BN;
-  delegatorTokenRewards: BN;
-  operatorTokenCommission: BN;
+  totalRewardsTransferred: BN;
+  totalUsdcTransferred: BN;
+  delegatorRewards: BN;
+  operatorRewardCommission: BN;
   delegatorUsdcEarnings: BN;
   operatorUsdcCommission: BN;
 };
