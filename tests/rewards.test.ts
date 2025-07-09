@@ -900,7 +900,7 @@ describe("Reward creation and accrual tests", () => {
     assert.equal(operatorPool.rewardCommissionRateBps, rewardCommissionRateBps);
 
     // Check that rewards accrued are accumulated.
-    assert(operatorPool.accruedCommission.eq(commissionFees));
+    assert(operatorPool.accruedRewardCommission.eq(commissionFees));
     assert(operatorPool.accruedRewards.eq(delegatorRewards));
     assert(operatorPool.rewardLastClaimedEpoch.eqn(2));
 
@@ -1034,16 +1034,16 @@ describe("Reward creation and accrual tests", () => {
     const delegatorRewards = rewardAmount.sub(commissionFees);
     const totalTokensTransferred = commissionFees
       .add(delegatorRewards)
-      .add(operatorPre.accruedCommission)
+      .add(operatorPre.accruedRewardCommission)
       .add(operatorPre.accruedRewards);
 
     // Calculate USDC commission
     const usdcCommissionRateBps = operatorPre.usdcCommissionRateBps;
-    const usdcCommissionFees = operatorPre.accruedUsdcPayout
+    const usdcCommissionFees = operatorPre.accruedUsdcCommission
       .add(usdcAmount)
       .mul(new anchor.BN(usdcCommissionRateBps))
       .div(new anchor.BN(10_000));
-    const delegatorUsdcEarnings = operatorPre.accruedUsdcPayout
+    const delegatorUsdcEarnings = operatorPre.accruedUsdcCommission
       .add(usdcAmount)
       .sub(usdcCommissionFees);
 
@@ -1051,7 +1051,7 @@ describe("Reward creation and accrual tests", () => {
       operatorPre.accruedRewards.add(delegatorRewards)
     );
 
-    const tokenAmount = operatorPre.accruedCommission.add(commissionFees);
+    const tokenAmount = operatorPre.accruedRewardCommission.add(commissionFees);
     const sharesPrinted = tokenAmount
       .mul(operatorPre.totalShares)
       .div(amountToStakedAccount);
@@ -1079,8 +1079,8 @@ describe("Reward creation and accrual tests", () => {
     );
     assert(operatorPool.totalUnstaking.eq(operatorPre.totalUnstaking));
     assert(operatorPool.accruedRewards.isZero());
-    assert(operatorPool.accruedCommission.isZero());
-    assert(operatorPool.accruedUsdcPayout.isZero());
+    assert(operatorPool.accruedRewardCommission.isZero());
+    assert(operatorPool.accruedUsdcCommission.isZero());
 
     // Check that operator's stake has increased.
     const operatorStakingRecord = await program.account.stakingRecord.fetch(

@@ -161,12 +161,12 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         .accrued_rewards
         .checked_add(delegator_rewards)
         .unwrap();
-    operator_pool.accrued_commission = operator_pool
-        .accrued_commission
+    operator_pool.accrued_reward_commission = operator_pool
+        .accrued_reward_commission
         .checked_add(commission)
         .unwrap();
-    operator_pool.accrued_usdc_payout = operator_pool
-        .accrued_usdc_payout
+    operator_pool.accrued_usdc_commission = operator_pool
+        .accrued_usdc_commission
         .checked_add(usdc_commission)
         .unwrap();
     operator_pool.accrued_delegator_usdc = operator_pool
@@ -181,7 +181,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
 
     if should_transfer_rewards {
         // Use the accumulated balances for transfers and updates
-        let total_operator_usdc_to_transfer = operator_pool.accrued_usdc_payout;
+        let total_operator_usdc_to_transfer = operator_pool.accrued_usdc_commission;
         let total_delegator_usdc_to_transfer = operator_pool.accrued_delegator_usdc;
 
         operator_pool.total_staked_amount = operator_pool
@@ -191,7 +191,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         let mut amount_to_staked_account = operator_pool.accrued_rewards;
 
         if operator_pool.auto_stake_fees {
-            let accrued_commission = operator_pool.accrued_commission;
+            let accrued_commission = operator_pool.accrued_reward_commission;
             amount_to_staked_account = amount_to_staked_account
                 .checked_add(accrued_commission)
                 .unwrap();
@@ -215,7 +215,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
                     },
                     &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],
                 ),
-                operator_pool.accrued_commission,
+                operator_pool.accrued_reward_commission,
             )?;
         }
 
@@ -295,7 +295,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
             .unclaimed_rewards
             .checked_sub(operator_pool.accrued_rewards)
             .unwrap()
-            .checked_sub(operator_pool.accrued_commission)
+            .checked_sub(operator_pool.accrued_reward_commission)
             .unwrap();
 
         // Update unclaimed USDC rewards
@@ -310,13 +310,13 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
 
         let total_reward_token_payout = operator_pool
             .accrued_rewards
-            .checked_add(operator_pool.accrued_commission)
+            .checked_add(operator_pool.accrued_reward_commission)
             .unwrap();
 
         // Reset ALL accumulators to zero after successful processing
         operator_pool.accrued_rewards = 0;
-        operator_pool.accrued_commission = 0;
-        operator_pool.accrued_usdc_payout = 0;
+        operator_pool.accrued_reward_commission = 0;
+        operator_pool.accrued_usdc_commission = 0;
         operator_pool.accrued_delegator_usdc = 0;
 
         emit!(AccrueRewardEvent {

@@ -359,12 +359,12 @@ async function handleAccrueRewardForEpochs({
           `Accrued rewards should be zero, was ${operatorPool.accruedRewards.toString()}`
         );
         assert(
-          operatorPool.accruedCommission.isZero(),
-          `Accrued commission should be zero, was ${operatorPool.accruedCommission.toString()}`
+          operatorPool.accruedRewardCommission.isZero(),
+          `Accrued commission should be zero, was ${operatorPool.accruedRewardCommission.toString()}`
         );
         assert(
-          operatorPool.accruedUsdcPayout.isZero(),
-          `Accrued USDC payout should be zero, was ${operatorPool.accruedUsdcPayout.toString()}`
+          operatorPool.accruedUsdcCommission.isZero(),
+          `Accrued USDC payout should be zero, was ${operatorPool.accruedUsdcCommission.toString()}`
         );
 
         const feeBalanceDiff = new anchor.BN(feeBalance.value.amount).sub(
@@ -1004,7 +1004,7 @@ describe("multi-epoch lifecycle tests", () => {
       assert(!operatorPool.isHalted);
       assert(operatorPool.rewardLastClaimedEpoch.eqn(0));
       assert(operatorPool.accruedRewards.isZero());
-      assert(operatorPool.accruedCommission.isZero());
+      assert(operatorPool.accruedRewardCommission.isZero());
 
       const stakingRecord = await program.account.stakingRecord.fetch(
         pool.stakingRecord

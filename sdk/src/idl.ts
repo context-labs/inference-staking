@@ -2323,6 +2323,18 @@ const _IDL = {
             },
           },
           {
+            name: "usdcCommissionRateBps",
+            docs: ["USDC commission rate in basis points (0-10000)"],
+            type: "u16",
+          },
+          {
+            name: "newUsdcCommissionRateBps",
+            docs: ["Pending USDC commission rate for next epoch"],
+            type: {
+              option: "u16",
+            },
+          },
+          {
             name: "allowDelegation",
             docs: [
               "If any other user is allowed to delegate stake to Pool, besides operator_staking_record.",
@@ -2388,7 +2400,7 @@ const _IDL = {
             type: "u64",
           },
           {
-            name: "accruedCommission",
+            name: "accruedRewardCommission",
             docs: [
               "Commission that have been calculated in `accrueRewards`, that are yet to be physically transferred to fee account.",
               "Used to optimize compute.",
@@ -2396,7 +2408,7 @@ const _IDL = {
             type: "u64",
           },
           {
-            name: "accruedUsdcPayout",
+            name: "accruedUsdcCommission",
             docs: [
               "USDC commission that have been calculated in `accrueRewards`, that are yet to be physically transferred to USDC fee account.",
               "Used to optimize compute.",
@@ -2404,16 +2416,12 @@ const _IDL = {
             type: "u64",
           },
           {
-            name: "usdcCommissionRateBps",
-            docs: ["USDC commission rate in basis points (0-10000)"],
-            type: "u16",
-          },
-          {
-            name: "newUsdcCommissionRateBps",
-            docs: ["Pending USDC commission rate for next epoch"],
-            type: {
-              option: "u16",
-            },
+            name: "accruedDelegatorUsdc",
+            docs: [
+              "USDC earned by delegators, yet to be transferred to the pool vault.",
+              "Used to optimize compute.",
+            ],
+            type: "u64",
           },
           {
             name: "cumulativeUsdcPerShare",
@@ -2421,13 +2429,6 @@ const _IDL = {
               "Cumulative USDC per share (scaled by USDC_PRECISION_FACTOR)",
             ],
             type: "u128",
-          },
-          {
-            name: "accruedDelegatorUsdc",
-            docs: [
-              "USDC earned by delegators, yet to be transferred to the pool vault. Used to optimize compute.",
-            ],
-            type: "u64",
           },
         ],
       },

@@ -52,6 +52,12 @@ pub struct OperatorPool {
     /// Commission Rate that will take place next Epoch, if set. Capped at 100%.
     pub new_reward_commission_rate_bps: Option<u16>,
 
+    /// USDC commission rate in basis points (0-10000)
+    pub usdc_commission_rate_bps: u16,
+
+    /// Pending USDC commission rate for next epoch
+    pub new_usdc_commission_rate_bps: Option<u16>,
+
     /// If any other user is allowed to delegate stake to Pool, besides operator_staking_record.
     pub allow_delegation: bool,
 
@@ -85,23 +91,18 @@ pub struct OperatorPool {
 
     /// Commission that have been calculated in `accrueRewards`, that are yet to be physically transferred to fee account.
     /// Used to optimize compute.
-    pub accrued_commission: u64,
+    pub accrued_reward_commission: u64,
 
     /// USDC commission that have been calculated in `accrueRewards`, that are yet to be physically transferred to USDC fee account.
     /// Used to optimize compute.
-    pub accrued_usdc_payout: u64,
+    pub accrued_usdc_commission: u64,
 
-    /// USDC commission rate in basis points (0-10000)
-    pub usdc_commission_rate_bps: u16,
-
-    /// Pending USDC commission rate for next epoch
-    pub new_usdc_commission_rate_bps: Option<u16>,
+    /// USDC earned by delegators, yet to be transferred to the pool vault.
+    /// Used to optimize compute.
+    pub accrued_delegator_usdc: u64,
 
     /// Cumulative USDC per share (scaled by USDC_PRECISION_FACTOR)
     pub cumulative_usdc_per_share: u128,
-
-    /// USDC earned by delegators, yet to be transferred to the pool vault. Used to optimize compute.
-    pub accrued_delegator_usdc: u64,
 }
 
 impl OperatorPool {

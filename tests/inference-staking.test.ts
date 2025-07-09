@@ -394,7 +394,7 @@ describe("inference-staking program tests", () => {
     assert(!operatorPool.isHalted);
     assert(operatorPool.rewardLastClaimedEpoch.eqn(1));
     assert(operatorPool.accruedRewards.isZero());
-    assert(operatorPool.accruedCommission.isZero());
+    assert(operatorPool.accruedRewardCommission.isZero());
 
     const stakingRecord = await program.account.stakingRecord.fetch(
       setup.pool1.stakingRecord
@@ -1689,7 +1689,7 @@ describe("inference-staking program tests", () => {
     assert(!operatorPool.isHalted);
     assert(operatorPool.rewardLastClaimedEpoch.eqn(1));
     assert(operatorPool.accruedRewards.isZero());
-    assert(operatorPool.accruedCommission.isZero());
+    assert(operatorPool.accruedRewardCommission.isZero());
 
     const stakingRecord = await program.account.stakingRecord.fetch(
       setup.pool2.stakingRecord
@@ -1960,7 +1960,7 @@ describe("inference-staking program tests", () => {
     assert(operatorPool.totalShares.eq(operatorPre.totalShares));
     assert(operatorPool.totalUnstaking.eq(operatorPre.totalUnstaking));
     assert(operatorPool.accruedRewards.isZero());
-    assert(operatorPool.accruedCommission.isZero());
+    assert(operatorPool.accruedRewardCommission.isZero());
     assert.isNull(operatorPool.newRewardCommissionRateBps);
 
     // Verify that operator's shares remain unchanged with auto-stake disabled.
