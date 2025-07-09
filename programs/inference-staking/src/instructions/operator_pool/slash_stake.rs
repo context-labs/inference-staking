@@ -116,8 +116,8 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
     }
 
     // Confiscate any USDC commission fees the operator may have
-    let usdc_commission_amount = operator_pool.accrued_usdc_commission;
-    if usdc_commission_amount > 0 {
+    let available_usdc_commission = ctx.accounts.usdc_fee_token_account.amount;
+    if available_usdc_commission > 0 {
         token::transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -128,11 +128,8 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
                 },
                 &[operator_pool_signer_seeds!(operator_pool)],
             ),
-            usdc_commission_amount,
+            available_usdc_commission,
         )?;
-
-        // Reset accrued USDC commission since we've confiscated all USDC commission fees
-        operator_pool.accrued_usdc_commission = 0;
     }
 
     // Transfer slashed tokens to destination account
