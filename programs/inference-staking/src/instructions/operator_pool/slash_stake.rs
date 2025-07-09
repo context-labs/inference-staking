@@ -53,6 +53,13 @@ pub struct SlashStake<'info> {
 
     #[account(
         mut,
+        seeds = [b"PoolRewardCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
+        bump,
+    )]
+    pub reward_fee_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
         seeds = [b"PoolUsdcCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
         bump,
     )]
@@ -113,6 +120,23 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
 
         // Reset accrued USDC earnings since we've confiscated all USDC earnings
         operator_staking_record.accrued_usdc_earnings = 0;
+    }
+
+    // Confiscate any reward commission tokens the operator may have
+    let available_reward_commission = ctx.accounts.reward_fee_token_account.amount;
+    if available_reward_commission > 0 {
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.reward_fee_token_account.to_account_info(),
+                    to: ctx.accounts.destination.to_account_info(),
+                    authority: operator_pool.to_account_info(),
+                },
+                &[operator_pool_signer_seeds!(operator_pool)],
+            ),
+            available_reward_commission,
+        )?;
     }
 
     // Confiscate any USDC commission fees the operator may have

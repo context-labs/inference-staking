@@ -1292,6 +1292,26 @@ const _IDL = {
           },
         },
         {
+          name: "rewardFeeTokenAccount",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 82, 101, 119, 97, 114, 100, 67, 111, 109,
+                  109, 105, 115, 115, 105, 111, 110, 84, 111, 107, 101, 110, 86,
+                  97, 117, 108, 116,
+                ],
+              },
+              {
+                kind: "account",
+                path: "operatorPool",
+              },
+            ],
+          },
+        },
+        {
           name: "usdcFeeTokenAccount",
           writable: true,
           pda: {
