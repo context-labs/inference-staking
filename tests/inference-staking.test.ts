@@ -2292,6 +2292,7 @@ describe("inference-staking program tests", () => {
             setup.pool1.admin
           ),
           tokenProgram: TOKEN_PROGRAM_ID,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -2342,6 +2343,7 @@ describe("inference-staking program tests", () => {
           setup.pool1.admin
         ),
         tokenProgram: TOKEN_PROGRAM_ID,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
       })
       .signers([setup.slashingAuthorityKp])
       .rpc();

@@ -53,7 +53,15 @@ pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
     let operator_pool = &ctx.accounts.operator_pool;
     let staking_record = &mut ctx.accounts.staking_record;
 
-    // Ensure withdrawals are enabled
+    let is_operator_claiming = operator_pool.operator_staking_record.key() == staking_record.key();
+
+    // Check that operator is not claiming when pool is halted.
+    require!(
+        !is_operator_claiming || !operator_pool.is_halted,
+        ErrorCode::OperatorPoolHalted
+    );
+
+    // Check that global withdrawal has not been halted.
     require!(
         !pool_overview.is_withdrawal_halted,
         ErrorCode::WithdrawalsHalted
