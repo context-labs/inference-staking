@@ -2314,11 +2314,15 @@ describe("inference-staking program tests", () => {
       operatorPoolTokenAccountPre,
       operatorStakingRecordPre,
       operatorPoolPre,
+      rewardCommissionBalancePre,
     ] = await Promise.all([
       connection.getTokenAccountBalance(destinationTokenAccount),
       connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
       program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
       program.account.operatorPool.fetch(setup.pool1.pool),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
     ]);
 
     // Slash 5% of the operator's stake.
@@ -2326,6 +2330,10 @@ describe("inference-staking program tests", () => {
     const expectedStakeRemoved = operatorPoolPre.totalStakedAmount
       .mul(sharesToSlash)
       .div(operatorPoolPre.totalShares);
+
+    const expectedRewardCommissionConfiscated = new anchor.BN(
+      rewardCommissionBalancePre.value.amount
+    );
 
     await program.methods
       .slashStake({ sharesAmount: sharesToSlash })
@@ -2355,11 +2363,15 @@ describe("inference-staking program tests", () => {
       operatorPoolTokenAccountPost,
       operatorStakingRecordPost,
       operatorPoolPost,
+      rewardCommissionBalancePost,
     ] = await Promise.all([
       connection.getTokenAccountBalance(destinationTokenAccount),
       connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
       program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
       program.account.operatorPool.fetch(setup.pool1.pool),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
     ]);
 
     // Assert change in Operator stake
@@ -2393,14 +2405,21 @@ describe("inference-staking program tests", () => {
       "OperatorPool token account must send the slashed amount"
     );
 
-    // Assert destination received tokens
+    assert(
+      rewardCommissionBalancePost.value.amount === "0",
+      "Reward commission fee token account must be empty after slashing"
+    );
+
+    const totalExpectedTokens = expectedStakeRemoved.add(
+      expectedRewardCommissionConfiscated
+    );
     assert(
       new anchor.BN(destinationBalancePost.value.amount).eq(
         new anchor.BN(destinationBalancePre.value.amount).add(
-          expectedStakeRemoved
+          totalExpectedTokens
         )
       ),
-      "Destination token account must receive the slashed amount"
+      "Destination token account must receive both slashed tokens and reward commission"
     );
   });
 
