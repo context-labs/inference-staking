@@ -5,6 +5,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import type { Connection } from "@solana/web3.js";
+import { SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
 import { SystemProgram } from "@solana/web3.js";
 import { PublicKey } from "@solana/web3.js";
 import { assert } from "chai";
@@ -267,6 +268,7 @@ describe("Reward creation and accrual tests", () => {
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
         ownerTokenAccount,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -297,6 +299,7 @@ describe("Reward creation and accrual tests", () => {
           setup.tokenMint,
           setup.delegator1
         ),
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.delegator1Kp])
       .rpc();
@@ -602,6 +605,7 @@ describe("Reward creation and accrual tests", () => {
           usdcTokenAccount: setup.usdcTokenAccount,
           poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
     } catch (error) {
@@ -659,6 +663,7 @@ describe("Reward creation and accrual tests", () => {
           usdcTokenAccount: setup.usdcTokenAccount,
           poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
       assert(false);
@@ -692,6 +697,7 @@ describe("Reward creation and accrual tests", () => {
           usdcTokenAccount: setup.usdcTokenAccount,
           poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
       assert(false);
@@ -727,6 +733,7 @@ describe("Reward creation and accrual tests", () => {
           usdcTokenAccount: setup.usdcTokenAccount,
           poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
       assert(false);
@@ -762,6 +769,7 @@ describe("Reward creation and accrual tests", () => {
           usdcTokenAccount: setup.usdcTokenAccount,
           poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
       assert(false);
@@ -817,6 +825,7 @@ describe("Reward creation and accrual tests", () => {
           usdcTokenAccount: setup.usdcTokenAccount,
           poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
       assert(false);
@@ -881,6 +890,7 @@ describe("Reward creation and accrual tests", () => {
         usdcTokenAccount: setup.usdcTokenAccount,
         poolUsdcVault: setup.pool1.poolUsdcVault,
         tokenProgram: TOKEN_PROGRAM_ID,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .rpc();
 
@@ -962,6 +972,7 @@ describe("Reward creation and accrual tests", () => {
           usdcTokenAccount: setup.usdcTokenAccount,
           poolUsdcVault: setup.pool1.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
       assert(false);
@@ -1024,6 +1035,7 @@ describe("Reward creation and accrual tests", () => {
         usdcTokenAccount: setup.usdcTokenAccount,
         poolUsdcVault: setup.pool1.poolUsdcVault,
         tokenProgram: TOKEN_PROGRAM_ID,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .rpc();
 
@@ -1236,6 +1248,7 @@ describe("Reward creation and accrual tests", () => {
         usdcTokenAccount: setup.usdcTokenAccount,
         poolUsdcVault: setup.pool1.poolUsdcVault,
         tokenProgram: TOKEN_PROGRAM_ID,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .rpc();
   });
@@ -1342,6 +1355,7 @@ describe("Reward creation and accrual tests", () => {
         usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         usdcTokenAccount: setup.usdcTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .rpc();
 
@@ -1376,6 +1390,7 @@ describe("Reward creation and accrual tests", () => {
           usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           usdcTokenAccount: setup.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
       assert(false);

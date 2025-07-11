@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::{
@@ -74,6 +75,10 @@ pub struct SlashStake<'info> {
     pub destination_usdc_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
@@ -178,7 +183,11 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
         slashed_token_amount,
     )?;
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
     emit!(SlashStakeEvent {
+        instruction_index,
         operator_pool: operator_pool_key,
         operator_staking_record: operator_staking_record_key,
         authority: authority_key,

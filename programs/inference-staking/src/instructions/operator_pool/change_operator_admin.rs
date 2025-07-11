@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 
 use crate::{
     error::ErrorCode, events::ChangeOperatorAdminEvent, state::OperatorPool, PoolOverview,
@@ -27,6 +28,10 @@ pub struct ChangeOperatorAdmin<'info> {
         has_one = admin,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 pub fn handler(ctx: Context<ChangeOperatorAdmin>) -> Result<()> {
@@ -36,7 +41,11 @@ pub fn handler(ctx: Context<ChangeOperatorAdmin>) -> Result<()> {
 
     operator_pool.admin = new_admin;
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
     emit!(ChangeOperatorAdminEvent {
+        instruction_index,
         operator_pool: operator_pool.key(),
         old_admin,
         new_admin,

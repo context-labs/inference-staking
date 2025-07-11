@@ -6,6 +6,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import type { Connection } from "@solana/web3.js";
+import { SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
 import { Keypair, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
@@ -458,6 +459,7 @@ describe("inference-staking program tests", () => {
         newAdmin: setup.signer,
         operatorPool: setup.pool1.pool,
         poolOverview: setup.poolOverview,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp, setup.signerKp])
       .rpc();
@@ -478,6 +480,7 @@ describe("inference-staking program tests", () => {
         newAdmin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
         poolOverview: setup.poolOverview,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.signerKp, setup.pool1.adminKp])
       .rpc();
@@ -863,6 +866,7 @@ describe("inference-staking program tests", () => {
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.delegator1Kp])
         .rpc();
@@ -897,6 +901,7 @@ describe("inference-staking program tests", () => {
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -930,6 +935,7 @@ describe("inference-staking program tests", () => {
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
         ownerTokenAccount,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -966,6 +972,7 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           operatorStakingRecord: setup.pool1.stakingRecord,
           newStakingRecord: setup.pool1.delegatorStakingRecord,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp, setup.delegator1Kp])
         .rpc();
@@ -1007,6 +1014,7 @@ describe("inference-staking program tests", () => {
             setup.tokenMint,
             setup.delegator1
           ),
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.delegator1Kp])
         .rpc();
@@ -1031,6 +1039,7 @@ describe("inference-staking program tests", () => {
           setup.tokenMint,
           setup.pool1.admin
         ),
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -1076,6 +1085,7 @@ describe("inference-staking program tests", () => {
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
         ownerTokenAccount,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.delegator1Kp])
       .rpc();
@@ -1161,6 +1171,7 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.delegator1Kp])
         .rpc();
@@ -1190,6 +1201,7 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.delegator1Kp])
         .rpc();
@@ -1222,6 +1234,7 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           ownerStakingRecord: setup.pool1.delegatorStakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.delegator1Kp])
         .rpc();
@@ -1267,6 +1280,7 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           ownerStakingRecord: setup.pool1.stakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -1292,6 +1306,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         ownerStakingRecord: setup.pool1.delegatorStakingRecord,
         operatorStakingRecord: setup.pool1.stakingRecord,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.delegator1Kp])
       .rpc();
@@ -1358,6 +1373,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         ownerStakingRecord: setup.pool1.stakingRecord,
         operatorStakingRecord: setup.pool1.stakingRecord,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -1410,6 +1426,7 @@ describe("inference-staking program tests", () => {
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
         ownerStakingRecord: setup.pool1.stakingRecord,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -1457,6 +1474,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         ownerStakingRecord: setup.pool1.stakingRecord,
         operatorStakingRecord: setup.pool1.stakingRecord,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -1479,6 +1497,7 @@ describe("inference-staking program tests", () => {
           ownerTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
 
@@ -1790,6 +1809,7 @@ describe("inference-staking program tests", () => {
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.delegator1Kp])
         .rpc();
@@ -1809,6 +1829,7 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           ownerStakingRecord: setup.pool1.stakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -1827,6 +1848,7 @@ describe("inference-staking program tests", () => {
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
           ownerStakingRecord: setup.pool1.stakingRecord,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -1855,6 +1877,7 @@ describe("inference-staking program tests", () => {
           ownerTokenAccount,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
 
@@ -1923,6 +1946,7 @@ describe("inference-staking program tests", () => {
           setup.pool1.pool
         ),
         tokenProgram: TOKEN_PROGRAM_ID,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .rpc();
 
@@ -2043,6 +2067,7 @@ describe("inference-staking program tests", () => {
           ),
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
       assert(false);
@@ -2094,6 +2119,7 @@ describe("inference-staking program tests", () => {
           ),
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
       assert(false);
@@ -2139,6 +2165,7 @@ describe("inference-staking program tests", () => {
         ownerTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .rpc();
 
@@ -2196,6 +2223,7 @@ describe("inference-staking program tests", () => {
           ),
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
       assert(false);
@@ -2240,6 +2268,7 @@ describe("inference-staking program tests", () => {
         ownerTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .rpc();
 
@@ -2294,6 +2323,7 @@ describe("inference-staking program tests", () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
           rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -2354,6 +2384,7 @@ describe("inference-staking program tests", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.slashingAuthorityKp])
       .rpc();
@@ -2472,6 +2503,7 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           ownerStakingRecord: setup.pool1.stakingRecord,
           operatorStakingRecord: setup.pool1.stakingRecord,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -2499,6 +2531,7 @@ describe("inference-staking program tests", () => {
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.delegator1Kp])
         .rpc();
@@ -2540,6 +2573,7 @@ describe("inference-staking program tests", () => {
             setup.pool1.admin
           ),
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -2594,6 +2628,7 @@ describe("inference-staking program tests", () => {
             setup.pool1.admin
           ),
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -2644,6 +2679,7 @@ describe("inference-staking program tests", () => {
             setup.pool1.admin
           ),
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -2695,6 +2731,7 @@ describe("inference-staking program tests", () => {
             setup.pool1.admin
           ),
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -2739,6 +2776,7 @@ describe("inference-staking program tests", () => {
         rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
         destination: destinationTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -2786,6 +2824,7 @@ describe("inference-staking program tests", () => {
         usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         destination: destinationUsdcAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -2823,6 +2862,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         operatorStakingRecord: setup.pool1.stakingRecord,
         newStakingRecord: setup.pool1.delegatorStakingRecord,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp, setup.delegator1Kp])
       .rpc();
@@ -2847,6 +2887,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         operatorStakingRecord: setup.pool1.delegatorStakingRecord,
         newStakingRecord: setup.pool1.stakingRecord,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -2873,6 +2914,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         ownerStakingRecord: setup.pool1.delegatorStakingRecord,
         operatorStakingRecord: setup.pool1.stakingRecord,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.delegator1Kp])
       .rpc();
@@ -2997,6 +3039,7 @@ describe("inference-staking program tests", () => {
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.delegator1Kp])
         .rpc();
@@ -3025,6 +3068,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         ownerStakingRecord: setup.pool1.stakingRecord,
         operatorStakingRecord: setup.pool1.stakingRecord,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -3063,6 +3107,7 @@ describe("inference-staking program tests", () => {
         ownerTokenAccount,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .rpc();
 

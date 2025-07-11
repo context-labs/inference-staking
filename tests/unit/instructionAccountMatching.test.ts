@@ -32,12 +32,15 @@ describe("Instruction Account Matching", () => {
         case "adminTokenAccount":
         case "adminUsdcAccount":
         case "authority":
+        case "currentPoolRewardRecord":
         case "destination":
         case "destinationUsdcAccount":
+        case "instructions":
         case "mint":
         case "newAdmin":
         case "newProgramAdmin":
         case "newStakingRecord":
+        case "nextPoolRewardRecord":
         case "operatorPool":
         case "operatorStakingRecord":
         case "operatorUsdcVault":
@@ -61,8 +64,6 @@ describe("Instruction Account Matching", () => {
         case "usdcFeeTokenAccount":
         case "usdcMint":
         case "usdcTokenAccount":
-        case "currentPoolRewardRecord":
-        case "nextPoolRewardRecord":
           assert.ok(seen.get(account) === 1);
           break;
         default: {

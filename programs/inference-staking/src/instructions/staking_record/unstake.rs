@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 
 use crate::error::ErrorCode;
 use crate::events::UnstakeEvent;
@@ -40,6 +41,10 @@ pub struct Unstake<'info> {
         address = operator_pool.operator_staking_record,
     )]
     pub operator_staking_record: Box<Account<'info, StakingRecord>>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 /// Instruction to initiate unstaking of tokens from an OperatorPool.
@@ -122,7 +127,11 @@ pub fn handler(ctx: Context<Unstake>, shares_amount: u64) -> Result<()> {
         }
     }
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
     emit!(UnstakeEvent {
+        instruction_index,
         operator_pool: operator_pool.key(),
         staking_record: staking_record_key,
         owner: owner_key,

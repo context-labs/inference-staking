@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 
 use crate::error::ErrorCode;
 use crate::events::StakeEvent;
@@ -57,6 +58,10 @@ pub struct Stake<'info> {
     pub staked_token_account: Box<Account<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 /// Instruction to stake tokens to an OperatorPool.
@@ -123,7 +128,11 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
         ErrorCode::MinOperatorTokenStakeNotMet
     );
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
     emit!(StakeEvent {
+        instruction_index,
         operator_pool: operator_pool.key(),
         staking_record: ctx.accounts.owner_staking_record.key(),
         owner: ctx.accounts.owner.key(),

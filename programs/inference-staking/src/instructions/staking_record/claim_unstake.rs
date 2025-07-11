@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCode;
@@ -58,6 +59,10 @@ pub struct ClaimUnstake<'info> {
     pub staked_token_account: Box<Account<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 /// Instruction to claim tokens after unstaking delay.
@@ -137,7 +142,11 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
         );
     }
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
     emit!(ClaimUnstakeEvent {
+        instruction_index,
         operator_pool: operator_pool_key,
         staking_record: staking_record_key,
         owner: owner_key,

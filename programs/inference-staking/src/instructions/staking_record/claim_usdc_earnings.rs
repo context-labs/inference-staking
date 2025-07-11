@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::{
@@ -47,6 +48,10 @@ pub struct ClaimUsdcEarnings<'info> {
     pub destination: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
@@ -110,7 +115,11 @@ pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
     // Reset available USDC balance
     staking_record.accrued_usdc_earnings = 0;
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
     emit!(ClaimUsdcEarningsEvent {
+        instruction_index,
         operator_pool: operator_pool_key,
         staking_record: staking_record_key,
         owner: owner_key,

@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 
 use crate::{
     error::ErrorCode,
@@ -44,6 +45,10 @@ pub struct ChangeOperatorStakingRecord<'info> {
         has_one = operator_pool,
     )]
     pub new_staking_record: Account<'info, StakingRecord>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 /// This instruction provides an emergency option for an operator to change their staking record,
@@ -69,7 +74,11 @@ pub fn handler(ctx: Context<ChangeOperatorStakingRecord>) -> Result<()> {
 
     operator_pool.operator_staking_record = new_staking_record;
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
     emit!(ChangeOperatorStakingRecordEvent {
+        instruction_index,
         operator_pool: operator_pool.key(),
         admin: ctx.accounts.admin.key(),
         old_staking_record,

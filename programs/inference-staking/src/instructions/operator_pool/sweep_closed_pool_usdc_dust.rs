@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 use anchor_spl::token::{self, CloseAccount, Token, TokenAccount, Transfer};
 
 use crate::{
@@ -47,6 +48,10 @@ pub struct SweepClosedPoolUsdcDust<'info> {
     pub token_program: Program<'info, Token>,
 
     pub system_program: Program<'info, System>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 pub fn handler(ctx: Context<SweepClosedPoolUsdcDust>) -> Result<()> {
@@ -92,7 +97,11 @@ pub fn handler(ctx: Context<SweepClosedPoolUsdcDust>) -> Result<()> {
         &[operator_pool_signer_seeds!(operator_pool)],
     ))?;
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
     emit!(SweepClosedPoolUsdcDustEvent {
+        instruction_index,
         operator_pool: operator_pool.key(),
         admin: ctx.accounts.admin.key(),
         usdc_amount_swept: remaining_balance,

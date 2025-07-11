@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::{
@@ -38,6 +39,10 @@ pub struct WithdrawOperatorUsdcCommission<'info> {
     pub destination: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 /// Send all USDC fees collected in the OperatorPool's USDC Fee TokenAccount to the destination.
@@ -67,7 +72,11 @@ pub fn handler(ctx: Context<WithdrawOperatorUsdcCommission>) -> Result<()> {
         fees_amount,
     )?;
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
     emit!(WithdrawOperatorUsdcCommissionEvent {
+        instruction_index,
         operator_pool: ctx.accounts.operator_pool.key(),
         admin: ctx.accounts.admin.key(),
         destination: ctx.accounts.destination.key(),

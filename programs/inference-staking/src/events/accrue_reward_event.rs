@@ -2,6 +2,9 @@ use anchor_lang::prelude::*;
 
 #[event]
 pub struct AccrueRewardEvent {
+    // Instruction index this event was emitted in
+    pub instruction_index: u16,
+
     // Operator pool this accrued reward event instruction was executed for
     pub operator_pool: Pubkey,
 

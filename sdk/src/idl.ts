@@ -187,6 +187,10 @@ const _IDL = {
           name: "tokenProgram",
           address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
         },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
+        },
       ],
       args: [
         {
@@ -313,6 +317,10 @@ const _IDL = {
           name: "ownerStakingRecord",
           writable: true,
         },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
+        },
       ],
       args: [],
     },
@@ -360,6 +368,10 @@ const _IDL = {
               },
             ],
           },
+        },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
         },
       ],
       args: [],
@@ -438,6 +450,10 @@ const _IDL = {
               },
             ],
           },
+        },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
         },
       ],
       args: [],
@@ -536,6 +552,10 @@ const _IDL = {
           name: "tokenProgram",
           address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
         },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
+        },
       ],
       args: [],
     },
@@ -614,6 +634,10 @@ const _IDL = {
         {
           name: "tokenProgram",
           address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
         },
       ],
       args: [],
@@ -1339,6 +1363,10 @@ const _IDL = {
           name: "tokenProgram",
           address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
         },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
+        },
       ],
       args: [
         {
@@ -1446,6 +1474,10 @@ const _IDL = {
           name: "tokenProgram",
           address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
         },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
+        },
       ],
       args: [
         {
@@ -1515,6 +1547,10 @@ const _IDL = {
         {
           name: "systemProgram",
           address: "11111111111111111111111111111111",
+        },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
         },
       ],
       args: [],
@@ -1586,6 +1622,10 @@ const _IDL = {
         {
           name: "operatorStakingRecord",
           relations: ["operatorPool"],
+        },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
         },
       ],
       args: [
@@ -1783,6 +1823,10 @@ const _IDL = {
           name: "tokenProgram",
           address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
         },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
+        },
       ],
       args: [],
     },
@@ -1854,6 +1898,10 @@ const _IDL = {
         {
           name: "tokenProgram",
           address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
         },
       ],
       args: [],
@@ -2185,6 +2233,10 @@ const _IDL = {
         kind: "struct",
         fields: [
           {
+            name: "instructionIndex",
+            type: "u16",
+          },
+          {
             name: "operatorPool",
             type: "pubkey",
           },
@@ -2225,6 +2277,10 @@ const _IDL = {
         kind: "struct",
         fields: [
           {
+            name: "instructionIndex",
+            type: "u16",
+          },
+          {
             name: "operatorPool",
             type: "pubkey",
           },
@@ -2257,6 +2313,10 @@ const _IDL = {
         kind: "struct",
         fields: [
           {
+            name: "instructionIndex",
+            type: "u16",
+          },
+          {
             name: "operatorPool",
             type: "pubkey",
           },
@@ -2276,6 +2336,10 @@ const _IDL = {
       type: {
         kind: "struct",
         fields: [
+          {
+            name: "instructionIndex",
+            type: "u16",
+          },
           {
             name: "operatorPool",
             type: "pubkey",
@@ -2300,6 +2364,10 @@ const _IDL = {
       type: {
         kind: "struct",
         fields: [
+          {
+            name: "instructionIndex",
+            type: "u16",
+          },
           {
             name: "operatorPool",
             type: "pubkey",
@@ -2328,6 +2396,10 @@ const _IDL = {
       type: {
         kind: "struct",
         fields: [
+          {
+            name: "instructionIndex",
+            type: "u16",
+          },
           {
             name: "operatorPool",
             type: "pubkey",
@@ -2868,6 +2940,10 @@ const _IDL = {
         kind: "struct",
         fields: [
           {
+            name: "instructionIndex",
+            type: "u16",
+          },
+          {
             name: "operatorPool",
             type: "pubkey",
           },
@@ -2915,6 +2991,10 @@ const _IDL = {
       type: {
         kind: "struct",
         fields: [
+          {
+            name: "instructionIndex",
+            type: "u16",
+          },
           {
             name: "operatorPool",
             type: "pubkey",
@@ -2996,6 +3076,10 @@ const _IDL = {
         kind: "struct",
         fields: [
           {
+            name: "instructionIndex",
+            type: "u16",
+          },
+          {
             name: "operatorPool",
             type: "pubkey",
           },
@@ -3015,6 +3099,10 @@ const _IDL = {
       type: {
         kind: "struct",
         fields: [
+          {
+            name: "instructionIndex",
+            type: "u16",
+          },
           {
             name: "operatorPool",
             type: "pubkey",
@@ -3215,6 +3303,10 @@ const _IDL = {
         kind: "struct",
         fields: [
           {
+            name: "instructionIndex",
+            type: "u16",
+          },
+          {
             name: "operatorPool",
             type: "pubkey",
           },
@@ -3238,6 +3330,10 @@ const _IDL = {
       type: {
         kind: "struct",
         fields: [
+          {
+            name: "instructionIndex",
+            type: "u16",
+          },
           {
             name: "operatorPool",
             type: "pubkey",

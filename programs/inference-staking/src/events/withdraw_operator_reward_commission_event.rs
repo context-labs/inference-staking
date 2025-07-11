@@ -2,6 +2,9 @@ use anchor_lang::prelude::*;
 
 #[event]
 pub struct WithdrawOperatorRewardCommissionEvent {
+    // Instruction index this event was emitted in
+    pub instruction_index: u16,
+
     // Operator pool that reward commission was withdrawn from
     pub operator_pool: Pubkey,
 

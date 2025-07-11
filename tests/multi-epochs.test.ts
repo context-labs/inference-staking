@@ -6,6 +6,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import type { Connection } from "@solana/web3.js";
+import { SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
 import { SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
@@ -255,6 +256,7 @@ async function handleAccrueRewardForEpochs({
           usdcFeeTokenAccount: pool.usdcCommissionFeeTokenVault,
           poolUsdcVault: pool.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
 
@@ -670,6 +672,7 @@ describe("multi-epoch lifecycle tests", () => {
           stakedTokenAccount: pool.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount: ownerTokenAccount.address,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([pool.adminKp])
         .rpc();
@@ -775,6 +778,7 @@ describe("multi-epoch lifecycle tests", () => {
           stakedTokenAccount: pool.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
           ownerTokenAccount: ownerTokenAccount.address,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([delegatorKp])
         .rpc();
@@ -1204,6 +1208,7 @@ describe("multi-epoch lifecycle tests", () => {
           poolUsdcVault: pool.poolUsdcVault,
           destination: delegatorUsdcAccount.address,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([delegatorKp])
         .rpc();
@@ -1303,6 +1308,7 @@ describe("multi-epoch lifecycle tests", () => {
           poolUsdcVault: pool.poolUsdcVault,
           destination: pool.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([pool.adminKp])
         .rpc();
@@ -1394,6 +1400,7 @@ describe("multi-epoch lifecycle tests", () => {
           operatorPool: pool.pool,
           ownerStakingRecord: stakingRecord,
           operatorStakingRecord: pool.stakingRecord,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([delegatorKp])
         .rpc();
@@ -1513,6 +1520,7 @@ describe("multi-epoch lifecycle tests", () => {
           ownerTokenAccount: ownerTokenAccount.address,
           stakedTokenAccount: pool.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
 
@@ -1662,6 +1670,7 @@ describe("multi-epoch lifecycle tests", () => {
           rewardFeeTokenAccount: pool.rewardCommissionFeeTokenVault,
           destination: ownerTokenAccount.address,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([pool.adminKp])
         .rpc();
@@ -1732,6 +1741,7 @@ describe("multi-epoch lifecycle tests", () => {
           usdcFeeTokenAccount: pool.usdcCommissionFeeTokenVault,
           destination: pool.usdcTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([pool.adminKp])
         .rpc();
@@ -1851,6 +1861,7 @@ describe("multi-epoch lifecycle tests", () => {
           operatorPool: pool.pool,
           ownerStakingRecord: pool.stakingRecord,
           operatorStakingRecord: pool.stakingRecord,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([pool.adminKp])
         .rpc();
@@ -1964,6 +1975,7 @@ describe("multi-epoch lifecycle tests", () => {
           ownerTokenAccount: ownerTokenAccount.address,
           stakedTokenAccount: pool.stakedTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
 
@@ -2133,6 +2145,7 @@ describe("multi-epoch lifecycle tests", () => {
           poolOverview: setup.poolOverview,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([pool.adminKp])
         .rpc();

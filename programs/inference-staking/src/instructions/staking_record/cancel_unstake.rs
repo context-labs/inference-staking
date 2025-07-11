@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 
 use crate::events::CancelUnstakeEvent;
 use crate::state::{OperatorPool, PoolOverview, StakingRecord};
@@ -22,6 +23,10 @@ pub struct CancelUnstake<'info> {
         has_one = operator_pool,
     )]
     pub owner_staking_record: Box<Account<'info, StakingRecord>>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 /// Instruction to cancel unstaking of tokens from an OperatorPool.
@@ -56,7 +61,11 @@ pub fn handler(ctx: Context<CancelUnstake>) -> Result<()> {
     staking_record.unstake_at_timestamp = 0;
     staking_record.tokens_unstake_amount = 0;
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
     emit!(CancelUnstakeEvent {
+        instruction_index,
         operator_pool: operator_pool_key,
         staking_record: staking_record_key,
         owner: owner_key,
