@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "module": "es6",
-    "target": "es6",
+    "module": "ESNext",
+    "target": "ESNext",
     "noEmit": true,
     "strict": true,
     "allowUnreachableCode": false,
