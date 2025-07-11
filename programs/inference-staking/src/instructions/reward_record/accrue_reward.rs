@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::constants::USDC_PRECISION_FACTOR;
@@ -86,6 +87,10 @@ pub struct AccrueReward<'info> {
     pub pool_usdc_vault: Box<Account<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -95,6 +100,7 @@ pub struct AccrueRewardArgs {
     pub proof_path: Vec<bool>,
     pub reward_amount: u64,
     pub usdc_amount: u64,
+    pub new_arg: bool,
 }
 
 /// Instruction to accrue reward issued for an OperatorPool.
@@ -105,6 +111,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         proof_path,
         reward_amount,
         usdc_amount,
+        new_arg,
     } = args;
 
     let reward_record = &ctx.accounts.reward_record;
@@ -323,6 +330,11 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         operator_pool.accrued_delegator_usdc = 0;
     }
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let current_index = load_current_index_checked(&instructions)?;
+    msg!("Current instruction index: {}", current_index);
+    msg!("new_arg: {}", new_arg);
+
     emit!(AccrueRewardEvent {
         operator_pool: operator_pool.key(),
         epoch: reward_record.epoch,
@@ -332,6 +344,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         operator_reward_commission: reward_commission,
         delegator_usdc_earnings: usdc_delegator_amount,
         operator_usdc_commission: usdc_commission,
+        new_arg,
     });
 
     Ok(())

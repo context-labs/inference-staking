@@ -28,6 +28,20 @@ import type {
 import type { InferenceStaking } from "./idl";
 import { getIdlWithProgramId, IDL } from "./idl";
 import type {
+  V1EventDataMap,
+  V1InferenceStakingEvents,
+  V1ParsedEvent,
+} from "./idl-version-history/v1.events";
+import { getIdlWithProgramIdV1 } from "./idl-version-history/v1.idl";
+import type {
+  V1DecodedStakingProgramInstruction,
+  V1InstructionArgsMap,
+  V1InferenceStakingInstructions,
+  V1InstructionAccountsMap,
+  V1AccountMetaWithName,
+  V1InferenceStakingAccountName,
+} from "./idl-version-history/v1.types";
+import type {
   InferenceStakingErrors,
   DecodedStakingProgramInstruction,
   InferenceStakingInstructions,
@@ -42,6 +56,7 @@ import type {
   InferenceStakingAccountStructName,
 } from "./types";
 import {
+  assertUnreachable,
   batchArray,
   capitalize,
   executeWithRetries,
@@ -49,6 +64,19 @@ import {
   toCamelCase,
   zipArrays,
 } from "./utils";
+
+type ProgramVersion = "v1" | "v2";
+type DecodedTransactionResult =
+  | {
+      version: "v1";
+      tx: V1DecodedStakingProgramInstruction[];
+      events: V1ParsedEvent[];
+    }
+  | {
+      version: "v2";
+      tx: DecodedStakingProgramInstruction[];
+      events: ParsedEvent[];
+    };
 
 export class InferenceStakingProgramSdk {
   coder: BorshCoder;
@@ -585,124 +613,49 @@ export class InferenceStakingProgramSdk {
     return events;
   }
 
-  getAccrueRewardEvents(logs: string[]): ParsedEvent<"accrueRewardEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"accrueRewardEvent"> => {
+  parseEventsFromTransactionLogsV1(logs: string[]): V1ParsedEvent[] {
+    const idl = getIdlWithProgramIdV1(this.program.programId);
+    const borshCoder = new BorshCoder(idl);
+    const eventParser = new EventParser(this.program.programId, borshCoder);
+    const parsedEvents = eventParser.parseLogs(logs);
+
+    const events: V1ParsedEvent[] = [];
+    for (const event of parsedEvents) {
+      try {
+        const parsedEvent: V1ParsedEvent = {
+          name: event.name as V1InferenceStakingEvents,
+          data: event.data as V1EventDataMap[V1InferenceStakingEvents],
+        };
+        events.push(parsedEvent);
+      } catch {
+        // Skip invalid events
+        continue;
+      }
+    }
+
+    return events;
+  }
+
+  getEventTypeV1<T extends V1InferenceStakingEvents>(
+    logs: string[],
+    eventType: T
+  ): V1ParsedEvent<T>[] {
+    return this.parseEventsFromTransactionLogsV1(logs).filter(
+      (event): event is V1ParsedEvent<T> => {
         const eventName: string = event.name;
-        return eventName === "accrueRewardEvent";
+        return eventName === eventType;
       }
     );
   }
 
-  getCancelUnstakeEvents(logs: string[]): ParsedEvent<"cancelUnstakeEvent">[] {
+  getEventType<T extends InferenceStakingEvents>(
+    logs: string[],
+    eventType: T
+  ): ParsedEvent<T>[] {
     return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"cancelUnstakeEvent"> => {
+      (event): event is ParsedEvent<T> => {
         const eventName: string = event.name;
-        return eventName === "cancelUnstakeEvent";
-      }
-    );
-  }
-
-  getChangeOperatorAdminEvents(
-    logs: string[]
-  ): ParsedEvent<"changeOperatorAdminEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"changeOperatorAdminEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "changeOperatorAdminEvent";
-      }
-    );
-  }
-
-  getChangeOperatorStakingRecordEvents(
-    logs: string[]
-  ): ParsedEvent<"changeOperatorStakingRecordEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"changeOperatorStakingRecordEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "changeOperatorStakingRecordEvent";
-      }
-    );
-  }
-
-  getClaimUnstakeEvents(logs: string[]): ParsedEvent<"claimUnstakeEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"claimUnstakeEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "claimUnstakeEvent";
-      }
-    );
-  }
-
-  getClaimUsdcEarningsEvents(
-    logs: string[]
-  ): ParsedEvent<"claimUsdcEarningsEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"claimUsdcEarningsEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "claimUsdcEarningsEvent";
-      }
-    );
-  }
-
-  getSlashStakeEvents(logs: string[]): ParsedEvent<"slashStakeEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"slashStakeEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "slashStakeEvent";
-      }
-    );
-  }
-
-  getStakeEvents(logs: string[]): ParsedEvent<"stakeEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"stakeEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "stakeEvent";
-      }
-    );
-  }
-
-  getSweepClosedPoolUsdcDustEvents(
-    logs: string[]
-  ): ParsedEvent<"sweepClosedPoolUsdcDustEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"sweepClosedPoolUsdcDustEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "sweepClosedPoolUsdcDustEvent";
-      }
-    );
-  }
-
-  getUnstakeEvents(logs: string[]): ParsedEvent<"unstakeEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"unstakeEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "unstakeEvent";
-      }
-    );
-  }
-
-  getWithdrawOperatorRewardCommissionEvents(
-    logs: string[]
-  ): ParsedEvent<"withdrawOperatorRewardCommissionEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (
-        event
-      ): event is ParsedEvent<"withdrawOperatorRewardCommissionEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "withdrawOperatorRewardCommissionEvent";
-      }
-    );
-  }
-
-  getWithdrawOperatorUsdcCommissionEvents(
-    logs: string[]
-  ): ParsedEvent<"withdrawOperatorUsdcCommissionEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"withdrawOperatorUsdcCommissionEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "withdrawOperatorUsdcCommissionEvent";
+        return eventName === eventType;
       }
     );
   }
@@ -779,5 +732,116 @@ export class InferenceStakingProgramSdk {
       }
     }
     return final;
+  }
+
+  decodeTransactionV1(
+    tx: VersionedTransaction
+  ): V1DecodedStakingProgramInstruction[] {
+    const final: V1DecodedStakingProgramInstruction[] = [];
+    const idl = getIdlWithProgramIdV1(this.program.programId);
+    const borshCoder = new BorshCoder(idl);
+    if (tx.message.version === "legacy") {
+      for (const instruction of tx.message.instructions) {
+        try {
+          const decodedIx = borshCoder.instruction.decode(
+            instruction.data,
+            "base58"
+          );
+
+          if (decodedIx == null) {
+            throw new Error("Failed to decode instruction");
+          }
+
+          const name = decodedIx.name as V1InferenceStakingInstructions;
+
+          const args =
+            decodedIx.data as V1InstructionArgsMap[V1InferenceStakingInstructions];
+
+          const accountsMeta: AccountMeta[] = instruction.accounts.map(
+            (idx) => {
+              const pubkey = tx.message.getAccountKeys().get(idx);
+              if (pubkey == null) {
+                throw new Error(`No pubkey exists for account index: ${idx}`);
+              }
+              return {
+                pubkey,
+                isSigner: tx.message.isAccountSigner(idx),
+                isWritable: tx.message.isAccountWritable(idx),
+              };
+            }
+          );
+
+          const decodedAccounts = borshCoder.instruction.format(
+            decodedIx,
+            accountsMeta
+          );
+
+          const accounts: V1InstructionAccountsMap<V1InferenceStakingInstructions> =
+            {};
+
+          for (const account of decodedAccounts?.accounts ?? []) {
+            const name = toCamelCase(
+              account.name ?? ""
+            ) as V1InferenceStakingAccountName;
+            const accountMeta: V1AccountMetaWithName = {
+              ...account,
+              name,
+            };
+            accounts[name] = accountMeta;
+          }
+
+          const result = {
+            name,
+            args,
+            accounts,
+          } as V1DecodedStakingProgramInstruction;
+
+          final.push(result);
+        } catch {
+          // No-op.
+        }
+      }
+    }
+    return final;
+  }
+
+  handleDecodeTransaction(
+    tx: VersionedTransaction,
+    logs: string[],
+    version: ProgramVersion,
+    programUpgradeDeploymentActive = false
+  ): DecodedTransactionResult {
+    if (programUpgradeDeploymentActive) {
+      try {
+        return {
+          version: "v2",
+          tx: this.decodeTransaction(tx),
+          events: this.parseEventsFromTransactionLogs(logs),
+        };
+      } catch {
+        return {
+          version: "v1",
+          tx: this.decodeTransactionV1(tx),
+          events: this.parseEventsFromTransactionLogsV1(logs),
+        };
+      }
+    }
+
+    switch (version) {
+      case "v1":
+        return {
+          version: "v1",
+          tx: this.decodeTransactionV1(tx),
+          events: this.parseEventsFromTransactionLogsV1(logs),
+        };
+      case "v2":
+        return {
+          version: "v2",
+          tx: this.decodeTransaction(tx),
+          events: this.parseEventsFromTransactionLogs(logs),
+        };
+      default:
+        return assertUnreachable(version);
+    }
   }
 }

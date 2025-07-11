@@ -25,4 +25,6 @@ pub struct AccrueRewardEvent {
 
     // Operator USDC share
     pub operator_usdc_commission: u64,
+
+    pub new_arg: bool,
 }

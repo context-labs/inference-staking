@@ -187,10 +187,6 @@ const _IDL = {
           name: "tokenProgram",
           address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
         },
-        {
-          name: "instructions",
-          address: "Sysvar1nstructions1111111111111111111111111",
-        },
       ],
       args: [
         {
@@ -2180,10 +2176,6 @@ const _IDL = {
             name: "usdcAmount",
             type: "u64",
           },
-          {
-            name: "newArg",
-            type: "bool",
-          },
         ],
       },
     },
@@ -2223,10 +2215,6 @@ const _IDL = {
           {
             name: "operatorUsdcCommission",
             type: "u64",
-          },
-          {
-            name: "newArg",
-            type: "bool",
           },
         ],
       },
@@ -3259,7 +3247,9 @@ const _IDL = {
 
 export type InferenceStaking = Mutable<typeof _IDL>;
 
-export const getIdlWithProgramId = (programId: PublicKey): InferenceStaking => {
+export const getIdlWithProgramIdV1 = (
+  programId: PublicKey
+): InferenceStaking => {
   const result = {
     ..._IDL,
     address: programId.toBase58(),

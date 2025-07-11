@@ -6,6 +6,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import type { Connection } from "@solana/web3.js";
+import { SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
 import { SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
@@ -243,6 +244,7 @@ async function handleAccrueRewardForEpochs({
           proofPath,
           rewardAmount,
           usdcAmount,
+          newArg: true,
         })
         .accountsStrict({
           poolOverview: setup.poolOverview,
@@ -256,6 +258,7 @@ async function handleAccrueRewardForEpochs({
           usdcFeeTokenAccount: pool.usdcCommissionFeeTokenVault,
           poolUsdcVault: pool.poolUsdcVault,
           tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .rpc();
 

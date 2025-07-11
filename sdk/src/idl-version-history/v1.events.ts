@@ -1,7 +1,7 @@
 import type { BN } from "@coral-xyz/anchor";
 import type { PublicKey } from "@solana/web3.js";
 
-import type { IDL } from "./idl";
+import type { IDL } from "./v1.idl";
 
 /** ******************************************************************************
  *  Event Types
@@ -9,7 +9,7 @@ import type { IDL } from "./idl";
  * Keep in sync with program event structs.
  ******************************************************************************* */
 
-export type AccrueRewardEventData = {
+export type V1AccrueRewardEventData = {
   operatorPool: PublicKey;
   epoch: BN;
   totalRewardsTransferred: BN;
@@ -18,10 +18,9 @@ export type AccrueRewardEventData = {
   operatorRewardCommission: BN;
   delegatorUsdcEarnings: BN;
   operatorUsdcCommission: BN;
-  newArg: boolean;
 };
 
-export type CancelUnstakeEventData = {
+export type V1CancelUnstakeEventData = {
   operatorPool: PublicKey;
   stakingRecord: PublicKey;
   owner: PublicKey;
@@ -30,20 +29,20 @@ export type CancelUnstakeEventData = {
   sharesAmount: BN;
 };
 
-export type ChangeOperatorAdminEventData = {
+export type V1ChangeOperatorAdminEventData = {
   operatorPool: PublicKey;
   oldAdmin: PublicKey;
   newAdmin: PublicKey;
 };
 
-export type ChangeOperatorStakingRecordEventData = {
+export type V1ChangeOperatorStakingRecordEventData = {
   operatorPool: PublicKey;
   admin: PublicKey;
   oldStakingRecord: PublicKey;
   newStakingRecord: PublicKey;
 };
 
-export type ClaimUnstakeEventData = {
+export type V1ClaimUnstakeEventData = {
   operatorPool: PublicKey;
   stakingRecord: PublicKey;
   owner: PublicKey;
@@ -51,7 +50,7 @@ export type ClaimUnstakeEventData = {
   tokenAmount: BN;
 };
 
-export type ClaimUsdcEarningsEventData = {
+export type V1ClaimUsdcEarningsEventData = {
   operatorPool: PublicKey;
   stakingRecord: PublicKey;
   owner: PublicKey;
@@ -60,7 +59,7 @@ export type ClaimUsdcEarningsEventData = {
   usdcAmount: BN;
 };
 
-export type SlashStakeEventData = {
+export type V1SlashStakeEventData = {
   operatorPool: PublicKey;
   operatorStakingRecord: PublicKey;
   authority: PublicKey;
@@ -73,7 +72,7 @@ export type SlashStakeEventData = {
   usdcCommissionConfiscated: BN;
 };
 
-export type StakeEventData = {
+export type V1StakeEventData = {
   operatorPool: PublicKey;
   stakingRecord: PublicKey;
   owner: PublicKey;
@@ -82,13 +81,13 @@ export type StakeEventData = {
   sharesAmount: BN;
 };
 
-export type SweepClosedPoolUsdcDustEventData = {
+export type V1SweepClosedPoolUsdcDustEventData = {
   operatorPool: PublicKey;
   admin: PublicKey;
   usdcAmountSwept: BN;
 };
 
-export type UnstakeEventData = {
+export type V1UnstakeEventData = {
   operatorPool: PublicKey;
   stakingRecord: PublicKey;
   owner: PublicKey;
@@ -98,44 +97,44 @@ export type UnstakeEventData = {
   unstakeAtTimestamp: BN;
 };
 
-export type WithdrawOperatorRewardCommissionEventData = {
+export type V1WithdrawOperatorRewardCommissionEventData = {
   operatorPool: PublicKey;
   admin: PublicKey;
   destination: PublicKey;
   rewardAmountWithdrawn: BN;
 };
 
-export type WithdrawOperatorUsdcCommissionEventData = {
+export type V1WithdrawOperatorUsdcCommissionEventData = {
   operatorPool: PublicKey;
   admin: PublicKey;
   destination: PublicKey;
   usdcAmountWithdrawn: BN;
 };
 
-export type EventDataMap = {
-  accrueRewardEvent: AccrueRewardEventData;
-  cancelUnstakeEvent: CancelUnstakeEventData;
-  changeOperatorAdminEvent: ChangeOperatorAdminEventData;
-  changeOperatorStakingRecordEvent: ChangeOperatorStakingRecordEventData;
-  claimUnstakeEvent: ClaimUnstakeEventData;
-  claimUsdcEarningsEvent: ClaimUsdcEarningsEventData;
-  slashStakeEvent: SlashStakeEventData;
-  stakeEvent: StakeEventData;
-  sweepClosedPoolUsdcDustEvent: SweepClosedPoolUsdcDustEventData;
-  unstakeEvent: UnstakeEventData;
-  withdrawOperatorRewardCommissionEvent: WithdrawOperatorRewardCommissionEventData;
-  withdrawOperatorUsdcCommissionEvent: WithdrawOperatorUsdcCommissionEventData;
+export type V1EventDataMap = {
+  accrueRewardEvent: V1AccrueRewardEventData;
+  cancelUnstakeEvent: V1CancelUnstakeEventData;
+  changeOperatorAdminEvent: V1ChangeOperatorAdminEventData;
+  changeOperatorStakingRecordEvent: V1ChangeOperatorStakingRecordEventData;
+  claimUnstakeEvent: V1ClaimUnstakeEventData;
+  claimUsdcEarningsEvent: V1ClaimUsdcEarningsEventData;
+  slashStakeEvent: V1SlashStakeEventData;
+  stakeEvent: V1StakeEventData;
+  sweepClosedPoolUsdcDustEvent: V1SweepClosedPoolUsdcDustEventData;
+  unstakeEvent: V1UnstakeEventData;
+  withdrawOperatorRewardCommissionEvent: V1WithdrawOperatorRewardCommissionEventData;
+  withdrawOperatorUsdcCommissionEvent: V1WithdrawOperatorUsdcCommissionEventData;
 };
 
 type ExtractEventNames<T> = T extends { events: { name: infer N }[] }
   ? N
   : never;
 
-export type InferenceStakingEvents = ExtractEventNames<typeof IDL>;
+export type V1InferenceStakingEvents = ExtractEventNames<typeof IDL>;
 
-export type ParsedEvent<
-  T extends InferenceStakingEvents = InferenceStakingEvents
+export type V1ParsedEvent<
+  T extends V1InferenceStakingEvents = V1InferenceStakingEvents
 > = {
   name: T;
-  data: T extends keyof EventDataMap ? EventDataMap[T] : never;
+  data: T extends keyof V1EventDataMap ? V1EventDataMap[T] : never;
 };
