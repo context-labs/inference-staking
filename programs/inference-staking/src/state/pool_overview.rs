@@ -67,3 +67,8 @@ pub struct PoolOverview {
     /// Total amount of USDC tokens across all epochs that are issued, but yet to be paid out.
     pub unclaimed_usdc: u64,
 }
+
+impl PoolOverview {
+    /// Reserved padding space for future upgrades.
+    pub const PADDING: usize = 1024;
+}

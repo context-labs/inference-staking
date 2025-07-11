@@ -18,7 +18,7 @@ pub struct CreatePoolOverview<'info> {
         seeds = [b"PoolOverview".as_ref()],
         bump,
         payer = payer,
-        space = 8 + PoolOverview::INIT_SPACE
+        space = 8 + PoolOverview::INIT_SPACE + PoolOverview::PADDING
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
 
