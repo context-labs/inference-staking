@@ -179,11 +179,14 @@ export const confirmTransaction = async (
   signature: string
 ) => {
   const latestBlockHash = await connection.getLatestBlockhash();
-  await connection.confirmTransaction({
-    blockhash: latestBlockHash.blockhash,
-    lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-    signature,
-  });
+  await connection.confirmTransaction(
+    {
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature,
+    },
+    "confirmed"
+  );
 };
 
 export const handleMarkEpochAsFinalizing = async ({
@@ -384,18 +387,23 @@ export const saveTransactionReceiptForDebugging = async (
   connection: Connection,
   signature: string
 ) => {
-  await confirmTransaction(connection, signature);
-  const tx = await connection.getTransaction(signature, {
-    maxSupportedTransactionVersion: 0,
-    commitment: "confirmed",
-  });
-  const serializedTransactionMessage = tx?.transaction.message.serialize();
-  const serializedMessage = serializedTransactionMessage?.toString("base64");
+  try {
+    await confirmTransaction(connection, signature);
+    const tx = await connection.getTransaction(signature, {
+      maxSupportedTransactionVersion: 0,
+      commitment: "confirmed",
+    });
+    const serializedTransactionMessage = tx?.transaction.message.serialize();
+    const serializedMessage = serializedTransactionMessage?.toString("base64");
 
-  const shortSignature = signature.slice(0, 8);
-  writeFileSync(`tx-${shortSignature}.json`, JSON.stringify(tx, null, 2));
-  writeFileSync(
-    `tx-message-${shortSignature}.json`,
-    JSON.stringify(serializedMessage, null, 2)
-  );
+    const shortSignature = signature.slice(0, 8);
+    writeFileSync(`tx-${shortSignature}.json`, JSON.stringify(tx, null, 2));
+    writeFileSync(
+      `tx-message-${shortSignature}.json`,
+      JSON.stringify(serializedMessage, null, 2)
+    );
+  } catch (err) {
+    console.error("❌ Failed to save transaction receipt for debugging");
+    console.error(err);
+  }
 };
