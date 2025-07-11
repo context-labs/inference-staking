@@ -11,6 +11,9 @@ const MAX_AVATAR_IMAGE_URL_LENGTH: usize = 128;
 #[derive(InitSpace)]
 #[account]
 pub struct OperatorPool {
+    /// Version of the OperatorPool account.
+    pub version: u8,
+
     /// PDA Bump
     pub bump: u8,
 

@@ -3,6 +3,9 @@ use anchor_lang::prelude::*;
 #[derive(InitSpace)]
 #[account]
 pub struct StakingRecord {
+    /// Version of the StakingRecord account.
+    pub version: u8,
+
     /// Owner of the StakingRecord.
     pub owner: Pubkey,
 

@@ -2465,6 +2465,11 @@ const _IDL = {
         kind: "struct",
         fields: [
           {
+            name: "version",
+            docs: ["Version of the OperatorPool account."],
+            type: "u8",
+          },
+          {
             name: "bump",
             docs: ["PDA Bump"],
             type: "u8",
@@ -2790,6 +2795,11 @@ const _IDL = {
         kind: "struct",
         fields: [
           {
+            name: "version",
+            docs: ["Version of the RewardRecord account."],
+            type: "u8",
+          },
+          {
             name: "epoch",
             docs: ["Counter to track the epoch this claim was made in."],
             type: "u64",
@@ -2937,6 +2947,11 @@ const _IDL = {
       type: {
         kind: "struct",
         fields: [
+          {
+            name: "version",
+            docs: ["Version of the StakingRecord account."],
+            type: "u8",
+          },
           {
             name: "owner",
             docs: ["Owner of the StakingRecord."],

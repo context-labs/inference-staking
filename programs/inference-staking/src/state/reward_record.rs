@@ -5,6 +5,9 @@ use crate::error::ErrorCode;
 #[derive(InitSpace)]
 #[account]
 pub struct RewardRecord {
+    /// Version of the RewardRecord account.
+    pub version: u8,
+
     /// Counter to track the epoch this claim was made in.
     pub epoch: u64,
 
