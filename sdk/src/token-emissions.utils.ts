@@ -45,6 +45,7 @@ const UPTIME_REWARDS_PERCENTAGE_PER_EPOCH = 30n; // i.e. 30% out of 100%.
 type EpochRewardEmissions = {
   uptimeRewards: bigint;
   tokenRewards: bigint;
+  totalRewards: bigint;
 };
 
 function getEpochRewardsInclusiveOfDust(superEpochEmissions: bigint): bigint[] {
@@ -73,17 +74,17 @@ function getTokenRewardsForEpoch({
   }
 
   if (emissionsSchedule.length === 0) {
-    return { uptimeRewards: 0n, tokenRewards: 0n };
+    return { uptimeRewards: 0n, tokenRewards: 0n, totalRewards: 0n };
   }
 
   const superEpoch = (epoch - 1n) / EPOCHS_PER_SUPER_EPOCH;
   if (superEpoch >= BigInt(emissionsSchedule.length)) {
-    return { uptimeRewards: 0n, tokenRewards: 0n };
+    return { uptimeRewards: 0n, tokenRewards: 0n, totalRewards: 0n };
   }
 
   const totalSuperEpoch = emissionsSchedule[Number(superEpoch)];
   if (totalSuperEpoch == null) {
-    return { uptimeRewards: 0n, tokenRewards: 0n };
+    return { uptimeRewards: 0n, tokenRewards: 0n, totalRewards: 0n };
   }
 
   const epochRewards = getEpochRewardsInclusiveOfDust(totalSuperEpoch);
@@ -95,7 +96,16 @@ function getTokenRewardsForEpoch({
 
   const uptimeRewards = (finalEpochRewards * uptimeRewardsPercentage) / 100n;
   const tokenRewards = finalEpochRewards - uptimeRewards;
-  return { uptimeRewards, tokenRewards };
+  const totalRewards = uptimeRewards + tokenRewards;
+  if (uptimeRewards + tokenRewards !== finalEpochRewards) {
+    throw new Error(
+      `Invalid epoch rewards, received: ${finalEpochRewards}, expected: ${
+        uptimeRewards + tokenRewards
+      }`
+    );
+  }
+
+  return { uptimeRewards, tokenRewards, totalRewards };
 }
 
 /** ******************************************************************************

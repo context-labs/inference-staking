@@ -114,38 +114,29 @@ const AMOUNT_RANGES = {
   },
 };
 
-const { MIN_AMOUNT, MAX_AMOUNT } = AMOUNT_RANGES["6"];
+type AmountRange = "0" | "1" | "2" | "3" | "4" | "5" | "6";
 
 export const generateRewardsForEpoch = (
   publicKeys: PublicKey[],
-  epoch: number
+  epoch: number,
+  usdcAmountRange: AmountRange = "6"
 ): ConstructMerkleTreeInput[] => {
-  const { uptimeRewards, tokenRewards } =
-    TokenEmissionsUtils.getTokenRewardsForEpoch({
-      epoch: BigInt(epoch),
-    });
+  const { MIN_AMOUNT, MAX_AMOUNT } = AMOUNT_RANGES[usdcAmountRange];
+  const { totalRewards } = TokenEmissionsUtils.getTokenRewardsForEpoch({
+    epoch: BigInt(epoch),
+  });
 
   const numKeys = publicKeys.length;
   if (numKeys === 0) {
     return [];
   }
 
-  const totalTokenRewards = uptimeRewards + tokenRewards;
-  const baseTokenAmount = totalTokenRewards / BigInt(numKeys);
-  const tokenDust = totalTokenRewards % BigInt(numKeys);
-
-  const tokenDustIndices = new Set<number>();
-  while (tokenDustIndices.size < Number(tokenDust)) {
-    const randomIndex = Math.floor(Math.random() * numKeys);
-    tokenDustIndices.add(randomIndex);
-  }
+  const baseTokenAmount = totalRewards / BigInt(numKeys);
+  let tokenDust = totalRewards % BigInt(numKeys);
 
   const input: ConstructMerkleTreeInput[] = [];
-  for (let i = 0; i < publicKeys.length; i++) {
-    const publicKey = publicKeys[i];
-    if (!publicKey) continue;
-
-    const tokenAmount = baseTokenAmount + (tokenDustIndices.has(i) ? 1n : 0n);
+  for (const publicKey of publicKeys) {
+    const tokenAmount = baseTokenAmount;
     const usdcAmount = randomBigIntInRange(
       MIN_AMOUNT,
       MAX_AMOUNT,
@@ -157,6 +148,27 @@ export const generateRewardsForEpoch = (
       tokenAmount,
       usdcAmount,
     });
+  }
+
+  while (tokenDust > 0n) {
+    for (const val of input) {
+      if (tokenDust === 0n) {
+        break;
+      }
+
+      val.tokenAmount += 1n;
+      tokenDust -= 1n;
+    }
+  }
+
+  const totalTokenAmount = input.reduce(
+    (acc, curr) => acc + curr.tokenAmount,
+    0n
+  );
+  if (totalTokenAmount !== totalRewards) {
+    throw new Error(
+      `Total token amount ${totalTokenAmount} does not match total rewards ${totalRewards}`
+    );
   }
 
   return MerkleUtils.sortAddressList(input);

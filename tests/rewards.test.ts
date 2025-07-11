@@ -11,6 +11,7 @@ import { PublicKey } from "@solana/web3.js";
 import { assert } from "chai";
 
 import type { InferenceStaking } from "@sdk/src/idl";
+import { TokenEmissionsUtils } from "@sdk/src/token-emissions.utils";
 
 import { MerkleUtils } from "@tests/lib/merkle";
 import type {
@@ -22,6 +23,7 @@ import { setupTests } from "@tests/lib/setup";
 import {
   assertError,
   assertStakingProgramError,
+  generateRewardsForEpoch,
   handleMarkEpochAsFinalizing,
 } from "@tests/lib/utils";
 
@@ -45,8 +47,8 @@ describe("Reward creation and accrual tests", () => {
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
 
-  let merkleTree4: Uint8Array[][];
-  const rewardInputs4: ConstructMerkleTreeInput[] = [];
+  let bigMerkleTree: Uint8Array[][];
+  let bigRewardsInput: ConstructMerkleTreeInput[] = [];
 
   before(async () => {
     setup = await setupTests();
@@ -355,6 +357,9 @@ describe("Reward creation and accrual tests", () => {
 
   it("Fail to create RewardRecord with insufficient tokens", async () => {
     try {
+      const { totalRewards } = TokenEmissionsUtils.getTokenRewardsForEpoch({
+        epoch: BigInt(2),
+      });
       const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
       const root = MerkleUtils.getTreeRoot(merkleTree);
       const merkleRoots = [Array.from(root)];
@@ -362,7 +367,7 @@ describe("Reward creation and accrual tests", () => {
       await program.methods
         .createRewardRecord({
           merkleRoots,
-          totalRewards: new anchor.BN(100_000),
+          totalRewards: new anchor.BN(totalRewards.toString()),
           totalUsdcPayout: new anchor.BN(0),
         })
         .accountsStrict({
@@ -1154,28 +1159,24 @@ describe("Reward creation and accrual tests", () => {
   });
 
   it("Create RewardRecord 4 with large merkle tree", async () => {
-    let totalRewards = new anchor.BN(0);
-    let totalUSDC = new anchor.BN(0);
-    for (let i = 0; i <= 500_000; i++) {
-      rewardInputs4.push({
-        address: PublicKey.unique().toString(),
-        tokenAmount: BigInt(i * 100),
-        usdcAmount: BigInt(i * 100),
-      });
-      totalRewards = totalRewards.add(new anchor.BN((i * 100).toString()));
-      totalUSDC = totalUSDC.add(new anchor.BN((i * 100).toString()));
+    const addresses: PublicKey[] = [setup.pool1.pool];
+    for (let i = 2; i <= 500_000; i++) {
+      addresses.push(PublicKey.unique());
     }
 
-    // Add OperatorPool 1 as a recipient.
-    rewardInputs4.push({
-      address: setup.pool1.pool.toString(),
-      tokenAmount: BigInt(10_000),
-      usdcAmount: BigInt(50),
-    });
-    rewardInputs4.sort((a, b) => a.address.localeCompare(b.address));
+    const rewards = generateRewardsForEpoch(addresses, 4, "3");
+    const totalRewards = rewards.reduce(
+      (acc, { tokenAmount }) => acc + tokenAmount,
+      0n
+    );
+    const totalUSDC = rewards.reduce(
+      (acc, { usdcAmount }) => acc + usdcAmount,
+      0n
+    );
 
-    merkleTree4 = MerkleUtils.constructMerkleTree(rewardInputs4);
-    const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree4))];
+    bigMerkleTree = MerkleUtils.constructMerkleTree(rewards);
+    bigRewardsInput = rewards;
+    const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(bigMerkleTree))];
 
     await mintTo(
       connection,
@@ -1183,7 +1184,7 @@ describe("Reward creation and accrual tests", () => {
       setup.tokenMint,
       setup.rewardTokenAccount,
       setup.tokenHolderKp,
-      BigInt(totalRewards.toString())
+      totalRewards
     );
 
     await mintTo(
@@ -1192,15 +1193,15 @@ describe("Reward creation and accrual tests", () => {
       setup.usdcTokenMint,
       setup.usdcTokenAccount,
       setup.tokenHolderKp,
-      BigInt(totalUSDC.toString())
+      totalUSDC
     );
 
     await handleMarkEpochAsFinalizing({ program, setup });
     await program.methods
       .createRewardRecord({
         merkleRoots,
-        totalRewards,
-        totalUsdcPayout: totalUSDC,
+        totalRewards: new anchor.BN(totalRewards.toString()),
+        totalUsdcPayout: new anchor.BN(totalUSDC.toString()),
       })
       .accountsStrict({
         payer: setup.payer,
@@ -1216,13 +1217,14 @@ describe("Reward creation and accrual tests", () => {
   });
 
   it("Accrue Rewards for epoch 4 successfully", async () => {
-    const nodeIndex = rewardInputs4.findIndex(
+    const nodeIndex = bigRewardsInput.findIndex(
       (x) => x.address == setup.pool1.pool.toString()
     );
+
     const proofInputs = {
-      ...rewardInputs4[nodeIndex],
+      ...bigRewardsInput[nodeIndex],
       index: nodeIndex,
-      merkleTree: merkleTree4,
+      merkleTree: bigMerkleTree,
     } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
