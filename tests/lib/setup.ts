@@ -343,8 +343,8 @@ export async function setupTests() {
   ];
 
   const rewardEpochs = {
-    2: generateRewardsForEpoch(fixedPoolIds),
-    3: generateRewardsForEpoch(fixedPoolIds),
+    2: generateRewardsForEpoch(fixedPoolIds, 2),
+    3: generateRewardsForEpoch(fixedPoolIds, 3),
   };
 
   const registrationFeePayoutTokenAccount =

@@ -524,7 +524,8 @@ describe("multi-epoch lifecycle tests", () => {
           pool.operatorPool.closedAt.toNumber() === currentCompletedEpoch
       );
       const rewards = generateRewardsForEpoch(
-        activePools.map((pool) => pool.pool)
+        activePools.map((pool) => pool.pool),
+        epoch
       );
       epochRewards.push(rewards);
       const merkleTree = MerkleUtils.constructMerkleTree(rewards);

@@ -14,6 +14,7 @@ import { Keypair } from "@solana/web3.js";
 import { assert } from "chai";
 import { Pool } from "pg";
 
+import { TokenEmissionsUtils } from "@sdk/src";
 import type {
   InferenceStakingErrors,
   OperatorPoolAccountStruct,
@@ -80,7 +81,6 @@ export const formatBN = (bn: anchor.BN): string => {
   }
 };
 
-const TOKEN_PRECISION = 1_000_000_000n;
 const USDC_PRECISION = 1_000_000n;
 
 const AMOUNT_RANGES = {
@@ -117,16 +117,48 @@ const AMOUNT_RANGES = {
 const { MIN_AMOUNT, MAX_AMOUNT } = AMOUNT_RANGES["6"];
 
 export const generateRewardsForEpoch = (
-  publicKeys: PublicKey[]
+  publicKeys: PublicKey[],
+  epoch: number
 ): ConstructMerkleTreeInput[] => {
+  const { uptimeRewards, tokenRewards } =
+    TokenEmissionsUtils.getTokenRewardsForEpoch({
+      epoch: BigInt(epoch),
+    });
+
+  const numKeys = publicKeys.length;
+  if (numKeys === 0) {
+    return [];
+  }
+
+  const totalTokenRewards = uptimeRewards + tokenRewards;
+  const baseTokenAmount = totalTokenRewards / BigInt(numKeys);
+  const tokenDust = totalTokenRewards % BigInt(numKeys);
+
+  const tokenDustIndices = new Set<number>();
+  while (tokenDustIndices.size < Number(tokenDust)) {
+    const randomIndex = Math.floor(Math.random() * numKeys);
+    tokenDustIndices.add(randomIndex);
+  }
+
   const input: ConstructMerkleTreeInput[] = [];
-  for (const publicKey of publicKeys) {
+  for (let i = 0; i < publicKeys.length; i++) {
+    const publicKey = publicKeys[i];
+    if (!publicKey) continue;
+
+    const tokenAmount = baseTokenAmount + (tokenDustIndices.has(i) ? 1n : 0n);
+    const usdcAmount = randomBigIntInRange(
+      MIN_AMOUNT,
+      MAX_AMOUNT,
+      USDC_PRECISION
+    );
+
     input.push({
       address: publicKey.toString(),
-      tokenAmount: randomBigIntInRange(MIN_AMOUNT, MAX_AMOUNT, TOKEN_PRECISION),
-      usdcAmount: randomBigIntInRange(MIN_AMOUNT, MAX_AMOUNT, USDC_PRECISION),
+      tokenAmount,
+      usdcAmount,
     });
   }
+
   return MerkleUtils.sortAddressList(input);
 };
 

@@ -63,15 +63,15 @@ function getEpochRewardsInclusiveOfDust(superEpochEmissions: bigint): bigint[] {
 }
 
 type GetTokenRewardsForEpochArgs = {
-  emissionsSchedule: TokenRewardsEmissionsSchedule;
+  emissionsSchedule?: TokenRewardsEmissionsSchedule;
   epoch: bigint;
-  uptimeRewardsPercentage: bigint;
+  uptimeRewardsPercentage?: bigint;
 };
 
 function getTokenRewardsForEpoch({
-  emissionsSchedule,
+  emissionsSchedule = TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH,
   epoch,
-  uptimeRewardsPercentage,
+  uptimeRewardsPercentage = UPTIME_REWARDS_PERCENTAGE_PER_EPOCH,
 }: GetTokenRewardsForEpochArgs): EpochRewardEmissions {
   if (epoch < 1n) {
     throw new Error(`Invalid epoch: ${epoch}`);
