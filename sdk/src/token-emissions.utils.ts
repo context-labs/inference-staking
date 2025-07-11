@@ -1,12 +1,7 @@
-/**
- * NOTE: The values in this file are important because they control reward allocations.
- *
- * We may move these to some other more secure location in the future, but for
- * now they are simply hard-coded here, which is makes testing and development easier.
- */
-
 /** ******************************************************************************
  *  Token Rewards Emission Schedule
+ * ----------------------------------------------------------------------------
+ * Keep in sync with emissions.rs.
  ******************************************************************************* */
 
 export const INFERENCE_TOKEN_DECIMALS = 9;

@@ -2191,6 +2191,16 @@ const _IDL = {
       name: "invalidEmergencyBypassEpoch",
       msg: "Invalid epoch for emergency bypass",
     },
+    {
+      code: 6043,
+      name: "invalidEpoch",
+      msg: "Invalid epoch",
+    },
+    {
+      code: 6044,
+      name: "invalidRewardAmount",
+      msg: "Invalid reward amount - does not match expected emissions for epoch",
+    },
   ],
   types: [
     {

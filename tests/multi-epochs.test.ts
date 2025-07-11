@@ -228,7 +228,7 @@ async function handleAccrueRewardForEpochs({
       debug(
         `- Claiming Epoch ${epoch} rewards for Operator Pool ${pool.pool.toString()}`
       );
-      debug(` - Epoch rewardAmount = ${tokens} - usdcAmount = ${usdc}`);
+      debug(`- Epoch rewardAmount = ${tokens} - usdcAmount = ${usdc}`);
 
       rewardClaimsForPool.push(rewardAmount);
 
@@ -579,7 +579,6 @@ describe("multi-epoch lifecycle tests", () => {
       debug(
         `- [${tracker}] Creating RewardRecord for epoch ${epoch} - total token reward = ${tokens} - total USDC payout = ${usdc}`
       );
-      counter++;
 
       await program.methods
         .createRewardRecord({
@@ -1032,9 +1031,10 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("[1/2] Create reward records", async () => {
     debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
-    const counter = 1;
+    let counter = 1;
     for (let epoch = 1; epoch <= NUMBER_OF_EPOCHS; epoch++) {
       await handleEpochFinalization(epoch, counter);
+      counter++;
     }
   });
 
@@ -1075,7 +1075,7 @@ describe("multi-epoch lifecycle tests", () => {
 
   const finalizeAdditionalEpochs = async () => {
     debug(`\nCreating reward records for ${NUMBER_OF_EPOCHS} epochs`);
-    const counter = 1;
+    let counter = 1;
     const poolOverview = await program.account.poolOverview.fetch(
       setup.poolOverview
     );
@@ -1083,6 +1083,7 @@ describe("multi-epoch lifecycle tests", () => {
     const endEpoch = startingEpoch + NUMBER_OF_EPOCHS;
     for (let epoch = startingEpoch; epoch <= endEpoch; epoch++) {
       await handleEpochFinalization(epoch, counter);
+      counter++;
     }
 
     const claimResult = await handleAccrueRewardForEpochs({

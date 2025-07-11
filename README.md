@@ -129,6 +129,9 @@ The `tests` folder contains a full suite of integrations tests for the program w
 # Run unit tests
 bun run test:unit
 
+# Run Program unit tests
+bun run test:program:unit
+
 # Run program tests
 bun run test
 

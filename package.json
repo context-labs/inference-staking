@@ -13,11 +13,12 @@
     "lint:fix": "eslint --fix",
     "tsc": "tsc --noEmit",
     "test:unit": "bun test \"tests/unit\"",
+    "test:program:unit": "cargo test -p inference-staking emissions::tests",
     "test": "anchor test -- --features test",
     "test:skip-local-validator": "anchor test --skip-local-validator -- --features test",
     "test-all": "./scripts/test-all.sh",
     "build": "anchor build && bun run scripts/generateIDL.ts && bun run format:fix",
-    "check": "bun run build && bun run format && bun run lint && bun run tsc && bun run test:unit",
+    "check": "bun run build && bun run format && bun run lint && bun run tsc && bun run test:unit && bun run test:program:unit",
     "compile-program": "bun run scripts/compile-program.ts"
   },
   "dependencies": {

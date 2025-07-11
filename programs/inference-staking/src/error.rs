@@ -88,4 +88,8 @@ pub enum ErrorCode {
     FinalUnstakeEpochInvalid,
     #[msg("Invalid epoch for emergency bypass")]
     InvalidEmergencyBypassEpoch,
+    #[msg("Invalid epoch")]
+    InvalidEpoch,
+    #[msg("Invalid reward amount - does not match expected emissions for epoch")]
+    InvalidRewardAmount,
 }

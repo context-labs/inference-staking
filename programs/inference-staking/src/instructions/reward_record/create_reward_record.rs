@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::TokenAccount;
 
+use crate::emissions::get_expected_reward_emissions_for_epoch;
 use crate::error::ErrorCode;
 use crate::state::{PoolOverview, RewardRecord};
 
@@ -63,17 +64,32 @@ pub fn handler(ctx: Context<CreateRewardRecord>, args: CreateRewardRecordArgs) -
         total_usdc_payout,
     } = args;
 
+    let pool_overview = &mut ctx.accounts.pool_overview;
+    let reward_record = &mut ctx.accounts.reward_record;
+
+    let epoch = pool_overview.completed_reward_epoch.checked_add(1).unwrap();
+
     // If no merkle roots are provided then reward amounts must be zero.
     if merkle_roots.is_empty() {
         require_eq!(total_rewards, 0);
         require_eq!(total_usdc_payout, 0);
+    } else {
+        // If merkle roots are provided, verify that total_rewards matches expected emissions
+        let expected_rewards = get_expected_reward_emissions_for_epoch(epoch)?;
+        require_eq!(
+            total_rewards,
+            expected_rewards,
+            ErrorCode::InvalidRewardAmount
+        );
+        msg!(
+            "✅ Reward validation passed, total rewards: {} - expected rewards: {}",
+            total_rewards,
+            expected_rewards
+        );
     }
 
-    let pool_overview = &mut ctx.accounts.pool_overview;
-    let reward_record = &mut ctx.accounts.reward_record;
-
     reward_record.version = RewardRecord::VERSION;
-    reward_record.epoch = pool_overview.completed_reward_epoch.checked_add(1).unwrap();
+    reward_record.epoch = epoch;
     reward_record.merkle_roots = merkle_roots;
     reward_record.total_rewards = total_rewards;
     reward_record.total_usdc_payout = total_usdc_payout;
