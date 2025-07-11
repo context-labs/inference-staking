@@ -8,9 +8,9 @@ pub enum ErrorCode {
     UnstakingNotAllowed,
     #[msg("Rewards have to be claimed first")]
     UnclaimedRewards,
-    #[msg("Min. operator token stake not met")]
+    #[msg("Minimum operator token stake not met")]
     MinOperatorTokenStakeNotMet,
-    #[msg("No tokens to be claimed")]
+    #[msg("No tokens available to be claimed")]
     NoTokensToClaim,
     #[msg("Tokens are still in unstaking cooldown")]
     PendingDelay,
@@ -46,15 +46,13 @@ pub enum ErrorCode {
     AccountNotEmpty,
     #[msg("Pool creation is disabled")]
     PoolCreationDisabled,
-    #[msg("Could not initialize USDC mint")]
+    #[msg("Invalid USDC mint provided")]
     InvalidUsdcMint,
-    #[msg("Invalid USDC payout destination")]
-    InvalidUsdcPayoutDestination,
     #[msg("Invalid registration fee payout destination")]
     InvalidRegistrationFeePayoutDestination,
     #[msg("Epoch must be finalizing when calling CreateRewardRecord")]
     EpochMustBeFinalizing,
-    #[msg("Epoch must not be finalizing during operator pool admin change")]
+    #[msg("Cannot update operator pool admin when epoch is finalizing")]
     EpochMustNotBeFinalizing,
     #[msg("Invalid expected epoch provided for epoch finalizing update")]
     EpochIsFinalizingEpochInvalid,
@@ -66,13 +64,13 @@ pub enum ErrorCode {
     WebsiteUrlTooLong,
     #[msg("Avatar image URL is too long, max length is 128 characters")]
     AvatarImageUrlTooLong,
-    #[msg("Website URL is invalid")]
+    #[msg("Invalid website URL provided")]
     InvalidWebsiteUrl,
-    #[msg("Avatar image URL is invalid")]
+    #[msg("Invalid avatar image URL provided")]
     InvalidAvatarImageUrl,
     #[msg("USDC earnings must be claimed before unstaking")]
     UnclaimedUsdcEarnings,
-    #[msg("No USDC earnings to claim")]
+    #[msg("No USDC earnings available to claim")]
     NoUsdcEarningsToClaim,
     #[msg("Insufficient USDC in pool vault")]
     InsufficientPoolUsdcVaultBalance,
@@ -88,7 +86,7 @@ pub enum ErrorCode {
     FinalUnstakeEpochInvalid,
     #[msg("Invalid epoch for emergency bypass")]
     InvalidEmergencyBypassEpoch,
-    #[msg("Invalid epoch")]
+    #[msg("Invalid epoch provided")]
     InvalidEpoch,
     #[msg("Invalid reward amount - does not match expected emissions for epoch")]
     InvalidRewardAmount,
