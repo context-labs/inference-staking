@@ -81,11 +81,6 @@ pub fn handler(ctx: Context<CreateRewardRecord>, args: CreateRewardRecordArgs) -
             expected_rewards,
             ErrorCode::InvalidRewardAmount
         );
-        msg!(
-            "✅ Reward validation passed, total rewards: {} - expected rewards: {}",
-            total_rewards,
-            expected_rewards
-        );
     }
 
     reward_record.version = RewardRecord::VERSION;
