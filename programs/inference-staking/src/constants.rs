@@ -12,3 +12,8 @@ pub const USDC_MINT_PUBKEY: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEG
 /// Precision scalar for USDC calculations
 /// Using 1e18 for maximum precision with large share counts
 pub const USDC_PRECISION_FACTOR: u128 = 1_000_000_000_000_000_000;
+
+/// Program account versions.
+pub const STAKING_RECORD_VERSION: u8 = 1;
+pub const OPERATOR_POOL_VERSION: u8 = 1;
+pub const REWARD_RECORD_VERSION: u8 = 1;

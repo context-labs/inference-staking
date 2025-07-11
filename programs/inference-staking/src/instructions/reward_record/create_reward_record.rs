@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::TokenAccount;
 
+use crate::constants::REWARD_RECORD_VERSION;
 use crate::error::ErrorCode;
 use crate::state::{PoolOverview, RewardRecord};
 
@@ -72,6 +73,7 @@ pub fn handler(ctx: Context<CreateRewardRecord>, args: CreateRewardRecordArgs) -
     let pool_overview = &mut ctx.accounts.pool_overview;
     let reward_record = &mut ctx.accounts.reward_record;
 
+    reward_record.version = REWARD_RECORD_VERSION;
     reward_record.epoch = pool_overview.completed_reward_epoch.checked_add(1).unwrap();
     reward_record.merkle_roots = merkle_roots;
     reward_record.total_rewards = total_rewards;

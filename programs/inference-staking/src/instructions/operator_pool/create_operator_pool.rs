@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
 use crate::{
-    constants::USDC_MINT_PUBKEY,
+    constants::{OPERATOR_POOL_VERSION, USDC_MINT_PUBKEY},
     error::ErrorCode,
     state::{OperatorPool, StakingRecord},
     PoolOverview,
@@ -179,6 +179,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     pool_overview.total_pools = pool_overview.total_pools.checked_add(1).unwrap();
 
     let operator_pool = &mut ctx.accounts.operator_pool;
+    operator_pool.version = OPERATOR_POOL_VERSION;
     operator_pool.bump = ctx.bumps.operator_pool;
     operator_pool.name = name;
     operator_pool.description = description;
