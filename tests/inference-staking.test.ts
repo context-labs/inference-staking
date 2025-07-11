@@ -6,7 +6,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import type { Connection } from "@solana/web3.js";
-import { SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
+import { PublicKey, SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
 import { Keypair, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
@@ -23,6 +23,7 @@ import {
   handleMarkEpochAsFinalizing,
   setStakingHalted,
   shortId,
+  generateRewardsForEpoch,
 } from "@tests/lib/utils";
 
 describe("inference-staking program tests", () => {
@@ -1724,15 +1725,19 @@ describe("inference-staking program tests", () => {
     const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
     const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
     let totalRewards = new anchor.BN(0);
-    for (const addressInput of setup.rewardEpochs[2]) {
-      totalRewards = totalRewards.add(
-        new anchor.BN(addressInput.tokenAmount.toString())
-      );
-    }
     let totalUsdcAmount = new anchor.BN(0);
-    for (const addressInput of setup.rewardEpochs[2]) {
+
+    const rewards = generateRewardsForEpoch(
+      setup.rewardEpochs[2].map((x) => new PublicKey(x.address)),
+      2
+    );
+
+    for (const reward of rewards) {
+      totalRewards = totalRewards.add(
+        new anchor.BN(reward.tokenAmount.toString())
+      );
       totalUsdcAmount = totalUsdcAmount.add(
-        new anchor.BN(addressInput.usdcAmount.toString())
+        new anchor.BN(reward.usdcAmount.toString())
       );
     }
 
