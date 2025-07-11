@@ -179,11 +179,14 @@ export const confirmTransaction = async (
   signature: string
 ) => {
   const latestBlockHash = await connection.getLatestBlockhash();
-  await connection.confirmTransaction({
-    blockhash: latestBlockHash.blockhash,
-    lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-    signature,
-  });
+  await connection.confirmTransaction(
+    {
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature,
+    },
+    "confirmed"
+  );
 };
 
 export const handleMarkEpochAsFinalizing = async ({

@@ -40,6 +40,7 @@ import {
   handleMarkEpochAsFinalizing,
   range,
   shuffleArray,
+  saveTransactionReceiptForDebugging,
 } from "@tests/lib/utils";
 
 type GetRewardClaimInputsInput = {
@@ -263,6 +264,8 @@ async function handleAccrueRewardForEpochs({
       if (TEST_WITH_RELAY) {
         await trpc.insertAndProcessTransactionBySignature(signature);
       }
+
+      await saveTransactionReceiptForDebugging(connection, signature);
 
       const commissionFees = rewardAmount
         .mul(new anchor.BN(pool.rewardCommissionRateBps))
