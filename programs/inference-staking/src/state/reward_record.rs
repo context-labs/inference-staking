@@ -58,26 +58,19 @@ impl RewardRecord {
         const NODE_PREFIX: &[u8] = &[0x01];
 
         // Prepend a '0x00' byte to the leaf data to distinguish it from an intermediate node.
-        let mut data_to_hash = LEAF_PREFIX.to_vec();
-        data_to_hash.extend_from_slice(leaf_data.as_bytes());
-        let mut node = hash::hash(&data_to_hash);
+        let mut node = hash::hashv(&[LEAF_PREFIX, leaf_data.as_bytes()]);
 
         for i in 0..proof.len() {
             let sibling_node = proof[i];
 
-            // Concatenate the two child node hashes first.
-            let concatenated_hashes = if proof_path[i] {
+            // Prepend the '0x01' node prefix to the combined hashes before hashing again.
+            node = if proof_path[i] {
                 // Sibling is to the left of the current node.
-                [sibling_node, node.to_bytes()].concat()
+                hash::hashv(&[NODE_PREFIX, &sibling_node, &node.to_bytes()])
             } else {
                 // Current node is to the left of the sibling.
-                [node.to_bytes(), sibling_node].concat()
+                hash::hashv(&[NODE_PREFIX, &node.to_bytes(), &sibling_node])
             };
-
-            // Prepend the '0x01' node prefix to the combined hashes before hashing again.
-            let mut data_to_hash = NODE_PREFIX.to_vec();
-            data_to_hash.extend_from_slice(&concatenated_hashes);
-            node = hash::hash(&data_to_hash);
         }
 
         if !root.eq(&node.to_bytes()) {
