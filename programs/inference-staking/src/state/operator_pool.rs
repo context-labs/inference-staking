@@ -109,6 +109,14 @@ pub struct OperatorPool {
 }
 
 impl OperatorPool {
+    /// Version of the OperatorPool account.
+    pub const VERSION: u8 = 1;
+
+    /// Reserved padding space for future upgrades.
+    pub const PADDING: usize = 512;
+}
+
+impl OperatorPool {
     /// Calculates number of shares equivalent to token amount.
     /// Uses a default 1:1 rate if total_shares i 0.
     /// Final result is rounded down as part of integer division.

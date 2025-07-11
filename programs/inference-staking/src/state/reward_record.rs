@@ -27,6 +27,14 @@ pub struct RewardRecord {
 }
 
 impl RewardRecord {
+    /// Version of the RewardRecord account.
+    pub const VERSION: u8 = 1;
+
+    /// Reserved padding space for future upgrades.
+    pub const PADDING: usize = 256;
+}
+
+impl RewardRecord {
     /// Verify that given pool_address and reward_amount exist in Merkle Tree by attempting to
     /// generate the known root node through iteratively hashing the leaf/computed node with its
     /// sibling node provided in the proof.

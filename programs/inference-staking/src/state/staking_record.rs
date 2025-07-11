@@ -27,3 +27,11 @@ pub struct StakingRecord {
     /// Accrued USDC rewards available to claim
     pub accrued_usdc_earnings: u64,
 }
+
+impl StakingRecord {
+    /// Version of the StakingRecord account.
+    pub const VERSION: u8 = 1;
+
+    /// Reserved padding space for future upgrades.
+    pub const PADDING: usize = 256;
+}

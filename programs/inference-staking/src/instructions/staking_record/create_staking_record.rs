@@ -1,9 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{
-    constants::STAKING_RECORD_VERSION,
-    state::{OperatorPool, StakingRecord},
-};
+use crate::state::{OperatorPool, StakingRecord};
 
 #[derive(Accounts)]
 pub struct CreateStakingRecord<'info> {
@@ -27,7 +24,7 @@ pub struct CreateStakingRecord<'info> {
         ],
         bump,
         payer = payer,
-        space = 8 + StakingRecord::INIT_SPACE
+        space = 8 + StakingRecord::INIT_SPACE + StakingRecord::PADDING
     )]
     pub owner_staking_record: Box<Account<'info, StakingRecord>>,
 
@@ -37,7 +34,7 @@ pub struct CreateStakingRecord<'info> {
 /// Instruction to setup a StakingRecord.
 pub fn handler(ctx: Context<CreateStakingRecord>) -> Result<()> {
     let staking_record = &mut ctx.accounts.owner_staking_record;
-    staking_record.version = STAKING_RECORD_VERSION;
+    staking_record.version = StakingRecord::VERSION;
     staking_record.owner = ctx.accounts.owner.key();
     staking_record.operator_pool = ctx.accounts.operator_pool.key();
     staking_record.last_settled_usdc_per_share =
