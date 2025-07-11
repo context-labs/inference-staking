@@ -50,17 +50,10 @@ import {
   toCamelCase,
   zipArrays,
 } from "./utils";
-
-type ProgramVersion = "v1";
-type DecodedTransactionResult = {
-  version: "v1";
-  tx: DecodedStakingProgramInstruction[];
-  events: ParsedEvent[];
-  getInstructionEventByType: <T extends InferenceStakingEvents>(
-    eventType: T,
-    instructionIndex: number
-  ) => ParsedEvent<T> | undefined;
-};
+import type {
+  InferenceStakingProgramVersion,
+  InferenceStakingDecodedTransactionResult,
+} from "./versions";
 
 export class InferenceStakingProgramSdk {
   coder: BorshCoder;
@@ -713,8 +706,8 @@ export class InferenceStakingProgramSdk {
   }: {
     tx: VersionedTransaction;
     logs: string[];
-    version: ProgramVersion;
-  }): DecodedTransactionResult {
+    version: InferenceStakingProgramVersion;
+  }): InferenceStakingDecodedTransactionResult {
     switch (version) {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       case "v1": {
