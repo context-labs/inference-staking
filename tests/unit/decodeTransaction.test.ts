@@ -444,7 +444,11 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
       STAKE_TRANSACTION_RESPONSE as unknown as VersionedTransactionResponse,
       STAKE_SERIALIZED_MESSAGE
     );
-    const tx = sdk.decodeTransaction(versionedTransaction);
+    const { tx } = sdk.handleDecodeTransaction({
+      tx: versionedTransaction,
+      logs: STAKE_TRANSACTION_RESPONSE.meta.logMessages,
+      version: "v1",
+    });
 
     expect(tx).toBeDefined();
 
@@ -509,7 +513,11 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
       ACCRUE_REWARD_TRANSACTION_RESPONSE as unknown as VersionedTransactionResponse,
       ACCRUE_REWARD_SERIALIZED_MESSAGE
     );
-    const tx = sdk.decodeTransaction(versionedTransaction);
+    const { tx, getInstructionEventByType } = sdk.handleDecodeTransaction({
+      tx: versionedTransaction,
+      logs: ACCRUE_REWARD_TRANSACTION_RESPONSE.meta.logMessages,
+      version: "v1",
+    });
 
     const ix = tx.find((ix) => ix.name === "accrueReward");
     invariant(ix, "accrueRewardIx undefined");
@@ -577,16 +585,11 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
       delegatorRewardShare + operatorRewardCommissionShare;
     const totalUsdcShare = delegatorUsdcShare + operatorUsdcCommissionShare;
 
-    const accrueRewardEvents = sdk.getAccrueRewardEvents(
-      ACCRUE_REWARD_TRANSACTION_RESPONSE.meta.logMessages
+    const event = getInstructionEventByType(
+      "accrueRewardEvent",
+      ix.instructionIndex
     );
-    const event = accrueRewardEvents.find((event) =>
-      event.data.operatorPool.equals(operatorPool.pubkey)
-    );
-    invariant(
-      event != null && accrueRewardEvents.length === 1,
-      "invalid accrueRewardEvents"
-    );
+    invariant(event != null, "invalid accrueRewardEvent");
     const {
       totalRewardsTransferred,
       totalUsdcTransferred,

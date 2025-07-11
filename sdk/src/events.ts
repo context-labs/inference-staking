@@ -10,6 +10,7 @@ import type { IDL } from "./idl";
  ******************************************************************************* */
 
 export type AccrueRewardEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   epoch: BN;
   totalRewardsTransferred: BN;
@@ -21,6 +22,7 @@ export type AccrueRewardEventData = {
 };
 
 export type CancelUnstakeEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   stakingRecord: PublicKey;
   owner: PublicKey;
@@ -30,12 +32,14 @@ export type CancelUnstakeEventData = {
 };
 
 export type ChangeOperatorAdminEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   oldAdmin: PublicKey;
   newAdmin: PublicKey;
 };
 
 export type ChangeOperatorStakingRecordEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   admin: PublicKey;
   oldStakingRecord: PublicKey;
@@ -43,6 +47,7 @@ export type ChangeOperatorStakingRecordEventData = {
 };
 
 export type ClaimUnstakeEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   stakingRecord: PublicKey;
   owner: PublicKey;
@@ -51,6 +56,7 @@ export type ClaimUnstakeEventData = {
 };
 
 export type ClaimUsdcEarningsEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   stakingRecord: PublicKey;
   owner: PublicKey;
@@ -60,6 +66,7 @@ export type ClaimUsdcEarningsEventData = {
 };
 
 export type SlashStakeEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   operatorStakingRecord: PublicKey;
   authority: PublicKey;
@@ -73,6 +80,7 @@ export type SlashStakeEventData = {
 };
 
 export type StakeEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   stakingRecord: PublicKey;
   owner: PublicKey;
@@ -82,12 +90,14 @@ export type StakeEventData = {
 };
 
 export type SweepClosedPoolUsdcDustEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   admin: PublicKey;
   usdcAmountSwept: BN;
 };
 
 export type UnstakeEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   stakingRecord: PublicKey;
   owner: PublicKey;
@@ -98,6 +108,7 @@ export type UnstakeEventData = {
 };
 
 export type WithdrawOperatorRewardCommissionEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   admin: PublicKey;
   destination: PublicKey;
@@ -105,6 +116,7 @@ export type WithdrawOperatorRewardCommissionEventData = {
 };
 
 export type WithdrawOperatorUsdcCommissionEventData = {
+  instructionIndex: number;
   operatorPool: PublicKey;
   admin: PublicKey;
   destination: PublicKey;

@@ -2,6 +2,12 @@ import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 import promiseLimit from "promise-limit";
 
+export function assertUnreachable(x: never): never {
+  throw new Error(
+    `Received a value which should not exist: ${JSON.stringify(x)}`
+  );
+}
+
 export function toCamelCase(text: string): string {
   return text
     .split(/\s+/)

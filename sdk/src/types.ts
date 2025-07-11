@@ -98,7 +98,8 @@ export type InstructionAccountsMap<T extends InferenceStakingInstructions> =
 export type DecodedStakingProgramInstruction = {
   [K in InferenceStakingInstructions]: {
     name: K;
-    args: InstructionArgsMap[K];
     accounts: InstructionAccountsMap<K>;
+    args: InstructionArgsMap[K];
+    instructionIndex: number;
   };
 }[InferenceStakingInstructions];

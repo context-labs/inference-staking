@@ -42,6 +42,7 @@ import type {
   InferenceStakingAccountStructName,
 } from "./types";
 import {
+  assertUnreachable,
   batchArray,
   capitalize,
   executeWithRetries,
@@ -49,6 +50,17 @@ import {
   toCamelCase,
   zipArrays,
 } from "./utils";
+
+type ProgramVersion = "v1";
+type DecodedTransactionResult = {
+  version: "v1";
+  tx: DecodedStakingProgramInstruction[];
+  events: ParsedEvent[];
+  getInstructionEventByType: <T extends InferenceStakingEvents>(
+    eventType: T,
+    instructionIndex: number
+  ) => ParsedEvent<T> | undefined;
+};
 
 export class InferenceStakingProgramSdk {
   coder: BorshCoder;
@@ -564,7 +576,7 @@ export class InferenceStakingProgramSdk {
    *  Event Parsing Methods
    *************************************************************************** */
 
-  parseEventsFromTransactionLogs(logs: string[]): ParsedEvent[] {
+  private parseEventsFromTransactionLogsV1(logs: string[]): ParsedEvent[] {
     const eventParser = new EventParser(this.program.programId, this.coder);
     const parsedEvents = eventParser.parseLogs(logs);
 
@@ -585,140 +597,47 @@ export class InferenceStakingProgramSdk {
     return events;
   }
 
-  getAccrueRewardEvents(logs: string[]): ParsedEvent<"accrueRewardEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"accrueRewardEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "accrueRewardEvent";
-      }
+  private getEventTypeV1<T extends InferenceStakingEvents>(
+    events: ParsedEvent[],
+    eventType: T,
+    instructionIndex: number
+  ): ParsedEvent<T> | undefined {
+    const eventForInstructionIndex = events.find(
+      (event) => event.data.instructionIndex === instructionIndex
     );
-  }
 
-  getCancelUnstakeEvents(logs: string[]): ParsedEvent<"cancelUnstakeEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"cancelUnstakeEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "cancelUnstakeEvent";
-      }
-    );
-  }
+    if (eventForInstructionIndex == null) {
+      return undefined;
+    }
 
-  getChangeOperatorAdminEvents(
-    logs: string[]
-  ): ParsedEvent<"changeOperatorAdminEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"changeOperatorAdminEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "changeOperatorAdminEvent";
-      }
-    );
-  }
+    if (eventForInstructionIndex.name !== eventType) {
+      return undefined;
+    }
 
-  getChangeOperatorStakingRecordEvents(
-    logs: string[]
-  ): ParsedEvent<"changeOperatorStakingRecordEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"changeOperatorStakingRecordEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "changeOperatorStakingRecordEvent";
-      }
-    );
-  }
-
-  getClaimUnstakeEvents(logs: string[]): ParsedEvent<"claimUnstakeEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"claimUnstakeEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "claimUnstakeEvent";
-      }
-    );
-  }
-
-  getClaimUsdcEarningsEvents(
-    logs: string[]
-  ): ParsedEvent<"claimUsdcEarningsEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"claimUsdcEarningsEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "claimUsdcEarningsEvent";
-      }
-    );
-  }
-
-  getSlashStakeEvents(logs: string[]): ParsedEvent<"slashStakeEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"slashStakeEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "slashStakeEvent";
-      }
-    );
-  }
-
-  getStakeEvents(logs: string[]): ParsedEvent<"stakeEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"stakeEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "stakeEvent";
-      }
-    );
-  }
-
-  getSweepClosedPoolUsdcDustEvents(
-    logs: string[]
-  ): ParsedEvent<"sweepClosedPoolUsdcDustEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"sweepClosedPoolUsdcDustEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "sweepClosedPoolUsdcDustEvent";
-      }
-    );
-  }
-
-  getUnstakeEvents(logs: string[]): ParsedEvent<"unstakeEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"unstakeEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "unstakeEvent";
-      }
-    );
-  }
-
-  getWithdrawOperatorRewardCommissionEvents(
-    logs: string[]
-  ): ParsedEvent<"withdrawOperatorRewardCommissionEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (
-        event
-      ): event is ParsedEvent<"withdrawOperatorRewardCommissionEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "withdrawOperatorRewardCommissionEvent";
-      }
-    );
-  }
-
-  getWithdrawOperatorUsdcCommissionEvents(
-    logs: string[]
-  ): ParsedEvent<"withdrawOperatorUsdcCommissionEvent">[] {
-    return this.parseEventsFromTransactionLogs(logs).filter(
-      (event): event is ParsedEvent<"withdrawOperatorUsdcCommissionEvent"> => {
-        const eventName: string = event.name;
-        return eventName === "withdrawOperatorUsdcCommissionEvent";
-      }
-    );
+    return eventForInstructionIndex as ParsedEvent<T>;
   }
 
   /** ************************************************************************
    *  Transaction Decoding Method
    *************************************************************************** */
 
-  decodeTransaction(
+  private decodeTransactionV1(
     tx: VersionedTransaction
   ): DecodedStakingProgramInstruction[] {
     const final: DecodedStakingProgramInstruction[] = [];
     const borshCoder = new BorshCoder(this.program.idl);
     if (tx.message.version === "legacy") {
-      for (const instruction of tx.message.instructions) {
+      for (
+        let instructionIndex = 0;
+        instructionIndex < tx.message.instructions.length;
+        instructionIndex++
+      ) {
         try {
+          const instruction = tx.message.instructions[instructionIndex];
+          if (instruction == null) {
+            continue;
+          }
+
           const decodedIx = borshCoder.instruction.decode(
             instruction.data,
             "base58"
@@ -770,6 +689,7 @@ export class InferenceStakingProgramSdk {
             name,
             args,
             accounts,
+            instructionIndex,
           } as DecodedStakingProgramInstruction;
 
           final.push(result);
@@ -779,5 +699,42 @@ export class InferenceStakingProgramSdk {
       }
     }
     return final;
+  }
+
+  /**
+   * Add additional versioned branches here when program upgrades happen.
+   *
+   * See details here: https://github.com/context-labs/inference-staking/pull/47
+   */
+  handleDecodeTransaction({
+    tx,
+    logs,
+    version,
+  }: {
+    tx: VersionedTransaction;
+    logs: string[];
+    version: ProgramVersion;
+  }): DecodedTransactionResult {
+    switch (version) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      case "v1": {
+        const events = this.parseEventsFromTransactionLogsV1(logs);
+        const getInstructionEventByType = <T extends InferenceStakingEvents>(
+          eventType: T,
+          instructionIndex: number
+        ): ParsedEvent<T> | undefined => {
+          return this.getEventTypeV1(events, eventType, instructionIndex);
+        };
+
+        return {
+          version: "v1",
+          tx: this.decodeTransactionV1(tx),
+          events,
+          getInstructionEventByType,
+        };
+      }
+      default:
+        return assertUnreachable(version);
+    }
   }
 }
