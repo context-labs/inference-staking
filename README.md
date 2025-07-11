@@ -1,3 +1,7 @@
+![inference-net](https://github.com/user-attachments/assets/cdf6fbb6-3d51-4b3f-b2bd-9d1dfdd0f1fd)
+
+At [Inference.net](https://inference.net/?utm_source=github&utm_medium=readme&utm_campaign=overview), we provide developers and enterprises with access to top-performing large language models (LLMs) through our efficient and cost-effective inference platform.
+
 # Inference.net Staking Program
 
 A Solana on-chain program that manages staking and unstaking of tokens to Operator-managed pools, custodies delegated tokens, and distributes rewards.
