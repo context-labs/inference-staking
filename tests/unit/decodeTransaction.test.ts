@@ -513,12 +513,11 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
       ACCRUE_REWARD_TRANSACTION_RESPONSE as unknown as VersionedTransactionResponse,
       ACCRUE_REWARD_SERIALIZED_MESSAGE
     );
-    const { instructions, getInstructionEventByType } =
-      sdk.handleDecodeTransaction({
-        tx: versionedTransaction,
-        logs: ACCRUE_REWARD_TRANSACTION_RESPONSE.meta.logMessages,
-        version: "v1",
-      });
+    const { instructions, getEventByType } = sdk.handleDecodeTransaction({
+      tx: versionedTransaction,
+      logs: ACCRUE_REWARD_TRANSACTION_RESPONSE.meta.logMessages,
+      version: "v1",
+    });
 
     const ix = instructions.find((ix) => ix.name === "accrueReward");
     invariant(ix, "accrueRewardIx undefined");
@@ -586,10 +585,7 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
       delegatorRewardShare + operatorRewardCommissionShare;
     const totalUsdcShare = delegatorUsdcShare + operatorUsdcCommissionShare;
 
-    const event = getInstructionEventByType(
-      "accrueRewardEvent",
-      ix.instructionIndex
-    );
+    const event = getEventByType("accrueRewardEvent", ix.instructionIndex);
     invariant(event != null, "invalid accrueRewardEvent");
     const {
       totalRewardsTransferred,

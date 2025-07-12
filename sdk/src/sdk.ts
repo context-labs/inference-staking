@@ -595,19 +595,33 @@ export class InferenceStakingProgramSdk {
     eventType: T,
     instructionIndex: number
   ): ParsedEvent<T> | undefined {
-    const eventForInstructionIndex = events.find(
+    const eventForInstructionIndex = events.filter(
       (event) => event.data.instructionIndex === instructionIndex
     );
 
-    if (eventForInstructionIndex == null) {
+    if (eventForInstructionIndex.length === 0) {
       return undefined;
     }
 
-    if (eventForInstructionIndex.name !== eventType) {
-      return undefined;
+    const matchedEvents = eventForInstructionIndex.filter(
+      (event) => event.name === eventType
+    );
+
+    const event = matchedEvents[0];
+
+    if (event == null) {
+      throw new Error(
+        `No event of type "${eventType}" found for instruction index: ${instructionIndex} - this is invalid`
+      );
     }
 
-    return eventForInstructionIndex as ParsedEvent<T>;
+    if (matchedEvents.length > 1) {
+      throw new Error(
+        `Multiple events of type "${eventType}" found for instruction index: ${instructionIndex} - this is invalid`
+      );
+    }
+
+    return event as ParsedEvent<T>;
   }
 
   /** ************************************************************************
@@ -713,7 +727,7 @@ export class InferenceStakingProgramSdk {
       case "v1": {
         const events = this.parseEventsFromTransactionLogsV1(logs);
 
-        const getInstructionEventByType = <T extends InferenceStakingEvents>(
+        const getEventByType = <T extends InferenceStakingEvents>(
           eventType: T,
           instructionIndex: number
         ): ParsedEvent<T> | undefined => {
@@ -721,7 +735,7 @@ export class InferenceStakingProgramSdk {
         };
 
         const getEventByInstructionIndex = (instructionIndex: number) => {
-          return events.find(
+          return events.filter(
             (event) => event.data.instructionIndex === instructionIndex
           );
         };
@@ -730,7 +744,7 @@ export class InferenceStakingProgramSdk {
           version: "v1",
           events,
           instructions: this.decodeTransactionV1(tx),
-          getInstructionEventByType,
+          getEventByType,
           getEventByInstructionIndex,
         };
       }

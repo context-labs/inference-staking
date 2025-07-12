@@ -1951,6 +1951,10 @@ const _IDL = {
       discriminator: [123, 242, 220, 20, 212, 247, 183, 251],
     },
     {
+      name: "operatorAutoStakeEvent",
+      discriminator: [33, 144, 180, 33, 20, 44, 4, 71],
+    },
+    {
       name: "slashStakeEvent",
       discriminator: [150, 87, 165, 208, 202, 50, 106, 12],
     },
@@ -2532,6 +2536,42 @@ const _IDL = {
             type: {
               option: "u16",
             },
+          },
+        ],
+      },
+    },
+    {
+      name: "operatorAutoStakeEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "instructionIndex",
+            type: "u16",
+          },
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "stakingRecord",
+            type: "pubkey",
+          },
+          {
+            name: "owner",
+            type: "pubkey",
+          },
+          {
+            name: "isOperator",
+            type: "bool",
+          },
+          {
+            name: "tokenAmount",
+            type: "u64",
+          },
+          {
+            name: "sharesAmount",
+            type: "u64",
           },
         ],
       },

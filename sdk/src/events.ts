@@ -89,6 +89,16 @@ export type StakeEventData = {
   sharesAmount: BN;
 };
 
+export type OperatorAutoStakeEventData = {
+  instructionIndex: number;
+  operatorPool: PublicKey;
+  stakingRecord: PublicKey;
+  owner: PublicKey;
+  isOperator: boolean;
+  tokenAmount: BN;
+  sharesAmount: BN;
+};
+
 export type SweepClosedPoolUsdcDustEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
@@ -132,6 +142,7 @@ export type EventDataMap = {
   claimUsdcEarningsEvent: ClaimUsdcEarningsEventData;
   slashStakeEvent: SlashStakeEventData;
   stakeEvent: StakeEventData;
+  operatorAutoStakeEvent: OperatorAutoStakeEventData;
   sweepClosedPoolUsdcDustEvent: SweepClosedPoolUsdcDustEventData;
   unstakeEvent: UnstakeEventData;
   withdrawOperatorRewardCommissionEvent: WithdrawOperatorRewardCommissionEventData;

@@ -5,7 +5,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::constants::USDC_PRECISION_FACTOR;
 use crate::error::ErrorCode;
-use crate::events::AccrueRewardEvent;
+use crate::events::{AccrueRewardEvent, OperatorAutoStakeEvent};
 use crate::state::{OperatorPool, PoolOverview, RewardRecord, StakingRecord};
 
 #[derive(Accounts)]
@@ -188,6 +188,9 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         .checked_add(1)
         .unwrap();
 
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
     if should_transfer_rewards {
         // Use the accumulated balances for transfers and updates
         let total_operator_usdc_to_transfer = operator_pool.accrued_usdc_commission;
@@ -212,6 +215,16 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
                 .shares
                 .checked_add(new_shares)
                 .unwrap();
+
+            emit!(OperatorAutoStakeEvent {
+                instruction_index,
+                operator_pool: operator_pool.key(),
+                staking_record: operator_staking_record.key(),
+                shares_amount: new_shares,
+                owner: operator_staking_record.owner,
+                is_operator: true,
+                token_amount: accrued_commission,
+            });
         } else {
             // Transfer commission to fee account directly since auto-stake is not enabled.
             token::transfer(
@@ -328,9 +341,6 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         operator_pool.accrued_usdc_commission = 0;
         operator_pool.accrued_delegator_usdc = 0;
     }
-
-    let instructions = ctx.accounts.instructions.to_account_info();
-    let instruction_index = load_current_index_checked(&instructions)?;
 
     emit!(AccrueRewardEvent {
         instruction_index,

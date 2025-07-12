@@ -7,10 +7,8 @@ export type InferenceStakingDecodedTransactionResult = {
   version: "v1";
   instructions: DecodedStakingProgramInstruction[];
   events: ParsedEvent[];
-  getEventByInstructionIndex: (
-    instructionIndex: number
-  ) => ParsedEvent | undefined;
-  getInstructionEventByType: <T extends InferenceStakingEvents>(
+  getEventByInstructionIndex: (instructionIndex: number) => ParsedEvent[];
+  getEventByType: <T extends InferenceStakingEvents>(
     eventType: T,
     instructionIndex: number
   ) => ParsedEvent<T> | undefined;
