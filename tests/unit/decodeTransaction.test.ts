@@ -444,16 +444,16 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
       STAKE_TRANSACTION_RESPONSE as unknown as VersionedTransactionResponse,
       STAKE_SERIALIZED_MESSAGE
     );
-    const { tx } = sdk.handleDecodeTransaction({
+    const { instructions } = sdk.handleDecodeTransaction({
       tx: versionedTransaction,
       logs: STAKE_TRANSACTION_RESPONSE.meta.logMessages,
       version: "v1",
     });
 
-    expect(tx).toBeDefined();
+    expect(instructions).toBeDefined();
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const ix = tx[0]!;
+    const ix = instructions[0]!;
     const ixName = ix.name;
     expect(ixName).toBe("stake");
     if (ixName === "stake") {
@@ -513,13 +513,14 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
       ACCRUE_REWARD_TRANSACTION_RESPONSE as unknown as VersionedTransactionResponse,
       ACCRUE_REWARD_SERIALIZED_MESSAGE
     );
-    const { tx, getInstructionEventByType } = sdk.handleDecodeTransaction({
-      tx: versionedTransaction,
-      logs: ACCRUE_REWARD_TRANSACTION_RESPONSE.meta.logMessages,
-      version: "v1",
-    });
+    const { instructions, getInstructionEventByType } =
+      sdk.handleDecodeTransaction({
+        tx: versionedTransaction,
+        logs: ACCRUE_REWARD_TRANSACTION_RESPONSE.meta.logMessages,
+        version: "v1",
+      });
 
-    const ix = tx.find((ix) => ix.name === "accrueReward");
+    const ix = instructions.find((ix) => ix.name === "accrueReward");
     invariant(ix, "accrueRewardIx undefined");
 
     const {

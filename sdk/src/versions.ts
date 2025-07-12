@@ -5,7 +5,7 @@ export type InferenceStakingProgramVersion = "v1";
 
 export type InferenceStakingDecodedTransactionResult = {
   version: "v1";
-  tx: DecodedStakingProgramInstruction[];
+  instructions: DecodedStakingProgramInstruction[];
   events: ParsedEvent[];
   getInstructionEventByType: <T extends InferenceStakingEvents>(
     eventType: T,

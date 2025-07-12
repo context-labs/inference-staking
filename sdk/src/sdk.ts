@@ -721,8 +721,8 @@ export class InferenceStakingProgramSdk {
 
         return {
           version: "v1",
-          tx: this.decodeTransactionV1(tx),
           events,
+          instructions: this.decodeTransactionV1(tx),
           getInstructionEventByType,
         };
       }
