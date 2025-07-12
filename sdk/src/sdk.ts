@@ -712,6 +712,7 @@ export class InferenceStakingProgramSdk {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       case "v1": {
         const events = this.parseEventsFromTransactionLogsV1(logs);
+
         const getInstructionEventByType = <T extends InferenceStakingEvents>(
           eventType: T,
           instructionIndex: number
@@ -719,11 +720,18 @@ export class InferenceStakingProgramSdk {
           return this.getEventTypeV1(events, eventType, instructionIndex);
         };
 
+        const getEventByInstructionIndex = (instructionIndex: number) => {
+          return events.find(
+            (event) => event.data.instructionIndex === instructionIndex
+          );
+        };
+
         return {
           version: "v1",
           events,
           instructions: this.decodeTransactionV1(tx),
           getInstructionEventByType,
+          getEventByInstructionIndex,
         };
       }
       default:
