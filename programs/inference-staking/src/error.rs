@@ -42,6 +42,8 @@ pub enum ErrorCode {
     AuthoritiesExceeded,
     #[msg("Invalid operator auth keys length")]
     OperatorAuthKeysLengthInvalid,
+    #[msg("Duplicate operator auth key provided")]
+    DuplicateOperatorAuthKey,
     #[msg("Account not empty")]
     AccountNotEmpty,
     #[msg("Pool creation is disabled")]

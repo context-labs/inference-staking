@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 
-use crate::error::ErrorCode;
 use crate::state::OperatorPool;
 
 #[derive(Accounts)]
@@ -26,7 +25,7 @@ pub struct NewCommissionRateSetting {
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
 pub struct UpdateOperatorPoolArgs {
-    /// If set, the new commission rate will become active next epoch
+    /// If provided, the new commission rates will become active after the next epoch's reward claim for this pool
     pub new_reward_commission_rate_bps: Option<NewCommissionRateSetting>,
     pub new_usdc_commission_rate_bps: Option<NewCommissionRateSetting>,
     pub allow_delegation: Option<bool>,
@@ -79,32 +78,24 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
 
     if let Some(new_reward_rate_setting) = new_reward_commission_rate_bps {
         if let Some(new_commission_rate_bps) = new_reward_rate_setting.rate_bps {
-            require_gte!(
-                10_000,
-                new_commission_rate_bps,
-                ErrorCode::InvalidCommissionRate
-            );
+            OperatorPool::validate_commission_rate(new_commission_rate_bps)?;
         }
         operator_pool.new_reward_commission_rate_bps = new_reward_rate_setting.rate_bps;
     }
 
     if let Some(new_usdc_rate_setting) = new_usdc_commission_rate_bps {
         if let Some(new_usdc_rate_bps) = new_usdc_rate_setting.rate_bps {
-            require_gte!(10_000, new_usdc_rate_bps, ErrorCode::InvalidCommissionRate);
+            OperatorPool::validate_commission_rate(new_usdc_rate_bps)?;
         }
         operator_pool.new_usdc_commission_rate_bps = new_usdc_rate_setting.rate_bps;
     }
 
     if let Some(operator_auth_keys) = operator_auth_keys {
-        require_gte!(
-            3,
-            operator_auth_keys.len(),
-            ErrorCode::OperatorAuthKeysLengthInvalid
-        );
+        OperatorPool::validate_operator_auth_keys(&operator_auth_keys)?;
         operator_pool.operator_auth_keys = operator_auth_keys;
     }
 
-    operator_pool.validate_string_fields()?;
+    operator_pool.validate_pool_profile_fields()?;
 
     Ok(())
 }

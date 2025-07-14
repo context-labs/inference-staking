@@ -705,6 +705,8 @@ describe("inference-staking program tests", () => {
         Keypair.generate().publicKey,
         Keypair.generate().publicKey,
         Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
       ];
 
       await program.methods
@@ -722,6 +724,29 @@ describe("inference-staking program tests", () => {
       assert(false);
     } catch (error) {
       assertStakingProgramError(error, "operatorAuthKeysLengthInvalid");
+    }
+  });
+
+  it("Fail to update operator pool with duplicate auth keys", async () => {
+    const duplicateKey = Keypair.generate().publicKey;
+    const duplicateAuthKeys = [duplicateKey, duplicateKey, duplicateKey];
+
+    try {
+      await program.methods
+        .updateOperatorPool({
+          ...setup.sdk.getEmptyOperatorPoolFieldsForUpdateInstruction(),
+          operatorAuthKeys: duplicateAuthKeys,
+        })
+        .accountsStrict({
+          admin: setup.pool1.admin,
+          operatorPool: setup.pool1.pool,
+        })
+        .signers([setup.pool1.adminKp])
+        .rpc();
+
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "duplicateOperatorAuthKey");
     }
   });
 

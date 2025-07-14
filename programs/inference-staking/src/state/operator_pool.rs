@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anchor_lang::prelude::*;
 
 use crate::{constants::USDC_PRECISION_FACTOR, error::ErrorCode, state::StakingRecord};
@@ -7,6 +9,8 @@ const MAX_NAME_LENGTH: usize = 64;
 const MAX_DESCRIPTION_LENGTH: usize = 200;
 const MAX_WEBSITE_URL_LENGTH: usize = 64;
 const MAX_AVATAR_IMAGE_URL_LENGTH: usize = 128;
+
+const MAX_OPERATOR_AUTH_KEYS_LENGTH: usize = 5;
 
 #[derive(InitSpace)]
 #[account]
@@ -43,7 +47,7 @@ pub struct OperatorPool {
     pub operator_staking_record: Pubkey,
 
     /// Operator auth keys. Used to authenticate operator GPU workers.
-    #[max_len(3)]
+    #[max_len(MAX_OPERATOR_AUTH_KEYS_LENGTH)]
     pub operator_auth_keys: Vec<Pubkey>,
 
     /// If commission fees received by Operator should be staked at the end of the epoch.
@@ -351,11 +355,35 @@ impl OperatorPool {
         Ok(())
     }
 
-    pub fn validate_string_fields(&self) -> Result<()> {
+    pub fn validate_pool_profile_fields(&self) -> Result<()> {
         self.validate_name()?;
         self.validate_description()?;
         self.validate_website_url()?;
         self.validate_avatar_image_url()?;
+        Ok(())
+    }
+
+    pub fn validate_operator_auth_keys(operator_auth_keys: &[Pubkey]) -> Result<()> {
+        if operator_auth_keys.len() > MAX_OPERATOR_AUTH_KEYS_LENGTH {
+            return Err(ErrorCode::OperatorAuthKeysLengthInvalid.into());
+        }
+
+        let mut seen = HashSet::new();
+        for key in operator_auth_keys {
+            if !seen.insert(key) {
+                return Err(ErrorCode::DuplicateOperatorAuthKey.into());
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn validate_commission_rate(commission_rate_bps: u16) -> Result<()> {
+        require_gte!(
+            10_000,
+            commission_rate_bps,
+            ErrorCode::InvalidCommissionRate
+        );
         Ok(())
     }
 }
