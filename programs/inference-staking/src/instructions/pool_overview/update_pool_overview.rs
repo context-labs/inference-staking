@@ -100,14 +100,12 @@ pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -
 
     let slashing_destination_usdc_account = &ctx.accounts.slashing_destination_usdc_account;
     if let Some(slashing_destination_usdc_account) = slashing_destination_usdc_account {
-        pool_overview.slashing_destination_usdc_account =
-            Some(slashing_destination_usdc_account.key());
+        pool_overview.slashing_destination_usdc_account = slashing_destination_usdc_account.key();
     }
 
     let slashing_destination_token_account = &ctx.accounts.slashing_destination_token_account;
     if let Some(slashing_destination_token_account) = slashing_destination_token_account {
-        pool_overview.slashing_destination_token_account =
-            Some(slashing_destination_token_account.key());
+        pool_overview.slashing_destination_token_account = slashing_destination_token_account.key();
     }
 
     Ok(())
