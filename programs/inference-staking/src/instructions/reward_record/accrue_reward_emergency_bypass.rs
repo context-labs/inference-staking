@@ -22,7 +22,7 @@ pub struct AccrueRewardEmergencyBypass<'info> {
         ],
         bump = operator_pool.bump,
         constraint = operator_pool.halted_at_timestamp.is_none() @ ErrorCode::OperatorPoolHalted,
-        constraint = operator_pool.closed_at.is_none() @ ErrorCode::ClosedPool,
+        constraint = operator_pool.closed_at_epoch.is_none() @ ErrorCode::ClosedPool,
         has_one = admin,
     )]
     pub operator_pool: Box<Account<'info, OperatorPool>>,

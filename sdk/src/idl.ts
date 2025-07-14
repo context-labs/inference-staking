@@ -2737,12 +2737,12 @@ const _IDL = {
             type: "u64",
           },
           {
-            name: "joinedAt",
+            name: "joinedAtEpoch",
             docs: ["Epoch that pool was created."],
             type: "u64",
           },
           {
-            name: "closedAt",
+            name: "closedAtEpoch",
             docs: [
               "Epoch that pool was permanently closed at, if set. Once a pool is closed, the pool will stop accruing",
               "any rewards starting from that epoch.",

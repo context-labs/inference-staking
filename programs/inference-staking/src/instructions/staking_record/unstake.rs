@@ -105,7 +105,7 @@ pub fn handler(ctx: Context<Unstake>, shares_amount: u64) -> Result<()> {
     //    a pool becoming fully unstaked before its final reward epoch distribution.
     // 2. Pool is not closed, check that they still maintain min. token stake of pool after.
     if is_operator_unstaking {
-        match operator_pool.closed_at {
+        match operator_pool.closed_at_epoch {
             Some(closed_at) => {
                 let completed_reward_epoch = pool_overview.completed_reward_epoch;
                 require_gte!(

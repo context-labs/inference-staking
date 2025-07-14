@@ -132,7 +132,7 @@ pub fn handler(ctx: Context<ClaimUnstake>) -> Result<()> {
 
     // If Operator is claiming and pool is not closed, check that they still
     // maintain min. token stake of pool after.
-    if is_operator_claiming && operator_pool.closed_at.is_none() {
+    if is_operator_claiming && operator_pool.closed_at_epoch.is_none() {
         let min_operator_token_stake = pool_overview.min_operator_token_stake;
         let operator_stake = operator_pool.calc_tokens_for_share_amount(staking_record.shares);
         require_gte!(

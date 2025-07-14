@@ -204,7 +204,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
         false => pool_overview.completed_reward_epoch,
     };
 
-    operator_pool.joined_at = current_epoch;
+    operator_pool.joined_at_epoch = current_epoch;
     operator_pool.reward_last_claimed_epoch = current_epoch;
 
     let staking_record = &mut ctx.accounts.staking_record;

@@ -20,7 +20,7 @@ pub struct SweepClosedPoolUsdcDust<'info> {
         // The pool must be owned by the admin invoking this.
         has_one = admin,
         // The pool must be in a closed state.
-        constraint = operator_pool.closed_at.is_some() @ ErrorCode::PoolClosedEpochInvalid,
+        constraint = operator_pool.closed_at_epoch.is_some() @ ErrorCode::PoolClosedEpochInvalid,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
 
@@ -61,7 +61,7 @@ pub fn handler(ctx: Context<SweepClosedPoolUsdcDust>) -> Result<()> {
 
     // Ensure the pool is closed and therefore no more rewards are possible
     require!(
-        pool_overview.completed_reward_epoch > operator_pool.closed_at.unwrap(),
+        pool_overview.completed_reward_epoch > operator_pool.closed_at_epoch.unwrap(),
         ErrorCode::PoolClosedEpochInvalid
     );
 

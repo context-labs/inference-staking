@@ -399,7 +399,7 @@ describe("inference-staking program tests", () => {
     assert(operatorPool.totalStakedAmount.isZero());
     assert(operatorPool.totalShares.isZero());
     assert(operatorPool.totalUnstaking.isZero());
-    assert.isNull(operatorPool.closedAt);
+    assert.isNull(operatorPool.closedAtEpoch);
     assert.isNull(operatorPool.haltedAtTimestamp);
     assert(operatorPool.rewardLastClaimedEpoch.eqn(1));
     assert(operatorPool.accruedRewards.isZero());
@@ -1745,7 +1745,7 @@ describe("inference-staking program tests", () => {
     assert(operatorPool.totalStakedAmount.isZero());
     assert(operatorPool.totalShares.isZero());
     assert(operatorPool.totalUnstaking.isZero());
-    assert.isNull(operatorPool.closedAt);
+    assert.isNull(operatorPool.closedAtEpoch);
     assert.isNull(operatorPool.haltedAtTimestamp);
     assert(operatorPool.rewardLastClaimedEpoch.eqn(1));
     assert(operatorPool.accruedRewards.isZero());
@@ -3133,7 +3133,7 @@ describe("inference-staking program tests", () => {
       setup.pool1.pool
     );
     assert(
-      operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch.addn(1))
+      operatorPool.closedAtEpoch?.eq(poolOverview.completedRewardEpoch.addn(1))
     );
   });
 

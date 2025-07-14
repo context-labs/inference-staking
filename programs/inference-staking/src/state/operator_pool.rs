@@ -78,11 +78,11 @@ pub struct OperatorPool {
     pub total_unstaking: u64,
 
     /// Epoch that pool was created.
-    pub joined_at: u64,
+    pub joined_at_epoch: u64,
 
     /// Epoch that pool was permanently closed at, if set. Once a pool is closed, the pool will stop accruing
     /// any rewards starting from that epoch.
-    pub closed_at: Option<u64>,
+    pub closed_at_epoch: Option<u64>,
 
     /// Timestamp when the pool was halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,
     /// claim, withdraw rewards or close a pool. Other users can still unstake or claim.
@@ -217,8 +217,8 @@ impl OperatorPool {
     /// Returns an error if rewards are unclaimed and conditions are not met.
     pub fn check_unclaimed_rewards(&self, completed_reward_epoch: u64) -> Result<()> {
         if completed_reward_epoch > self.reward_last_claimed_epoch {
-            if self.closed_at.is_some() {
-                let closed_at = self.closed_at.unwrap();
+            if self.closed_at_epoch.is_some() {
+                let closed_at = self.closed_at_epoch.unwrap();
                 require_gte!(
                     self.reward_last_claimed_epoch,
                     closed_at,

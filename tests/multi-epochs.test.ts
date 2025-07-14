@@ -521,8 +521,8 @@ describe("multi-epoch lifecycle tests", () => {
       );
       const activePools = pools.filter(
         (pool) =>
-          pool.operatorPool.closedAt == null ||
-          pool.operatorPool.closedAt.toNumber() === currentCompletedEpoch
+          pool.operatorPool.closedAtEpoch == null ||
+          pool.operatorPool.closedAtEpoch.toNumber() === currentCompletedEpoch
       );
       const rewards = generateRewardsForEpoch(
         activePools.map((pool) => pool.pool),
@@ -1010,7 +1010,7 @@ describe("multi-epoch lifecycle tests", () => {
       assert(operatorPool.totalStakedAmount.isZero());
       assert(operatorPool.totalShares.isZero());
       assert(operatorPool.totalUnstaking.isZero());
-      assert.isNull(operatorPool.closedAt);
+      assert.isNull(operatorPool.closedAtEpoch);
       assert.isNull(operatorPool.haltedAtTimestamp);
       assert(operatorPool.rewardLastClaimedEpoch.eqn(0));
       assert(operatorPool.accruedRewards.isZero());
@@ -1823,7 +1823,9 @@ describe("multi-epoch lifecycle tests", () => {
       ]);
 
       assert(
-        operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch.addn(1)),
+        operatorPool.closedAtEpoch?.eq(
+          poolOverview.completedRewardEpoch.addn(1)
+        ),
         "Operator pool closedAt should match the completed reward epoch"
       );
 
