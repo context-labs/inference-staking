@@ -6,6 +6,8 @@ At [Inference.net](https://inference.net/?utm_source=github&utm_medium=readme&ut
 
 A Solana on-chain program that manages staking and unstaking of tokens to operator managed pools, custodies delegated tokens, and distributes rewards and USDC earnings.
 
+View staking program documentation [here](https://docs.devnet.inference.net/devnet-epoch-3/staking-protocol).
+
 ## Overview
 
 The Inference.net Staking System allows users to stake tokens to Operator-managed pools. Operators can set commission rates and receive rewards based on network performance, while delegators can stake to Operators to earn passive income.
