@@ -1,7 +1,11 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-use crate::{constants, error::ErrorCode, PoolOverview};
+use crate::{
+    constants::{self, MIN_SLASHING_DELAY_SECONDS},
+    error::ErrorCode,
+    PoolOverview,
+};
 
 #[derive(Accounts)]
 pub struct CreatePoolOverview<'info> {
@@ -73,6 +77,7 @@ pub fn handler(ctx: Context<CreatePoolOverview>) -> Result<()> {
         ctx.accounts.slashing_destination_token_account.key();
     pool_overview.slashing_destination_usdc_account =
         ctx.accounts.slashing_destination_usdc_account.key();
+    pool_overview.slashing_delay_seconds = MIN_SLASHING_DELAY_SECONDS;
 
     Ok(())
 }
