@@ -46,6 +46,7 @@ describe("Reward creation and accrual tests", () => {
   const isAccrueRewardHalted = false;
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
+  const slashingDelaySeconds = new anchor.BN(1);
 
   let bigMerkleTree: Uint8Array[][];
   let bigRewardsInput: ConstructMerkleTreeInput[] = [];
@@ -68,6 +69,8 @@ describe("Reward creation and accrual tests", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         registrationFeePayoutWallet: setup.registrationFeePayoutWallet,
+        slashingDestinationTokenAccount: setup.slashingDestinationTokenAccount,
+        slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
@@ -98,11 +101,14 @@ describe("Reward creation and accrual tests", () => {
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
         operatorPoolRegistrationFee,
+        slashingDelaySeconds,
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -793,6 +799,8 @@ describe("Reward creation and accrual tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -847,6 +855,8 @@ describe("Reward creation and accrual tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();

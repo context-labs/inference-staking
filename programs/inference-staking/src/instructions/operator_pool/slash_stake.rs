@@ -68,15 +68,15 @@ pub struct SlashStake<'info> {
     mut,
     address = pool_overview.slashing_destination_token_account,
 )]
-    pub slashing_destination_token: Account<'info, TokenAccount>,
+    pub slashing_destination_token_account: Account<'info, TokenAccount>,
 
     // Destination for slashed USDC - must match pool_overview configuration
     #[account(
         mut,
-        constraint = slashing_destination_usdc.mint == USDC_MINT_PUBKEY,
+        constraint = slashing_destination_usdc_account.mint == USDC_MINT_PUBKEY,
         address = pool_overview.slashing_destination_usdc_account,
     )]
-    pub slashing_destination_usdc: Account<'info, TokenAccount>,
+    pub slashing_destination_usdc_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
 
@@ -143,7 +143,10 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
                     from: ctx.accounts.pool_usdc_vault.to_account_info(),
-                    to: ctx.accounts.slashing_destination_usdc.to_account_info(),
+                    to: ctx
+                        .accounts
+                        .slashing_destination_usdc_account
+                        .to_account_info(),
                     authority: operator_pool.to_account_info(),
                 },
                 &[operator_pool_signer_seeds!(operator_pool)],
@@ -164,7 +167,10 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
                     from: ctx.accounts.reward_fee_token_account.to_account_info(),
-                    to: ctx.accounts.slashing_destination_token.to_account_info(),
+                    to: ctx
+                        .accounts
+                        .slashing_destination_token_account
+                        .to_account_info(),
                     authority: operator_pool.to_account_info(),
                 },
                 &[operator_pool_signer_seeds!(operator_pool)],
@@ -181,7 +187,10 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
                     from: ctx.accounts.usdc_fee_token_account.to_account_info(),
-                    to: ctx.accounts.slashing_destination_usdc.to_account_info(),
+                    to: ctx
+                        .accounts
+                        .slashing_destination_usdc_account
+                        .to_account_info(),
                     authority: operator_pool.to_account_info(),
                 },
                 &[operator_pool_signer_seeds!(operator_pool)],
@@ -196,7 +205,10 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
             ctx.accounts.token_program.to_account_info(),
             Transfer {
                 from: ctx.accounts.staked_token_account.to_account_info(),
-                to: ctx.accounts.slashing_destination_token.to_account_info(),
+                to: ctx
+                    .accounts
+                    .slashing_destination_token_account
+                    .to_account_info(),
                 authority: operator_pool.to_account_info(),
             },
             &[operator_pool_signer_seeds!(operator_pool)],
@@ -212,8 +224,8 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
         operator_pool: operator_pool_key,
         operator_staking_record: operator_staking_record_key,
         authority: authority_key,
-        destination: ctx.accounts.slashing_destination_token.key(),
-        destination_usdc: ctx.accounts.slashing_destination_usdc.key(),
+        destination: ctx.accounts.slashing_destination_token_account.key(),
+        destination_usdc: ctx.accounts.slashing_destination_usdc_account.key(),
         shares_slashed: args.shares_amount,
         token_amount_slashed: slashed_token_amount,
         usdc_confiscated,

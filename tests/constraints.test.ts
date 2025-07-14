@@ -23,6 +23,7 @@ describe("Additional tests for instruction constraints", () => {
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const isAccrueRewardHalted = false;
+  const slashingDelaySeconds = new anchor.BN(1);
 
   before(async () => {
     setup = await setupTests();
@@ -44,6 +45,9 @@ describe("Additional tests for instruction constraints", () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           registrationFeePayoutWallet: setup.registrationFeePayoutWallet,
+          slashingDestinationTokenAccount:
+            setup.slashingDestinationTokenAccount,
+          slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
         })
         .signers([setup.payerKp, setup.signerKp])
         .rpc();
@@ -66,6 +70,8 @@ describe("Additional tests for instruction constraints", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         registrationFeePayoutWallet: setup.registrationFeePayoutWallet,
+        slashingDestinationTokenAccount: setup.slashingDestinationTokenAccount,
+        slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
@@ -80,11 +86,14 @@ describe("Additional tests for instruction constraints", () => {
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
         operatorPoolRegistrationFee,
+        slashingDelaySeconds,
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -101,6 +110,8 @@ describe("Additional tests for instruction constraints", () => {
           programAdmin: setup.haltingAuthorityKp.publicKey,
           poolOverview: setup.poolOverview,
           registrationFeePayoutWallet: null,
+          slashingDestinationTokenAccount: null,
+          slashingDestinationUsdcAccount: null,
         })
         .signers([setup.haltingAuthorityKp])
         .rpc();

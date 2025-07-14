@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{error::ErrorCode, PoolOverview};
+use crate::{constants::MIN_SLASHING_DELAY_SECONDS, error::ErrorCode, PoolOverview};
 
 #[derive(Accounts)]
 pub struct UpdatePoolOverview<'info> {
@@ -87,7 +87,7 @@ pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -
 
     if let Some(slashing_delay_seconds) = slashing_delay_seconds {
         require!(
-            slashing_delay_seconds >= 86_400,
+            slashing_delay_seconds >= MIN_SLASHING_DELAY_SECONDS,
             ErrorCode::InvalidSlashingDelay
         );
         pool_overview.slashing_delay_seconds = slashing_delay_seconds;

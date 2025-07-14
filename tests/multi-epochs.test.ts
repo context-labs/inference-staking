@@ -417,6 +417,7 @@ describe("multi-epoch lifecycle tests", () => {
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const isAccrueRewardHalted = false;
+  const slashingDelaySeconds = new anchor.BN(1);
 
   const trpc = new TrpcHttpClient();
 
@@ -831,6 +832,8 @@ describe("multi-epoch lifecycle tests", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         usdcMint: setup.usdcTokenMint,
         usdcTokenAccount: setup.usdcTokenAccount,
+        slashingDestinationTokenAccount: setup.slashingDestinationTokenAccount,
+        slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
         systemProgram: SystemProgram.programId,
         registrationFeePayoutWallet: setup.registrationFeePayoutWallet,
       })
@@ -865,11 +868,14 @@ describe("multi-epoch lifecycle tests", () => {
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
         operatorPoolRegistrationFee,
+        slashingDelaySeconds,
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -1005,7 +1011,7 @@ describe("multi-epoch lifecycle tests", () => {
       assert(operatorPool.totalShares.isZero());
       assert(operatorPool.totalUnstaking.isZero());
       assert.isNull(operatorPool.closedAt);
-      assert(!operatorPool.isHalted);
+      assert.isNull(operatorPool.haltedAt);
       assert(operatorPool.rewardLastClaimedEpoch.eqn(0));
       assert(operatorPool.accruedRewards.isZero());
       assert(operatorPool.accruedRewardCommission.isZero());

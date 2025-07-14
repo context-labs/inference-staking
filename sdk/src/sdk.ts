@@ -440,6 +440,7 @@ export class InferenceStakingProgramSdk {
       minOperatorTokenStake: null,
       delegatorUnstakeDelaySeconds: null,
       operatorUnstakeDelaySeconds: null,
+      slashingDelaySeconds: null,
     };
     return empty;
   }

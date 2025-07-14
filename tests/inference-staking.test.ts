@@ -43,6 +43,7 @@ describe("inference-staking program tests", () => {
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const isAccrueRewardHalted = false;
+  const slashingDelaySeconds = new anchor.BN(1);
 
   before(async () => {
     setup = await setupTests();
@@ -64,6 +65,8 @@ describe("inference-staking program tests", () => {
         usdcTokenAccount: setup.usdcTokenAccount,
         systemProgram: SystemProgram.programId,
         registrationFeePayoutWallet: setup.registrationFeePayoutWallet,
+        slashingDestinationTokenAccount: setup.slashingDestinationTokenAccount,
+        slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
       })
       .signers([setup.payerKp, setup.poolOverviewAdminKp])
       .rpc();
@@ -137,11 +140,14 @@ describe("inference-staking program tests", () => {
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
         operatorPoolRegistrationFee,
+        slashingDelaySeconds,
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -393,7 +399,7 @@ describe("inference-staking program tests", () => {
     assert(operatorPool.totalShares.isZero());
     assert(operatorPool.totalUnstaking.isZero());
     assert.isNull(operatorPool.closedAt);
-    assert(!operatorPool.isHalted);
+    assert.isNull(operatorPool.haltedAt);
     assert(operatorPool.rewardLastClaimedEpoch.eqn(1));
     assert(operatorPool.accruedRewards.isZero());
     assert(operatorPool.accruedRewardCommission.isZero());
@@ -1222,6 +1228,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -1253,6 +1261,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -1268,6 +1278,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -1352,6 +1364,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -1706,7 +1720,7 @@ describe("inference-staking program tests", () => {
     assert(operatorPool.totalShares.isZero());
     assert(operatorPool.totalUnstaking.isZero());
     assert.isNull(operatorPool.closedAt);
-    assert(!operatorPool.isHalted);
+    assert.isNull(operatorPool.haltedAt);
     assert(operatorPool.rewardLastClaimedEpoch.eqn(1));
     assert(operatorPool.accruedRewards.isZero());
     assert(operatorPool.accruedRewardCommission.isZero());
@@ -2053,6 +2067,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2090,6 +2106,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2105,6 +2123,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2142,6 +2162,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2303,11 +2325,6 @@ describe("inference-staking program tests", () => {
   });
 
   it("Fail to slash OperatorPool stake with invalid authority", async () => {
-    const destinationTokenAccount = getAssociatedTokenAddressSync(
-      setup.tokenMint,
-      setup.pool1.admin
-    );
-
     try {
       await program.methods
         .slashStake({ sharesAmount: new anchor.BN(1) })
@@ -2317,13 +2334,11 @@ describe("inference-staking program tests", () => {
           operatorPool: setup.pool1.pool,
           operatorStakingRecord: setup.pool1.stakingRecord,
           stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          destination: destinationTokenAccount,
+          slashingDestinationTokenAccount:
+            setup.slashingDestinationTokenAccount,
+          slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
           poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
             setup.pool1.pool
-          ),
-          destinationUsdcAccount: getAssociatedTokenAddressSync(
-            setup.usdcTokenMint,
-            setup.pool1.admin
           ),
           tokenProgram: TOKEN_PROGRAM_ID,
           usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
@@ -2378,14 +2393,11 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         operatorStakingRecord: setup.pool1.stakingRecord,
         stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        destination: destinationTokenAccount,
         poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
           setup.pool1.pool
         ),
-        destinationUsdcAccount: getAssociatedTokenAddressSync(
-          setup.usdcTokenMint,
-          setup.pool1.admin
-        ),
+        slashingDestinationTokenAccount: setup.slashingDestinationTokenAccount,
+        slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
         tokenProgram: TOKEN_PROGRAM_ID,
         usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
         rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
@@ -2495,7 +2507,7 @@ describe("inference-staking program tests", () => {
     const operatorPoolPost = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(operatorPoolPost.isHalted, "OperatorPool must be halted");
+    assert.isNotNull(operatorPoolPost.haltedAt, "OperatorPool must be halted");
   });
 
   it("Fail to unstake for Operator when pool is halted", async () => {
@@ -2603,7 +2615,7 @@ describe("inference-staking program tests", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert(!operatorPool.isHalted, "OperatorPool must be unhalted");
+    assert.isNull(operatorPool.haltedAt, "OperatorPool must be unhalted");
   });
 
   it("Fail to withdraw Operator USDC commission if pool is halted", async () => {
@@ -2667,6 +2679,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2703,6 +2717,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2719,6 +2735,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -2755,6 +2773,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -3307,6 +3327,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -3385,6 +3407,8 @@ describe("inference-staking program tests", () => {
         programAdmin: setup.poolOverviewAdminKp.publicKey,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();

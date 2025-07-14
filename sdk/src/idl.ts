@@ -938,6 +938,12 @@ const _IDL = {
           name: "registrationFeePayoutWallet",
         },
         {
+          name: "slashingDestinationTokenAccount",
+        },
+        {
+          name: "slashingDestinationUsdcAccount",
+        },
+        {
           name: "poolOverview",
           writable: true,
           pda: {
@@ -1292,10 +1298,6 @@ const _IDL = {
           },
         },
         {
-          name: "destination",
-          writable: true,
-        },
-        {
           name: "poolUsdcVault",
           writable: true,
           pda: {
@@ -1356,7 +1358,11 @@ const _IDL = {
           },
         },
         {
-          name: "destinationUsdcAccount",
+          name: "slashingDestinationTokenAccount",
+          writable: true,
+        },
+        {
+          name: "slashingDestinationUsdcAccount",
           writable: true,
         },
         {
@@ -1700,6 +1706,14 @@ const _IDL = {
         },
         {
           name: "registrationFeePayoutWallet",
+          optional: true,
+        },
+        {
+          name: "slashingDestinationUsdcAccount",
+          optional: true,
+        },
+        {
+          name: "slashingDestinationTokenAccount",
           optional: true,
         },
       ],
@@ -2199,6 +2213,21 @@ const _IDL = {
       code: 6043,
       name: "invalidRewardAmount",
       msg: "Invalid reward amount - does not match expected emissions for epoch",
+    },
+    {
+      code: 6044,
+      name: "invalidSlashingDelay",
+      msg: "Slashing delay must be at least 86,400 seconds (1 day)",
+    },
+    {
+      code: 6045,
+      name: "operatorPoolNotHalted",
+      msg: "Operator pool must be halted before slashing",
+    },
+    {
+      code: 6046,
+      name: "slashingDelayNotMet",
+      msg: "Minimum slashing delay period has not elapsed",
     },
   ],
   types: [
@@ -2718,12 +2747,15 @@ const _IDL = {
             },
           },
           {
-            name: "isHalted",
+            name: "haltedAt",
             docs: [
-              "If Pool is halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,",
+              "Timestamp when the pool was halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,",
               "claim, withdraw rewards or close a pool. Other users can still unstake or claim.",
+              "When unhalted, this is set to None.",
             ],
-            type: "bool",
+            type: {
+              option: "i64",
+            },
           },
           {
             name: "rewardLastClaimedEpoch",
@@ -2808,7 +2840,7 @@ const _IDL = {
           },
           {
             name: "haltAuthorities",
-            docs: ["List of signers authorized to set OperatorPool.is_halted."],
+            docs: ["List of signers authorized to set OperatorPool.halted_at."],
             type: {
               vec: "pubkey",
             },
@@ -2900,6 +2932,23 @@ const _IDL = {
             name: "unclaimedUsdc",
             docs: [
               "Total amount of USDC tokens across all epochs that are issued, but yet to be paid out.",
+            ],
+            type: "u64",
+          },
+          {
+            name: "slashingDestinationUsdcAccount",
+            docs: ["Destination account for slashed USDC tokens."],
+            type: "pubkey",
+          },
+          {
+            name: "slashingDestinationTokenAccount",
+            docs: ["Destination account for slashed tokens."],
+            type: "pubkey",
+          },
+          {
+            name: "slashingDelaySeconds",
+            docs: [
+              "Delay in seconds after halting a pool before slashing can occur. Minimum 86,400 seconds (1 day).",
             ],
             type: "u64",
           },
@@ -3303,6 +3352,12 @@ const _IDL = {
           },
           {
             name: "operatorUnstakeDelaySeconds",
+            type: {
+              option: "u64",
+            },
+          },
+          {
+            name: "slashingDelaySeconds",
             type: {
               option: "u64",
             },

@@ -35,12 +35,8 @@ pub fn handler(ctx: Context<SetHaltStatus>, args: SetHaltStatusArgs) -> Result<(
     let operator_pool = &mut ctx.accounts.operator_pool;
 
     if args.is_halted {
-        // If halting and not already halted, set the halted_at timestamp
-        if operator_pool.halted_at.is_none() {
-            operator_pool.halted_at = Some(Clock::get()?.unix_timestamp);
-        }
+        operator_pool.halted_at = Some(Clock::get()?.unix_timestamp);
     } else {
-        // If unhalting, clear the halted_at timestamp
         operator_pool.halted_at = None;
     }
 
