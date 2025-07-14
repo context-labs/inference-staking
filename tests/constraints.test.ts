@@ -23,7 +23,7 @@ describe("Additional tests for instruction constraints", () => {
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const isAccrueRewardHalted = false;
-  const slashingDelaySeconds = new anchor.BN(1);
+  const slashingDelaySeconds = new anchor.BN(3);
 
   before(async () => {
     setup = await setupTests();

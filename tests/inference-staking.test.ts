@@ -2,6 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import type { Program } from "@coral-xyz/anchor";
 import {
   getAssociatedTokenAddressSync,
+  getOrCreateAssociatedTokenAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
@@ -43,7 +44,7 @@ describe("inference-staking program tests", () => {
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const isAccrueRewardHalted = false;
-  const slashingDelaySeconds = new anchor.BN(1);
+  const slashingDelaySeconds = new anchor.BN(3);
 
   before(async () => {
     setup = await setupTests();
@@ -2353,124 +2354,6 @@ describe("inference-staking program tests", () => {
     }
   });
 
-  it("Admin should be able to slash OperatorPool 1 stake", async () => {
-    const destinationTokenAccount = getAssociatedTokenAddressSync(
-      setup.tokenMint,
-      setup.pool1.admin
-    );
-
-    const [
-      destinationBalancePre,
-      operatorPoolTokenAccountPre,
-      operatorStakingRecordPre,
-      operatorPoolPre,
-      rewardCommissionBalancePre,
-    ] = await Promise.all([
-      connection.getTokenAccountBalance(destinationTokenAccount),
-      connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
-      program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
-      program.account.operatorPool.fetch(setup.pool1.pool),
-      connection.getTokenAccountBalance(
-        setup.pool1.rewardCommissionFeeTokenVault
-      ),
-    ]);
-
-    // Slash 5% of the operator's stake.
-    const sharesToSlash = operatorStakingRecordPre.shares.divn(20);
-    const expectedStakeRemoved = operatorPoolPre.totalStakedAmount
-      .mul(sharesToSlash)
-      .div(operatorPoolPre.totalShares);
-
-    const expectedRewardCommissionConfiscated = new anchor.BN(
-      rewardCommissionBalancePre.value.amount
-    );
-
-    await program.methods
-      .slashStake({ sharesAmount: sharesToSlash })
-      .accountsStrict({
-        authority: setup.slashingAuthority,
-        poolOverview: setup.poolOverview,
-        operatorPool: setup.pool1.pool,
-        operatorStakingRecord: setup.pool1.stakingRecord,
-        stakedTokenAccount: setup.pool1.stakedTokenAccount,
-        poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
-          setup.pool1.pool
-        ),
-        slashingDestinationTokenAccount: setup.slashingDestinationTokenAccount,
-        slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
-        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
-        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
-      })
-      .signers([setup.slashingAuthorityKp])
-      .rpc();
-
-    const [
-      destinationBalancePost,
-      operatorPoolTokenAccountPost,
-      operatorStakingRecordPost,
-      operatorPoolPost,
-      rewardCommissionBalancePost,
-    ] = await Promise.all([
-      connection.getTokenAccountBalance(destinationTokenAccount),
-      connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
-      program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
-      program.account.operatorPool.fetch(setup.pool1.pool),
-      connection.getTokenAccountBalance(
-        setup.pool1.rewardCommissionFeeTokenVault
-      ),
-    ]);
-
-    // Assert change in Operator stake
-    assert(
-      operatorStakingRecordPost.shares
-        .add(sharesToSlash)
-        .eq(operatorStakingRecordPre.shares),
-      "StakingRecord Shares must decrement"
-    );
-    // Assert change in OperatorPool
-    assert(
-      operatorPoolPost.totalShares.eq(
-        operatorPoolPre.totalShares.sub(sharesToSlash)
-      ),
-      "OperatorPool total shares must decrement"
-    );
-    assert(
-      operatorPoolPost.totalStakedAmount.eq(
-        operatorPoolPre.totalStakedAmount.sub(expectedStakeRemoved)
-      ),
-      "OperatorPool total staked amount must decrement"
-    );
-
-    // Assert OperatorPool token account sent tokens
-    assert(
-      new anchor.BN(operatorPoolTokenAccountPost.value.amount).eq(
-        new anchor.BN(operatorPoolTokenAccountPre.value.amount).sub(
-          expectedStakeRemoved
-        )
-      ),
-      "OperatorPool token account must send the slashed amount"
-    );
-
-    assert(
-      rewardCommissionBalancePost.value.amount === "0",
-      "Reward commission fee token account must be empty after slashing"
-    );
-
-    const totalExpectedTokens = expectedStakeRemoved.add(
-      expectedRewardCommissionConfiscated
-    );
-    assert(
-      new anchor.BN(destinationBalancePost.value.amount).eq(
-        new anchor.BN(destinationBalancePre.value.amount).add(
-          totalExpectedTokens
-        )
-      ),
-      "Destination token account must receive both slashed tokens and reward commission"
-    );
-  });
-
   it("Fail to set halt status with invalid authority", async () => {
     try {
       await program.methods
@@ -2488,6 +2371,40 @@ describe("inference-staking program tests", () => {
       assert(false);
     } catch (error) {
       assertStakingProgramError(error, "invalidHaltAuthority");
+    }
+  });
+
+  it("Slashing requires a pool to be halted", async () => {
+    const operatorStakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.stakingRecord
+    );
+    const sharesToSlash = operatorStakingRecordPre.shares.divn(20);
+
+    try {
+      await program.methods
+        .slashStake({ sharesAmount: sharesToSlash })
+        .accountsStrict({
+          authority: setup.slashingAuthority,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.stakingRecord,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+            setup.pool1.pool
+          ),
+          slashingDestinationTokenAccount:
+            setup.slashingDestinationTokenAccount,
+          slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        })
+        .signers([setup.slashingAuthorityKp])
+        .rpc();
+      assert(false);
+    } catch (err) {
+      assertStakingProgramError(err, "operatorPoolNotHalted");
     }
   });
 
@@ -2653,7 +2570,158 @@ describe("inference-staking program tests", () => {
     } catch (error) {
       assertStakingProgramError(error, "operatorPoolHalted");
     }
+  });
 
+  it("Slashing requires the minimum slashing delay to have passed", async () => {
+    const operatorStakingRecordPre = await program.account.stakingRecord.fetch(
+      setup.pool1.stakingRecord
+    );
+    const sharesToSlash = operatorStakingRecordPre.shares.divn(20);
+
+    try {
+      await program.methods
+        .slashStake({ sharesAmount: sharesToSlash })
+        .accountsStrict({
+          authority: setup.slashingAuthority,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.stakingRecord,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+            setup.pool1.pool
+          ),
+          slashingDestinationTokenAccount:
+            setup.slashingDestinationTokenAccount,
+          slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        })
+        .signers([setup.slashingAuthorityKp])
+        .rpc();
+      assert(false);
+    } catch (err) {
+      assertStakingProgramError(err, "slashingDelayNotMet");
+    }
+  });
+
+  it("Admin should be able to slash OperatorPool 1 stake after slashing delay", async () => {
+    await sleep(slashingDelaySeconds.toNumber() * 2 * 1_000);
+
+    const [
+      destinationBalancePre,
+      operatorPoolTokenAccountPre,
+      operatorStakingRecordPre,
+      operatorPoolPre,
+      rewardCommissionBalancePre,
+    ] = await Promise.all([
+      connection.getTokenAccountBalance(setup.slashingDestinationTokenAccount),
+      connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
+      program.account.operatorPool.fetch(setup.pool1.pool),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
+    ]);
+
+    // Slash 5% of the operator's stake.
+    const sharesToSlash = operatorStakingRecordPre.shares.divn(20);
+    const expectedStakeRemoved = operatorPoolPre.totalStakedAmount
+      .mul(sharesToSlash)
+      .div(operatorPoolPre.totalShares);
+
+    const expectedRewardCommissionConfiscated = new anchor.BN(
+      rewardCommissionBalancePre.value.amount
+    );
+
+    await program.methods
+      .slashStake({ sharesAmount: sharesToSlash })
+      .accountsStrict({
+        authority: setup.slashingAuthority,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool1.pool,
+        operatorStakingRecord: setup.pool1.stakingRecord,
+        stakedTokenAccount: setup.pool1.stakedTokenAccount,
+        poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+          setup.pool1.pool
+        ),
+        slashingDestinationTokenAccount: setup.slashingDestinationTokenAccount,
+        slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+        rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+      })
+      .signers([setup.slashingAuthorityKp])
+      .rpc();
+
+    const [
+      destinationBalancePost,
+      operatorPoolTokenAccountPost,
+      operatorStakingRecordPost,
+      operatorPoolPost,
+      rewardCommissionBalancePost,
+    ] = await Promise.all([
+      connection.getTokenAccountBalance(setup.slashingDestinationTokenAccount),
+      connection.getTokenAccountBalance(setup.pool1.stakedTokenAccount),
+      program.account.stakingRecord.fetch(setup.pool1.stakingRecord),
+      program.account.operatorPool.fetch(setup.pool1.pool),
+      connection.getTokenAccountBalance(
+        setup.pool1.rewardCommissionFeeTokenVault
+      ),
+    ]);
+
+    // Assert change in Operator stake
+    assert(
+      operatorStakingRecordPost.shares
+        .add(sharesToSlash)
+        .eq(operatorStakingRecordPre.shares),
+      "StakingRecord Shares must decrement"
+    );
+    // Assert change in OperatorPool
+    assert(
+      operatorPoolPost.totalShares.eq(
+        operatorPoolPre.totalShares.sub(sharesToSlash)
+      ),
+      "OperatorPool total shares must decrement"
+    );
+    assert(
+      operatorPoolPost.totalStakedAmount.eq(
+        operatorPoolPre.totalStakedAmount.sub(expectedStakeRemoved)
+      ),
+      "OperatorPool total staked amount must decrement"
+    );
+
+    // Assert OperatorPool token account sent tokens
+    assert(
+      new anchor.BN(operatorPoolTokenAccountPost.value.amount).eq(
+        new anchor.BN(operatorPoolTokenAccountPre.value.amount).sub(
+          expectedStakeRemoved
+        )
+      ),
+      "OperatorPool token account must send the slashed amount"
+    );
+
+    assert(
+      rewardCommissionBalancePost.value.amount === "0",
+      "Reward commission fee token account must be empty after slashing"
+    );
+
+    const totalExpectedTokens = expectedStakeRemoved.add(
+      expectedRewardCommissionConfiscated
+    );
+    assert(
+      new anchor.BN(destinationBalancePost.value.amount).eq(
+        new anchor.BN(destinationBalancePre.value.amount).add(
+          totalExpectedTokens
+        )
+      ),
+      "Destination token account must receive both slashed tokens and reward commission"
+    );
+  });
+
+  it("Halted pool can be unhalted", async () => {
     // Set back to unhalted
     await program.methods
       .setHaltStatus({
@@ -2666,6 +2734,11 @@ describe("inference-staking program tests", () => {
       })
       .signers([setup.haltingAuthorityKp])
       .rpc();
+
+    const operatorPoolPost = await program.account.operatorPool.fetch(
+      setup.pool1.pool
+    );
+    assert.isNull(operatorPoolPost.haltedAt, "OperatorPool must be unhalted");
   });
 
   it("Fail to withdraw Operator commission if global withdrawal is halted", async () => {
@@ -3462,5 +3535,363 @@ describe("inference-staking program tests", () => {
     } catch (error) {
       assertError(error, "Error: insufficient funds");
     }
+  });
+
+  it("Program admin can update slashing destination accounts", async () => {
+    // Create new destination accounts for testing
+    const newSlashingDestinationTokenAccount = Keypair.generate();
+    const newSlashingDestinationUsdcAccount = Keypair.generate();
+
+    // Create and fund the new token accounts
+    await Promise.all([
+      getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.tokenMint,
+        newSlashingDestinationTokenAccount.publicKey
+      ),
+      getOrCreateAssociatedTokenAccount(
+        connection,
+        setup.payerKp,
+        setup.usdcTokenMint,
+        newSlashingDestinationUsdcAccount.publicKey
+      ),
+    ]);
+
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdmin,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount:
+          newSlashingDestinationTokenAccount.publicKey,
+        slashingDestinationUsdcAccount:
+          newSlashingDestinationUsdcAccount.publicKey,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+
+    assert(
+      poolOverview.slashingDestinationTokenAccount.equals(
+        newSlashingDestinationTokenAccount.publicKey
+      ),
+      "Slashing destination token account should be updated"
+    );
+    assert(
+      poolOverview.slashingDestinationUsdcAccount.equals(
+        newSlashingDestinationUsdcAccount.publicKey
+      ),
+      "Slashing destination USDC account should be updated"
+    );
+
+    // Revert back to original destinations
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdmin,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: setup.slashingDestinationTokenAccount,
+        slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
+  it("Program admin cannot update slashing delay below minimum", async () => {
+    try {
+      // Try to set slashing delay to 2 seconds (below minimum of 3 seconds for testing)
+      await program.methods
+        .updatePoolOverview({
+          ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+          slashingDelaySeconds: new anchor.BN(2),
+        })
+        .accountsStrict({
+          programAdmin: setup.poolOverviewAdmin,
+          poolOverview: setup.poolOverview,
+          registrationFeePayoutWallet: null,
+          slashingDestinationTokenAccount: null,
+          slashingDestinationUsdcAccount: null,
+        })
+        .signers([setup.poolOverviewAdminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "invalidSlashingDelay");
+    }
+  });
+
+  it("Program admin can update slashing delay", async () => {
+    const newSlashingDelaySeconds = new anchor.BN(300); // 5 minutes
+
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        slashingDelaySeconds: newSlashingDelaySeconds,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdmin,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    const poolOverview = await program.account.poolOverview.fetch(
+      setup.poolOverview
+    );
+
+    assert(
+      poolOverview.slashingDelaySeconds.eq(newSlashingDelaySeconds),
+      "Slashing delay should be updated"
+    );
+
+    // Revert back to original slashing delay
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        slashingDelaySeconds,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdmin,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
+  it("Slashing instruction with invalid destination accounts fails", async () => {
+    // Create invalid destination accounts (not matching pool overview configuration)
+    const invalidDestinationWallet = Keypair.generate();
+
+    // Create and fund the invalid token accounts
+    const [invalidDestinationTokenAccount, invalidDestinationUsdcAccount] =
+      await Promise.all([
+        getOrCreateAssociatedTokenAccount(
+          connection,
+          setup.payerKp,
+          setup.tokenMint,
+          invalidDestinationWallet.publicKey
+        ),
+        getOrCreateAssociatedTokenAccount(
+          connection,
+          setup.payerKp,
+          setup.usdcTokenMint,
+          invalidDestinationWallet.publicKey
+        ),
+      ]);
+
+    // First, halt the pool for slashing
+    await program.methods
+      .setHaltStatus({
+        isHalted: true,
+      })
+      .accountsStrict({
+        authority: setup.haltingAuthorityKp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool2.pool,
+      })
+      .signers([setup.haltingAuthorityKp])
+      .rpc();
+
+    // Wait for slashing delay
+    await sleep(slashingDelaySeconds.toNumber() * 2 * 1_000);
+
+    try {
+      // Try to slash with invalid destination accounts
+      await program.methods
+        .slashStake({ sharesAmount: new anchor.BN(1000) })
+        .accountsStrict({
+          authority: setup.slashingAuthority,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool2.pool,
+          operatorStakingRecord: setup.pool2.stakingRecord,
+          stakedTokenAccount: setup.pool2.stakedTokenAccount,
+          poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+            setup.pool2.pool
+          ),
+          slashingDestinationTokenAccount:
+            invalidDestinationTokenAccount.address,
+          slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          usdcFeeTokenAccount: setup.pool2.usdcCommissionFeeTokenVault,
+          rewardFeeTokenAccount: setup.pool2.rewardCommissionFeeTokenVault,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        })
+        .signers([setup.slashingAuthorityKp])
+        .rpc();
+      assert(false, "Should fail with invalid token destination");
+    } catch (error) {
+      // This should fail with constraint violation
+      assertError(error, "ConstraintAddress");
+    }
+
+    try {
+      // Try to slash with invalid USDC destination account
+      await program.methods
+        .slashStake({ sharesAmount: new anchor.BN(1000) })
+        .accountsStrict({
+          authority: setup.slashingAuthority,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool2.pool,
+          operatorStakingRecord: setup.pool2.stakingRecord,
+          stakedTokenAccount: setup.pool2.stakedTokenAccount,
+          poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+            setup.pool2.pool
+          ),
+          slashingDestinationTokenAccount:
+            setup.slashingDestinationTokenAccount,
+          slashingDestinationUsdcAccount: invalidDestinationUsdcAccount.address,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          usdcFeeTokenAccount: setup.pool2.usdcCommissionFeeTokenVault,
+          rewardFeeTokenAccount: setup.pool2.rewardCommissionFeeTokenVault,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        })
+        .signers([setup.slashingAuthorityKp])
+        .rpc();
+      assert(false, "Should fail with invalid USDC destination");
+    } catch (error) {
+      // This should fail with constraint violation
+      assertError(error, "ConstraintAddress");
+    }
+
+    // Unhalt the pool after test
+    await program.methods
+      .setHaltStatus({
+        isHalted: false,
+      })
+      .accountsStrict({
+        authority: setup.haltingAuthorityKp.publicKey,
+        poolOverview: setup.poolOverview,
+        operatorPool: setup.pool2.pool,
+      })
+      .signers([setup.haltingAuthorityKp])
+      .rpc();
+  });
+
+  it("Fail to withdraw Operator commission if global withdrawal is halted", async () => {
+    // Halt withdrawal
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        isWithdrawalHalted: true,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    try {
+      await program.methods
+        .withdrawOperatorRewardCommission()
+        .accountsStrict({
+          admin: setup.pool1.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          destination: getAssociatedTokenAddressSync(
+            setup.tokenMint,
+            setup.pool1.admin
+          ),
+          tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        })
+        .signers([setup.pool1.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "withdrawalsHalted");
+    }
+
+    // Revert halt withdrawal
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        isWithdrawalHalted: false,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+  });
+
+  it("Fail to withdraw Operator USDC commission if global withdrawal is halted", async () => {
+    // Halt withdrawal
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        isWithdrawalHalted: true,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
+
+    try {
+      await program.methods
+        .withdrawOperatorUsdcCommission()
+        .accountsStrict({
+          admin: setup.pool1.admin,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+          destination: getAssociatedTokenAddressSync(
+            setup.usdcTokenMint,
+            setup.pool1.admin
+          ),
+          tokenProgram: TOKEN_PROGRAM_ID,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        })
+        .signers([setup.pool1.adminKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "withdrawalsHalted");
+    }
+
+    // Revert halt withdrawal
+    await program.methods
+      .updatePoolOverview({
+        ...setup.sdk.getEmptyPoolOverviewFieldsForUpdateInstruction(),
+        isWithdrawalHalted: false,
+      })
+      .accountsStrict({
+        programAdmin: setup.poolOverviewAdminKp.publicKey,
+        poolOverview: setup.poolOverview,
+        registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
+      })
+      .signers([setup.poolOverviewAdminKp])
+      .rpc();
   });
 });

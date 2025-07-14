@@ -417,7 +417,7 @@ describe("multi-epoch lifecycle tests", () => {
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const isAccrueRewardHalted = false;
-  const slashingDelaySeconds = new anchor.BN(1);
+  const slashingDelaySeconds = new anchor.BN(3);
 
   const trpc = new TrpcHttpClient();
 

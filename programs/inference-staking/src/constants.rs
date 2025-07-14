@@ -10,10 +10,10 @@ pub const USDC_MINT_PUBKEY: Pubkey = pubkey!("usdEkK5GbzC22bd2gKMFpt6sY2YETm2eaC
 pub const USDC_MINT_PUBKEY: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
 #[cfg(feature = "test")]
-pub const MIN_SLASHING_DELAY_SECONDS: u64 = 1;
+pub const MIN_SLASHING_DELAY_SECONDS: u64 = 3;
 
 #[cfg(feature = "devnet")]
-pub const MIN_SLASHING_DELAY_SECONDS: u64 = 1;
+pub const MIN_SLASHING_DELAY_SECONDS: u64 = 30;
 
 #[cfg(all(not(feature = "test"), not(feature = "devnet")))]
 pub const MIN_SLASHING_DELAY_SECONDS: u64 = 86_400;

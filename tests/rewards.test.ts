@@ -46,7 +46,7 @@ describe("Reward creation and accrual tests", () => {
   const isAccrueRewardHalted = false;
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(20);
-  const slashingDelaySeconds = new anchor.BN(1);
+  const slashingDelaySeconds = new anchor.BN(3);
 
   let bigMerkleTree: Uint8Array[][];
   let bigRewardsInput: ConstructMerkleTreeInput[] = [];
