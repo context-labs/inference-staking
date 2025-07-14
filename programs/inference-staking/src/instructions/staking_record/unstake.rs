@@ -60,6 +60,8 @@ pub fn handler(ctx: Context<Unstake>, shares_amount: u64) -> Result<()> {
     let staking_record_key = ctx.accounts.owner_staking_record.key();
     let owner_key = ctx.accounts.owner.key();
 
+    require_gt!(shares_amount, 0, ErrorCode::InvalidAmount);
+
     // Check that operator is not unstaking when pool is halted.
     require!(
         !is_operator_unstaking || operator_pool.halted_at_timestamp.is_none(),

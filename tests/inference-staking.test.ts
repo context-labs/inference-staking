@@ -1091,6 +1091,34 @@ describe("inference-staking program tests", () => {
       .rpc();
   });
 
+  it("Fail to stake zero tokens", async () => {
+    const ownerTokenAccount = getAssociatedTokenAddressSync(
+      setup.tokenMint,
+      setup.delegator1
+    );
+
+    try {
+      await program.methods
+        .stake(new anchor.BN(0))
+        .accountsStrict({
+          owner: setup.delegator1,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
+          operatorStakingRecord: setup.pool1.stakingRecord,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          ownerTokenAccount,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        })
+        .signers([setup.delegator1Kp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "invalidAmount");
+    }
+  });
+
   it("Stake for delegator successfully", async () => {
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.tokenMint,
@@ -2634,6 +2662,68 @@ describe("inference-staking program tests", () => {
       assert(false);
     } catch (err) {
       assertStakingProgramError(err, "slashingDelayNotMet");
+    }
+  });
+
+  it("Fail to slash OperatorPool stake with invalid shares amount", async () => {
+    await sleep(slashingDelaySeconds.toNumber() * 2 * 1_000);
+
+    try {
+      await program.methods
+        .slashStake({ sharesAmount: new anchor.BN(0) })
+        .accountsStrict({
+          authority: setup.slashingAuthority,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.stakingRecord,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+            setup.pool1.pool
+          ),
+          slashingDestinationTokenAccount:
+            setup.slashingDestinationTokenAccount,
+          slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        })
+        .signers([setup.slashingAuthorityKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "invalidAmount");
+    }
+
+    const operatorStakingRecord = await program.account.stakingRecord.fetch(
+      setup.pool1.stakingRecord
+    );
+
+    try {
+      await program.methods
+        .slashStake({ sharesAmount: operatorStakingRecord.shares.addn(1) })
+        .accountsStrict({
+          authority: setup.slashingAuthority,
+          poolOverview: setup.poolOverview,
+          operatorPool: setup.pool1.pool,
+          operatorStakingRecord: setup.pool1.stakingRecord,
+          stakedTokenAccount: setup.pool1.stakedTokenAccount,
+          poolUsdcVault: setup.sdk.poolDelegatorUsdcEarningsVaultPda(
+            setup.pool1.pool
+          ),
+          slashingDestinationTokenAccount:
+            setup.slashingDestinationTokenAccount,
+          slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          usdcFeeTokenAccount: setup.pool1.usdcCommissionFeeTokenVault,
+          rewardFeeTokenAccount: setup.pool1.rewardCommissionFeeTokenVault,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        })
+        .signers([setup.slashingAuthorityKp])
+        .rpc();
+      assert(false);
+    } catch (error) {
+      assertStakingProgramError(error, "invalidSlashSharesAmount");
     }
   });
 

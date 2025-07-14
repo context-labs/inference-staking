@@ -97,10 +97,19 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
     let operator_staking_record = &mut ctx.accounts.operator_staking_record;
     let pool_overview = &ctx.accounts.pool_overview;
 
+    let shares_amount = args.shares_amount;
+    require_gt!(shares_amount, 0, ErrorCode::InvalidAmount);
+
     // Ensure the pool is halted
     require!(
         operator_pool.halted_at_timestamp.is_some(),
         ErrorCode::OperatorPoolNotHalted
+    );
+
+    require_gte!(
+        operator_staking_record.shares,
+        shares_amount,
+        ErrorCode::InvalidSlashSharesAmount
     );
 
     // Ensure the pool has been halted for the required delay period
@@ -120,12 +129,12 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
 
     // Slash tokens from operator pool, this will also settle any unsettled USDC
     let slashed_token_amount =
-        operator_pool.slash_tokens(operator_staking_record, args.shares_amount)?;
+        operator_pool.slash_tokens(operator_staking_record, shares_amount)?;
 
     // Decrement shares on staking record
     operator_staking_record.shares = operator_staking_record
         .shares
-        .checked_sub(args.shares_amount)
+        .checked_sub(shares_amount)
         .unwrap();
 
     // Confiscate any accrued USDC the operator may have
@@ -226,7 +235,7 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
         authority: authority_key,
         destination: ctx.accounts.slashing_destination_token_account.key(),
         destination_usdc: ctx.accounts.slashing_destination_usdc_account.key(),
-        shares_slashed: args.shares_amount,
+        shares_slashed: shares_amount,
         token_amount_slashed: slashed_token_amount,
         usdc_confiscated,
         reward_commission_confiscated: available_reward_commission,

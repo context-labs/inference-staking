@@ -2234,6 +2234,16 @@ const _IDL = {
       name: "slashingDelayNotMet",
       msg: "Minimum slashing delay period has not elapsed",
     },
+    {
+      code: 6048,
+      name: "invalidAmount",
+      msg: "Invalid amount provided - cannot be zero",
+    },
+    {
+      code: 6049,
+      name: "invalidSlashSharesAmount",
+      msg: "Invalid shares amount provided - cannot be greater than total operator shares",
+    },
   ],
   types: [
     {

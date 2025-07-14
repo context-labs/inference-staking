@@ -98,4 +98,8 @@ pub enum ErrorCode {
     OperatorPoolNotHalted,
     #[msg("Minimum slashing delay period has not elapsed")]
     SlashingDelayNotMet,
+    #[msg("Invalid amount provided - cannot be zero")]
+    InvalidAmount,
+    #[msg("Invalid shares amount provided - cannot be greater than total operator shares")]
+    InvalidSlashSharesAmount,
 }
