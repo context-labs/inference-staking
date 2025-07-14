@@ -68,7 +68,7 @@ pub fn handler(ctx: Context<ClaimUsdcEarnings>) -> Result<()> {
 
     // Check that operator is not claiming when pool is halted.
     require!(
-        !is_operator_claiming || operator_pool.halted_at.is_none(),
+        !is_operator_claiming || operator_pool.halted_at_timestamp.is_none(),
         ErrorCode::OperatorPoolHalted
     );
 

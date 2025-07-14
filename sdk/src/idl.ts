@@ -2747,7 +2747,7 @@ const _IDL = {
             },
           },
           {
-            name: "haltedAt",
+            name: "haltedAtTimestamp",
             docs: [
               "Timestamp when the pool was halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,",
               "claim, withdraw rewards or close a pool. Other users can still unstake or claim.",
@@ -2853,6 +2853,23 @@ const _IDL = {
             },
           },
           {
+            name: "slashingDestinationUsdcAccount",
+            docs: ["Destination account for slashed USDC tokens."],
+            type: "pubkey",
+          },
+          {
+            name: "slashingDestinationTokenAccount",
+            docs: ["Destination account for slashed tokens."],
+            type: "pubkey",
+          },
+          {
+            name: "slashingDelaySeconds",
+            docs: [
+              "Delay in seconds after halting a pool before slashing can occur. Minimum 86,400 seconds (1 day).",
+            ],
+            type: "u64",
+          },
+          {
             name: "isEpochFinalizing",
             docs: ["Whether the current epoch is in the finalizing state."],
             type: "bool",
@@ -2932,23 +2949,6 @@ const _IDL = {
             name: "unclaimedUsdc",
             docs: [
               "Total amount of USDC tokens across all epochs that are issued, but yet to be paid out.",
-            ],
-            type: "u64",
-          },
-          {
-            name: "slashingDestinationUsdcAccount",
-            docs: ["Destination account for slashed USDC tokens."],
-            type: "pubkey",
-          },
-          {
-            name: "slashingDestinationTokenAccount",
-            docs: ["Destination account for slashed tokens."],
-            type: "pubkey",
-          },
-          {
-            name: "slashingDelaySeconds",
-            docs: [
-              "Delay in seconds after halting a pool before slashing can occur. Minimum 86,400 seconds (1 day).",
             ],
             type: "u64",
           },

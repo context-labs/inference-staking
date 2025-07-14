@@ -81,7 +81,7 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     // Check that pool is not closed or halted.
     require!(operator_pool.closed_at.is_none(), ErrorCode::ClosedPool);
     require!(
-        operator_pool.halted_at.is_none(),
+        operator_pool.halted_at_timestamp.is_none(),
         ErrorCode::OperatorPoolHalted
     );
 

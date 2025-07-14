@@ -62,7 +62,7 @@ pub fn handler(ctx: Context<Unstake>, shares_amount: u64) -> Result<()> {
 
     // Check that operator is not unstaking when pool is halted.
     require!(
-        !is_operator_unstaking || operator_pool.halted_at.is_none(),
+        !is_operator_unstaking || operator_pool.halted_at_timestamp.is_none(),
         ErrorCode::UnstakingNotAllowed
     );
 

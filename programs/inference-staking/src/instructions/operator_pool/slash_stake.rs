@@ -99,12 +99,12 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
 
     // Ensure the pool is halted
     require!(
-        operator_pool.halted_at.is_some(),
+        operator_pool.halted_at_timestamp.is_some(),
         ErrorCode::OperatorPoolNotHalted
     );
 
     // Ensure the pool has been halted for the required delay period
-    let halted_at = operator_pool.halted_at.unwrap();
+    let halted_at = operator_pool.halted_at_timestamp.unwrap();
     let current_timestamp = Clock::get()?.unix_timestamp;
     let elapsed_seconds = current_timestamp.saturating_sub(halted_at);
 

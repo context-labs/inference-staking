@@ -28,7 +28,7 @@ pub fn handler(ctx: Context<CloseOperatorPool>) -> Result<()> {
 
     // Check that pool is not halted or already closed.
     require!(
-        operator_pool.halted_at.is_none(),
+        operator_pool.halted_at_timestamp.is_none(),
         ErrorCode::OperatorPoolHalted
     );
     require!(operator_pool.closed_at.is_none(), ErrorCode::ClosedPool);

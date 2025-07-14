@@ -35,9 +35,9 @@ pub fn handler(ctx: Context<SetHaltStatus>, args: SetHaltStatusArgs) -> Result<(
     let operator_pool = &mut ctx.accounts.operator_pool;
 
     if args.is_halted {
-        operator_pool.halted_at = Some(Clock::get()?.unix_timestamp);
+        operator_pool.halted_at_timestamp = Some(Clock::get()?.unix_timestamp);
     } else {
-        operator_pool.halted_at = None;
+        operator_pool.halted_at_timestamp = None;
     }
 
     Ok(())

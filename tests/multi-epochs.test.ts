@@ -1011,7 +1011,7 @@ describe("multi-epoch lifecycle tests", () => {
       assert(operatorPool.totalShares.isZero());
       assert(operatorPool.totalUnstaking.isZero());
       assert.isNull(operatorPool.closedAt);
-      assert.isNull(operatorPool.haltedAt);
+      assert.isNull(operatorPool.haltedAtTimestamp);
       assert(operatorPool.rewardLastClaimedEpoch.eqn(0));
       assert(operatorPool.accruedRewards.isZero());
       assert(operatorPool.accruedRewardCommission.isZero());

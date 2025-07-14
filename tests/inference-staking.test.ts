@@ -400,7 +400,7 @@ describe("inference-staking program tests", () => {
     assert(operatorPool.totalShares.isZero());
     assert(operatorPool.totalUnstaking.isZero());
     assert.isNull(operatorPool.closedAt);
-    assert.isNull(operatorPool.haltedAt);
+    assert.isNull(operatorPool.haltedAtTimestamp);
     assert(operatorPool.rewardLastClaimedEpoch.eqn(1));
     assert(operatorPool.accruedRewards.isZero());
     assert(operatorPool.accruedRewardCommission.isZero());
@@ -1721,7 +1721,7 @@ describe("inference-staking program tests", () => {
     assert(operatorPool.totalShares.isZero());
     assert(operatorPool.totalUnstaking.isZero());
     assert.isNull(operatorPool.closedAt);
-    assert.isNull(operatorPool.haltedAt);
+    assert.isNull(operatorPool.haltedAtTimestamp);
     assert(operatorPool.rewardLastClaimedEpoch.eqn(1));
     assert(operatorPool.accruedRewards.isZero());
     assert(operatorPool.accruedRewardCommission.isZero());
@@ -2424,7 +2424,10 @@ describe("inference-staking program tests", () => {
     const operatorPoolPost = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert.isNotNull(operatorPoolPost.haltedAt, "OperatorPool must be halted");
+    assert.isNotNull(
+      operatorPoolPost.haltedAtTimestamp,
+      "OperatorPool must be halted"
+    );
   });
 
   it("Fail to unstake for Operator when pool is halted", async () => {
@@ -2532,7 +2535,10 @@ describe("inference-staking program tests", () => {
     const operatorPool = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert.isNull(operatorPool.haltedAt, "OperatorPool must be unhalted");
+    assert.isNull(
+      operatorPool.haltedAtTimestamp,
+      "OperatorPool must be unhalted"
+    );
   });
 
   it("Fail to withdraw Operator USDC commission if pool is halted", async () => {
@@ -2738,7 +2744,10 @@ describe("inference-staking program tests", () => {
     const operatorPoolPost = await program.account.operatorPool.fetch(
       setup.pool1.pool
     );
-    assert.isNull(operatorPoolPost.haltedAt, "OperatorPool must be unhalted");
+    assert.isNull(
+      operatorPoolPost.haltedAtTimestamp,
+      "OperatorPool must be unhalted"
+    );
   });
 
   it("Fail to withdraw Operator commission if global withdrawal is halted", async () => {
