@@ -90,4 +90,10 @@ pub enum ErrorCode {
     InvalidEpoch,
     #[msg("Invalid reward amount - does not match expected emissions for epoch")]
     InvalidRewardAmount,
+    #[msg("Slashing delay must be at least 86,400 seconds (1 day)")]
+    InvalidSlashingDelay,
+    #[msg("Operator pool must be halted before slashing")]
+    OperatorPoolNotHalted,
+    #[msg("Minimum slashing delay period has not elapsed")]
+    SlashingDelayNotMet,
 }

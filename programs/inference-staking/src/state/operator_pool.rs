@@ -80,9 +80,10 @@ pub struct OperatorPool {
     /// any rewards starting from that epoch.
     pub closed_at: Option<u64>,
 
-    /// If Pool is halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,
+    /// Timestamp when the pool was halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,
     /// claim, withdraw rewards or close a pool. Other users can still unstake or claim.
-    pub is_halted: bool,
+    /// When unhalted, this is set to None.
+    pub halted_at: Option<i64>,
 
     /// Epoch in which reward was last claimed. Defaults to poolOverview.completed_reward_epoch + 1
     /// at initialization, as rewards will only be issued from next epoch.

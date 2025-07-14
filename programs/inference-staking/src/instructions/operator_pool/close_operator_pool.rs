@@ -27,7 +27,10 @@ pub fn handler(ctx: Context<CloseOperatorPool>) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
 
     // Check that pool is not halted or already closed.
-    require!(!operator_pool.is_halted, ErrorCode::OperatorPoolHalted);
+    require!(
+        operator_pool.halted_at.is_none(),
+        ErrorCode::OperatorPoolHalted
+    );
     require!(operator_pool.closed_at.is_none(), ErrorCode::ClosedPool);
 
     // The closed_at field is set to the next epoch after the current epoch, which

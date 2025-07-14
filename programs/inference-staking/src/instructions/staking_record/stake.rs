@@ -80,7 +80,10 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
 
     // Check that pool is not closed or halted.
     require!(operator_pool.closed_at.is_none(), ErrorCode::ClosedPool);
-    require!(!operator_pool.is_halted, ErrorCode::OperatorPoolHalted);
+    require!(
+        operator_pool.halted_at.is_none(),
+        ErrorCode::OperatorPoolHalted
+    );
 
     // Check that all issued rewards have been claimed.
     require_gte!(

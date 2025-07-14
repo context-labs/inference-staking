@@ -52,8 +52,9 @@ pub fn handler(ctx: Context<WithdrawOperatorUsdcCommission>) -> Result<()> {
         !ctx.accounts.pool_overview.is_withdrawal_halted,
         ErrorCode::WithdrawalsHalted
     );
+    // Check that operator is allowed to withdraw USDC if pool is not halted.
     require!(
-        !ctx.accounts.operator_pool.is_halted,
+        ctx.accounts.operator_pool.halted_at.is_none(),
         ErrorCode::OperatorPoolHalted
     );
 

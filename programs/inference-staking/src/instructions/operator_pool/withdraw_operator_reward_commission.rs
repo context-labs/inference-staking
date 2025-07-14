@@ -52,8 +52,9 @@ pub fn handler(ctx: Context<WithdrawOperatorRewardCommission>) -> Result<()> {
         !ctx.accounts.pool_overview.is_withdrawal_halted,
         ErrorCode::WithdrawalsHalted
     );
+    // Check that operator is allowed to withdraw rewards if pool is not halted.
     require!(
-        !ctx.accounts.operator_pool.is_halted,
+        ctx.accounts.operator_pool.halted_at.is_none(),
         ErrorCode::OperatorPoolHalted
     );
 

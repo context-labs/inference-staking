@@ -16,7 +16,7 @@ pub struct PoolOverview {
     #[max_len(5)]
     pub reward_distribution_authorities: Vec<Pubkey>,
 
-    /// List of signers authorized to set OperatorPool.is_halted.
+    /// List of signers authorized to set OperatorPool.halted_at.
     #[max_len(5)]
     pub halt_authorities: Vec<Pubkey>,
 
@@ -66,6 +66,15 @@ pub struct PoolOverview {
 
     /// Total amount of USDC tokens across all epochs that are issued, but yet to be paid out.
     pub unclaimed_usdc: u64,
+
+    /// Destination account for slashed USDC tokens.
+    pub slashing_destination_usdc_account: Pubkey,
+
+    /// Destination account for slashed tokens.
+    pub slashing_destination_token_account: Pubkey,
+
+    /// Delay in seconds after halting a pool before slashing can occur. Minimum 86,400 seconds (1 day).
+    pub slashing_delay_seconds: u64,
 }
 
 impl PoolOverview {
