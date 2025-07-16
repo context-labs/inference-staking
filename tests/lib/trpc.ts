@@ -3,7 +3,11 @@ import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import axios from "axios";
 import superjson from "superjson";
 
-import { API_URL, LOGIN_EMAIL, LOGIN_PASSWORD } from "@tests/lib/const";
+import {
+  API_URL,
+  INFERENCE_LOGIN_EMAIL,
+  INFERENCE_LOGIN_PASSWORD,
+} from "@tests/lib/const";
 
 type ServiceResponse = {
   status:
@@ -125,7 +129,10 @@ export class TrpcHttpClient {
 
   public async login(): Promise<void> {
     try {
-      const params = { email: LOGIN_EMAIL, password: LOGIN_PASSWORD };
+      const params = {
+        email: INFERENCE_LOGIN_EMAIL,
+        password: INFERENCE_LOGIN_PASSWORD,
+      };
       const response = await this.mutate("user.login", params);
       if (response.user && response.token) {
         this.token = response.token;

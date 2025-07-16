@@ -20,8 +20,9 @@ export const EPOCH_CLAIM_FREQUENCY = process.env.EPOCH_CLAIM_FREQUENCY
   ? parseInt(process.env.EPOCH_CLAIM_FREQUENCY)
   : 1;
 
-export const TEST_WITH_RELAY = process.env.TEST_WITH_RELAY
-  ? process.env.TEST_WITH_RELAY === "true"
+export const TEST_WITH_INFERENCE_BACKEND = process.env
+  .TEST_WITH_INFERENCE_BACKEND
+  ? process.env.TEST_WITH_INFERENCE_BACKEND === "true"
   : false;
 
 export const PREVENT_UNSTAKE = process.env.PREVENT_UNSTAKE
@@ -41,9 +42,10 @@ export const API_URL = process.env.API_URL
   ? process.env.API_URL
   : "http://localhost:3001";
 
-export const LOGIN_EMAIL = process.env.LOGIN_EMAIL ?? "";
+export const INFERENCE_LOGIN_EMAIL = process.env.INFERENCE_LOGIN_EMAIL ?? "";
 
-export const LOGIN_PASSWORD = process.env.LOGIN_PASSWORD ?? "";
+export const INFERENCE_LOGIN_PASSWORD =
+  process.env.INFERENCE_LOGIN_PASSWORD ?? "";
 
 const PROGRAM_ADMIN_KEYPAIR_STRING = process.env.PROGRAM_ADMIN_KEYPAIR;
 

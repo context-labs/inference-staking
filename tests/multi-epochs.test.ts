@@ -19,7 +19,7 @@ import {
   PREVENT_CLOSE_ACCOUNTS,
   SHOULD_EXECUTE_MULTIPLE_EPOCH_FINALIZATIONS,
   PREVENT_UNSTAKE,
-  TEST_WITH_RELAY,
+  TEST_WITH_INFERENCE_BACKEND,
 } from "@tests/lib/const";
 import type {
   ConstructMerkleTreeInput,
@@ -74,7 +74,7 @@ async function getRewardClaimInputs({
   epoch,
   trpc,
 }: GetRewardClaimInputsInput): Promise<GetRewardClaimInputsOutput | null> {
-  if (TEST_WITH_RELAY) {
+  if (TEST_WITH_INFERENCE_BACKEND) {
     debug(
       "- End-to-end test flow is enabled, fetching reward claim eligibility from Relay..."
     );
@@ -260,7 +260,7 @@ async function handleAccrueRewardForEpochs({
         })
         .rpc();
 
-      if (TEST_WITH_RELAY) {
+      if (TEST_WITH_INFERENCE_BACKEND) {
         await trpc.insertAndProcessTransactionBySignature(signature);
       }
 
@@ -309,7 +309,7 @@ async function handleAccrueRewardForEpochs({
           )
           .filter((x) => x != null);
 
-        const totalClaimedRewardsForPool = TEST_WITH_RELAY
+        const totalClaimedRewardsForPool = TEST_WITH_INFERENCE_BACKEND
           ? rewardClaimsForPool.reduce(
               (acc, curr) => acc.add(curr),
               new anchor.BN(0)
@@ -422,7 +422,7 @@ describe("multi-epoch lifecycle tests", () => {
   const trpc = new TrpcHttpClient();
 
   const handleEpochFinalization = async (epoch: number, counter: number) => {
-    if (TEST_WITH_RELAY) {
+    if (TEST_WITH_INFERENCE_BACKEND) {
       debug(
         `- End-to-end test flow is enabled, submitting epoch finalization request for epoch ${epoch}...`
       );
@@ -815,7 +815,7 @@ describe("multi-epoch lifecycle tests", () => {
     program = setup.sdk.program;
     connection = program.provider.connection;
 
-    if (TEST_WITH_RELAY) {
+    if (TEST_WITH_INFERENCE_BACKEND) {
       await trpc.login();
     }
   });
@@ -2216,7 +2216,7 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Final state validation check", async () => {
-    if (!TEST_WITH_RELAY) {
+    if (!TEST_WITH_INFERENCE_BACKEND) {
       debug(
         "End-to-end test flow is disabled, skipping final state validation"
       );
@@ -2236,7 +2236,7 @@ describe("multi-epoch lifecycle tests", () => {
   });
 
   it("Verify total claimed amounts match total distributed amounts", () => {
-    if (TEST_WITH_RELAY) {
+    if (TEST_WITH_INFERENCE_BACKEND) {
       debug("Testing with Relay is enabled, skipping final accounting checks");
       return;
     }
