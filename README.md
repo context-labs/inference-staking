@@ -154,6 +154,6 @@ bun run test-all
 
 You can deploy the program with the `deploy-localnet.sh` script in the `scripts` folder for local testing and development.
 
-# SDK
+# Client SDK
 
 A TypeScript client SDK is provided in the `sdk` package. The SDK provides methods to read program account state and decode program transactions/events.
