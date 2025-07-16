@@ -1,45 +1,47 @@
 ![inference-net](https://github.com/user-attachments/assets/cdf6fbb6-3d51-4b3f-b2bd-9d1dfdd0f1fd)
 
-At [Inference.net](https://inference.net/?utm_source=github&utm_medium=readme&utm_campaign=overview), we provide developers and enterprises with access to top-performing large language models (LLMs) through our efficient and cost-effective inference platform.
+At [Inference.net](https://inference.net/?utm_source=github&utm_medium=readme&utm_campaign=overview), we provide developers and enterprises with access to top-performing large language models (LLMs) through our efficient and cost-effective inference platform. Our backend is powered by a global, distributed GPU network which is coordinated by this on-chain staking program.
 
 # Inference.net Staking Program
 
-A Solana on-chain program that manages staking and unstaking of tokens to operator managed pools, custodies delegated tokens, and distributes rewards and USDC earnings.
+An on-chain Solana program that manages staking and unstaking of tokens to operator managed pools, custodies delegated tokens, distributes rewards and USDC earnings, and ensures Inference.net network security via halting and slashing mechanisms.
 
 View staking program documentation [here](https://docs.devnet.inference.net/devnet-epoch-3/staking-protocol).
 
 ## Overview
 
-The Inference.net Staking System allows users to stake tokens to Operator-managed pools. Operators can set commission rates and receive rewards based on network performance, while delegators can stake to Operators to earn passive income.
+The Inference.net Staking System allows users to stake tokens to operator-managed pools. Operators can set commission rates and receive rewards based on network performance, while delegators can stake to operators to earn passive income. Operators may be slashed for protocol violations, which ensures network security.
 
 ### Key Features
 
-- Support for up to 10,000 active Operators (no fixed cap)
-- Delegation system for external holders
-- Cooldown period on unstaking (no rewards during cooldown)
-- Slashing penalties for Operators (no slashing risk for delegators)
-- Dual commission rates for Operators: token rewards and USDC earnings
-- Configurable Operator commission rates
-- Reward distribution per 24/48 hour epochs
+- Support for large numbers of active operators (e.g. ~100,000+, no fixed cap) and unlimited delegators
+- Delegation + reward system for external token holders
+- Configurable cooldown period on unstaking (no rewards during cooldown)
+- Slashing penalties for operators (no slashing risk for delegators)
+- Dual commission rates for operators: token rewards and USDC earnings
+- Configurable operator commission rates and other pool settings
+- Epoch-based reward distributions, with verifiable network emissions
 - Automatic compounding via operator commission fee auto-staking
-- USDC revenue share for delegators
-- Efficient reward distribution with off-chain storage and on-chain Merkle Tree proof verification.
-- On-chain reward emission schedule for transparency and auditability.
+- USDC revenue share for delegators based on pool share ownership
+- Decoupled USDC revenue stream which is claimable independently from staked token positions
+- Efficient reward distribution with off-chain storage and on-chain merkle tree proof verification
+- On-chain encoded reward emission schedule for transparency and auditability
+- Program events for fine-grained monitoring and auditing
 
 ## Architecture
 
 The program consists of several key accounts:
 
 - **PoolOverview**: Manages global staking parameters and tracks total pools
-- **OperatorPool**: Represents an Operator's staking pool with configuration and state
-- **StakingRecord**: Tracks individual staking positions for Operators and delegators
-- **RewardRecord**: Stores Merkle roots for reward distributions by epoch
+- **OperatorPool**: Represents an operator's staking pool with configuration and state
+- **StakingRecord**: Tracks individual staking positions for operators and delegators
+- **RewardRecord**: Stores merkle roots for reward distributions by epoch
 
 ## Key Instructions
 
 ### For Operators
 
-- `CreateOperatorPool`: Create a new staking pool for an Operator
+- `CreateOperatorPool`: Create a new staking pool for an operator
 - `UpdateOperatorPool`: Modify commission rates and delegation settings
 - `ChangeOperatorPoolAdmin`: Change admin authority for pool
 - `ChangeOperatorStakingRecord`: Change associated operator staking record for pool
@@ -61,11 +63,11 @@ The program consists of several key accounts:
 ### For Program Admin
 
 - `CreatePoolOverview`: Initialize the program after deployment
-- `UpdatePoolOverviewAuthorities`: Modify authorites on PoolOverview
+- `UpdatePoolOverviewAuthorities`: Modify authorities on `PoolOverview`
 - `UpdatePoolOverview`: Modify global staking parameters
-- `CreateRewardRecord`: Finalize a reward epoch by committing the Merkle root
-- `SlashStake`: Penalize an Operator by slashing their stake
-- `SetHaltStatus`: Halt an Operator from staking, unstaking or claiming from their pool
+- `CreateRewardRecord`: Finalize a reward epoch by committing the merkle root
+- `SlashStake`: Penalize an operator by slashing their stake
+- `SetHaltStatus`: Halt an operator from staking, unstaking or claiming from their pool
 
 ### Permissionless
 
@@ -74,14 +76,15 @@ The program consists of several key accounts:
 
 ## Reward Distribution
 
-Rewards are computed off-chain based on network performance metrics and distributed using a Merkle-based reward system:
+Rewards are computed off-chain based on network performance metrics and distributed using a merkle-based reward system:
 
-1. Off-chain service computes rewards per `OperatorPool` and generates Merkle trees
+1. Off-chain service computes rewards per `OperatorPool` and generates merkle trees
 2. Merkle roots are committed on-chain via `CreateRewardRecord`
-3. Rewards are claimed permissionlessly using Merkle proofs via `AccrueReward`
+3. Rewards are claimed permissionlessly using merkle proofs via `AccrueReward`
    - Operators receive commission fees and delegators receive staking rewards and USDC earnings
-   - Rewards auto-compound when added to the staking pool
-   - USDC earnings are distributed to delegators
+   - Rewards auto-compound when added to the staking pool for all delegators
+   - USDC earnings are distributed to delegators based on pool share ownership
+   - USDC earnings can be claimed at any time, independently from staked token positions
 
 ## On-Chain Accounting
 
@@ -89,7 +92,7 @@ On-chain accounting is managed by two mechanisms:
 
 - **Pool Shares**: A proportional ownership system where delegators receive shares representing their stake in a pool. Token rewards automatically increase share value without requiring additional transactions, allowing all participants to benefit passively based on their stake proportion.
 
-- **USDC Revenue Sharing**: A hybrid accounting model using a cumulative per-share index system that tracks USDC earnings over the pool's lifetime. Delegators can claim USDC earnings independently from their staked tokens, with settlements calculated using checkpoints to ensure accurate accounting.
+- **USDC Revenue Sharing**: A hybrid accounting model using a cumulative per-share index system that tracks USDC earnings over the pool's lifetime. Delegators can claim USDC earnings independently from their staked tokens, with settlements calculated using checkpoints to ensure accurate and efficient accounting.
 
 # Getting Started
 
@@ -153,4 +156,4 @@ You can deploy the program with the `deploy-localnet.sh` script in the `scripts`
 
 # SDK
 
-A TypeScript client SDK is provided in the `sdk` package.
+A TypeScript client SDK is provided in the `sdk` package. The SDK provides methods to read program account state and decode program transactions/events.
