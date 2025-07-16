@@ -9,6 +9,15 @@ pub const USDC_MINT_PUBKEY: Pubkey = pubkey!("usdEkK5GbzC22bd2gKMFpt6sY2YETm2eaC
 #[cfg(all(not(feature = "test"), not(feature = "devnet")))]
 pub const USDC_MINT_PUBKEY: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
+#[cfg(feature = "test")]
+pub const MIN_SLASHING_DELAY_SECONDS: u64 = 3;
+
+#[cfg(feature = "devnet")]
+pub const MIN_SLASHING_DELAY_SECONDS: u64 = 30;
+
+#[cfg(all(not(feature = "test"), not(feature = "devnet")))]
+pub const MIN_SLASHING_DELAY_SECONDS: u64 = 86_400;
+
 /// Precision scalar for USDC calculations
 /// Using 1e18 for maximum precision with large share counts
 pub const USDC_PRECISION_FACTOR: u128 = 1_000_000_000_000_000_000;

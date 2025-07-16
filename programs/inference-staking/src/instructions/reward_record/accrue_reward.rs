@@ -128,13 +128,13 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
     let operator_staking_record: &mut Box<Account<'_, StakingRecord>> =
         &mut ctx.accounts.operator_staking_record;
 
-    if let Some(closed_at) = operator_pool.closed_at {
+    if let Some(closed_at) = operator_pool.closed_at_epoch {
         require_gte!(closed_at, reward_record.epoch, ErrorCode::ClosedPool);
     }
 
     let is_most_recent_epoch = pool_overview.completed_reward_epoch == reward_record.epoch;
-    let is_pool_closure_epoch = operator_pool.closed_at.is_some()
-        && operator_pool.closed_at.unwrap() == reward_record.epoch;
+    let is_pool_closure_epoch = operator_pool.closed_at_epoch.is_some()
+        && operator_pool.closed_at_epoch.unwrap() == reward_record.epoch;
 
     // Rewards should be transferred if it's the most recent epoch or if this is the epoch
     // in which the pool was closed.

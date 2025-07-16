@@ -144,16 +144,8 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
         usdc_commission_rate_bps,
     } = args;
 
-    require_gte!(
-        10_000,
-        reward_commission_rate_bps,
-        ErrorCode::InvalidCommissionRate
-    );
-    require_gte!(
-        10_000,
-        usdc_commission_rate_bps,
-        ErrorCode::InvalidCommissionRate
-    );
+    OperatorPool::validate_commission_rate(reward_commission_rate_bps)?;
+    OperatorPool::validate_commission_rate(usdc_commission_rate_bps)?;
 
     let pool_overview = &mut ctx.accounts.pool_overview;
 
@@ -196,11 +188,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     operator_pool.accrued_delegator_usdc = 0;
 
     if let Some(operator_auth_keys) = operator_auth_keys {
-        require_gte!(
-            3,
-            operator_auth_keys.len(),
-            ErrorCode::OperatorAuthKeysLengthInvalid
-        );
+        OperatorPool::validate_operator_auth_keys(&operator_auth_keys)?;
         operator_pool.operator_auth_keys = operator_auth_keys;
     }
 
@@ -216,7 +204,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
         false => pool_overview.completed_reward_epoch,
     };
 
-    operator_pool.joined_at = current_epoch;
+    operator_pool.joined_at_epoch = current_epoch;
     operator_pool.reward_last_claimed_epoch = current_epoch;
 
     let staking_record = &mut ctx.accounts.staking_record;
@@ -225,7 +213,7 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
     staking_record.last_settled_usdc_per_share = 0;
     staking_record.accrued_usdc_earnings = 0;
 
-    operator_pool.validate_string_fields()?;
+    operator_pool.validate_pool_profile_fields()?;
 
     Ok(())
 }

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anchor_lang::prelude::*;
 
 use crate::{constants::USDC_PRECISION_FACTOR, error::ErrorCode, state::StakingRecord};
@@ -7,6 +9,8 @@ const MAX_NAME_LENGTH: usize = 64;
 const MAX_DESCRIPTION_LENGTH: usize = 200;
 const MAX_WEBSITE_URL_LENGTH: usize = 64;
 const MAX_AVATAR_IMAGE_URL_LENGTH: usize = 128;
+
+const MAX_OPERATOR_AUTH_KEYS_LENGTH: usize = 5;
 
 #[derive(InitSpace)]
 #[account]
@@ -43,7 +47,7 @@ pub struct OperatorPool {
     pub operator_staking_record: Pubkey,
 
     /// Operator auth keys. Used to authenticate operator GPU workers.
-    #[max_len(3)]
+    #[max_len(MAX_OPERATOR_AUTH_KEYS_LENGTH)]
     pub operator_auth_keys: Vec<Pubkey>,
 
     /// If commission fees received by Operator should be staked at the end of the epoch.
@@ -74,15 +78,16 @@ pub struct OperatorPool {
     pub total_unstaking: u64,
 
     /// Epoch that pool was created.
-    pub joined_at: u64,
+    pub joined_at_epoch: u64,
 
     /// Epoch that pool was permanently closed at, if set. Once a pool is closed, the pool will stop accruing
     /// any rewards starting from that epoch.
-    pub closed_at: Option<u64>,
+    pub closed_at_epoch: Option<u64>,
 
-    /// If Pool is halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,
+    /// Timestamp when the pool was halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,
     /// claim, withdraw rewards or close a pool. Other users can still unstake or claim.
-    pub is_halted: bool,
+    /// When unhalted, this is set to None.
+    pub halted_at_timestamp: Option<i64>,
 
     /// Epoch in which reward was last claimed. Defaults to poolOverview.completed_reward_epoch + 1
     /// at initialization, as rewards will only be issued from next epoch.
@@ -212,8 +217,8 @@ impl OperatorPool {
     /// Returns an error if rewards are unclaimed and conditions are not met.
     pub fn check_unclaimed_rewards(&self, completed_reward_epoch: u64) -> Result<()> {
         if completed_reward_epoch > self.reward_last_claimed_epoch {
-            if self.closed_at.is_some() {
-                let closed_at = self.closed_at.unwrap();
+            if self.closed_at_epoch.is_some() {
+                let closed_at = self.closed_at_epoch.unwrap();
                 require_gte!(
                     self.reward_last_claimed_epoch,
                     closed_at,
@@ -350,11 +355,35 @@ impl OperatorPool {
         Ok(())
     }
 
-    pub fn validate_string_fields(&self) -> Result<()> {
+    pub fn validate_pool_profile_fields(&self) -> Result<()> {
         self.validate_name()?;
         self.validate_description()?;
         self.validate_website_url()?;
         self.validate_avatar_image_url()?;
+        Ok(())
+    }
+
+    pub fn validate_operator_auth_keys(operator_auth_keys: &[Pubkey]) -> Result<()> {
+        if operator_auth_keys.len() > MAX_OPERATOR_AUTH_KEYS_LENGTH {
+            return Err(ErrorCode::OperatorAuthKeysLengthInvalid.into());
+        }
+
+        let mut seen = HashSet::new();
+        for key in operator_auth_keys {
+            if !seen.insert(key) {
+                return Err(ErrorCode::DuplicateOperatorAuthKey.into());
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn validate_commission_rate(commission_rate_bps: u16) -> Result<()> {
+        require_gte!(
+            10_000,
+            commission_rate_bps,
+            ErrorCode::InvalidCommissionRate
+        );
         Ok(())
     }
 }

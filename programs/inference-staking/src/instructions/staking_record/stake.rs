@@ -70,6 +70,8 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     let pool_overview = &ctx.accounts.pool_overview;
     let operator_staking_record = &ctx.accounts.operator_staking_record;
 
+    require_gt!(token_amount, 0, ErrorCode::InvalidAmount);
+
     // Check that delegation is enabled or operator is staking.
     let is_operator_staking =
         operator_staking_record.key() == ctx.accounts.owner_staking_record.key();
@@ -79,8 +81,14 @@ pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
     );
 
     // Check that pool is not closed or halted.
-    require!(operator_pool.closed_at.is_none(), ErrorCode::ClosedPool);
-    require!(!operator_pool.is_halted, ErrorCode::OperatorPoolHalted);
+    require!(
+        operator_pool.closed_at_epoch.is_none(),
+        ErrorCode::ClosedPool
+    );
+    require!(
+        operator_pool.halted_at_timestamp.is_none(),
+        ErrorCode::OperatorPoolHalted
+    );
 
     // Check that all issued rewards have been claimed.
     require_gte!(

@@ -60,9 +60,11 @@ pub fn handler(ctx: Context<Unstake>, shares_amount: u64) -> Result<()> {
     let staking_record_key = ctx.accounts.owner_staking_record.key();
     let owner_key = ctx.accounts.owner.key();
 
+    require_gt!(shares_amount, 0, ErrorCode::InvalidAmount);
+
     // Check that operator is not unstaking when pool is halted.
     require!(
-        !is_operator_unstaking || !operator_pool.is_halted,
+        !is_operator_unstaking || operator_pool.halted_at_timestamp.is_none(),
         ErrorCode::UnstakingNotAllowed
     );
 
@@ -105,7 +107,7 @@ pub fn handler(ctx: Context<Unstake>, shares_amount: u64) -> Result<()> {
     //    a pool becoming fully unstaked before its final reward epoch distribution.
     // 2. Pool is not closed, check that they still maintain min. token stake of pool after.
     if is_operator_unstaking {
-        match operator_pool.closed_at {
+        match operator_pool.closed_at_epoch {
             Some(closed_at) => {
                 let completed_reward_epoch = pool_overview.completed_reward_epoch;
                 require_gte!(

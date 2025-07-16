@@ -26,9 +26,6 @@ pub fn get_expected_reward_emissions_for_epoch(epoch: u64) -> Result<u64> {
     require!(epoch >= 1, ErrorCode::InvalidEpoch);
 
     let emissions_schedule = TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH;
-    if emissions_schedule.is_empty() {
-        return Ok(0);
-    }
 
     // Calculate which super epoch this epoch belongs to (0-indexed)
     let super_epoch = (epoch - 1) / EPOCHS_PER_SUPER_EPOCH;

@@ -938,6 +938,12 @@ const _IDL = {
           name: "registrationFeePayoutWallet",
         },
         {
+          name: "slashingDestinationTokenAccount",
+        },
+        {
+          name: "slashingDestinationUsdcAccount",
+        },
+        {
           name: "poolOverview",
           writable: true,
           pda: {
@@ -1292,10 +1298,6 @@ const _IDL = {
           },
         },
         {
-          name: "destination",
-          writable: true,
-        },
-        {
           name: "poolUsdcVault",
           writable: true,
           pda: {
@@ -1356,7 +1358,11 @@ const _IDL = {
           },
         },
         {
-          name: "destinationUsdcAccount",
+          name: "slashingDestinationTokenAccount",
+          writable: true,
+        },
+        {
+          name: "slashingDestinationUsdcAccount",
           writable: true,
         },
         {
@@ -1700,6 +1706,14 @@ const _IDL = {
         },
         {
           name: "registrationFeePayoutWallet",
+          optional: true,
+        },
+        {
+          name: "slashingDestinationUsdcAccount",
+          optional: true,
+        },
+        {
+          name: "slashingDestinationTokenAccount",
           optional: true,
         },
       ],
@@ -2082,123 +2096,153 @@ const _IDL = {
     },
     {
       code: 6020,
+      name: "duplicateOperatorAuthKey",
+      msg: "Duplicate operator auth key provided",
+    },
+    {
+      code: 6021,
       name: "accountNotEmpty",
       msg: "Account not empty",
     },
     {
-      code: 6021,
+      code: 6022,
       name: "poolCreationDisabled",
       msg: "Pool creation is disabled",
     },
     {
-      code: 6022,
+      code: 6023,
       name: "invalidUsdcMint",
       msg: "Invalid USDC mint provided",
     },
     {
-      code: 6023,
+      code: 6024,
       name: "invalidRegistrationFeePayoutDestination",
       msg: "Invalid registration fee payout destination",
     },
     {
-      code: 6024,
+      code: 6025,
       name: "epochMustBeFinalizing",
       msg: "Epoch must be finalizing when calling CreateRewardRecord",
     },
     {
-      code: 6025,
+      code: 6026,
       name: "epochMustNotBeFinalizing",
       msg: "Cannot update operator pool admin when epoch is finalizing",
     },
     {
-      code: 6026,
+      code: 6027,
       name: "epochIsFinalizingEpochInvalid",
       msg: "Invalid expected epoch provided for epoch finalizing update",
     },
     {
-      code: 6027,
+      code: 6028,
       name: "nameTooLong",
       msg: "Name is too long, max length is 64 characters",
     },
     {
-      code: 6028,
+      code: 6029,
       name: "descriptionTooLong",
       msg: "Description is too long, max length is 200 characters",
     },
     {
-      code: 6029,
+      code: 6030,
       name: "websiteUrlTooLong",
       msg: "Website URL is too long, max length is 64 characters",
     },
     {
-      code: 6030,
+      code: 6031,
       name: "avatarImageUrlTooLong",
       msg: "Avatar image URL is too long, max length is 128 characters",
     },
     {
-      code: 6031,
+      code: 6032,
       name: "invalidWebsiteUrl",
       msg: "Invalid website URL provided",
     },
     {
-      code: 6032,
+      code: 6033,
       name: "invalidAvatarImageUrl",
       msg: "Invalid avatar image URL provided",
     },
     {
-      code: 6033,
+      code: 6034,
       name: "unclaimedUsdcEarnings",
       msg: "USDC earnings must be claimed before unstaking",
     },
     {
-      code: 6034,
+      code: 6035,
       name: "noUsdcEarningsToClaim",
       msg: "No USDC earnings available to claim",
     },
     {
-      code: 6035,
+      code: 6036,
       name: "insufficientPoolUsdcVaultBalance",
       msg: "Insufficient USDC in pool vault",
     },
     {
-      code: 6036,
+      code: 6037,
       name: "invalidCommissionRate",
       msg: "Invalid commission rate",
     },
     {
-      code: 6037,
+      code: 6038,
       name: "poolMustBeClosed",
       msg: "Operator pool must be closed to sweep dust",
     },
     {
-      code: 6038,
+      code: 6039,
       name: "poolClosedEpochInvalid",
       msg: "Operator pool must be closed before the current epoch",
     },
     {
-      code: 6039,
+      code: 6040,
       name: "poolIsNotEmpty",
       msg: "Pool is not empty",
     },
     {
-      code: 6040,
+      code: 6041,
       name: "finalUnstakeEpochInvalid",
       msg: "Pool must be closed before the current epoch for the operator to unstake",
     },
     {
-      code: 6041,
+      code: 6042,
       name: "invalidEmergencyBypassEpoch",
       msg: "Invalid epoch for emergency bypass",
     },
     {
-      code: 6042,
+      code: 6043,
       name: "invalidEpoch",
       msg: "Invalid epoch provided",
     },
     {
-      code: 6043,
+      code: 6044,
       name: "invalidRewardAmount",
       msg: "Invalid reward amount - does not match expected emissions for epoch",
+    },
+    {
+      code: 6045,
+      name: "invalidSlashingDelay",
+      msg: "Slashing delay must be at least 86,400 seconds (1 day)",
+    },
+    {
+      code: 6046,
+      name: "operatorPoolNotHalted",
+      msg: "Operator pool must be halted before slashing",
+    },
+    {
+      code: 6047,
+      name: "slashingDelayNotMet",
+      msg: "Minimum slashing delay period has not elapsed",
+    },
+    {
+      code: 6048,
+      name: "invalidAmount",
+      msg: "Invalid amount provided - cannot be zero",
+    },
+    {
+      code: 6049,
+      name: "invalidSlashSharesAmount",
+      msg: "Invalid shares amount provided - cannot be greater than total operator shares",
     },
   ],
   types: [
@@ -2703,12 +2747,12 @@ const _IDL = {
             type: "u64",
           },
           {
-            name: "joinedAt",
+            name: "joinedAtEpoch",
             docs: ["Epoch that pool was created."],
             type: "u64",
           },
           {
-            name: "closedAt",
+            name: "closedAtEpoch",
             docs: [
               "Epoch that pool was permanently closed at, if set. Once a pool is closed, the pool will stop accruing",
               "any rewards starting from that epoch.",
@@ -2718,12 +2762,15 @@ const _IDL = {
             },
           },
           {
-            name: "isHalted",
+            name: "haltedAtTimestamp",
             docs: [
-              "If Pool is halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,",
+              "Timestamp when the pool was halted by the PoolOverview admin. An Operator will not be allowed to stake, unstake,",
               "claim, withdraw rewards or close a pool. Other users can still unstake or claim.",
+              "When unhalted, this is set to None.",
             ],
-            type: "bool",
+            type: {
+              option: "i64",
+            },
           },
           {
             name: "rewardLastClaimedEpoch",
@@ -2808,7 +2855,7 @@ const _IDL = {
           },
           {
             name: "haltAuthorities",
-            docs: ["List of signers authorized to set OperatorPool.is_halted."],
+            docs: ["List of signers authorized to set OperatorPool.halted_at."],
             type: {
               vec: "pubkey",
             },
@@ -2819,6 +2866,23 @@ const _IDL = {
             type: {
               vec: "pubkey",
             },
+          },
+          {
+            name: "slashingDestinationUsdcAccount",
+            docs: ["Destination account for slashed USDC tokens."],
+            type: "pubkey",
+          },
+          {
+            name: "slashingDestinationTokenAccount",
+            docs: ["Destination account for slashed tokens."],
+            type: "pubkey",
+          },
+          {
+            name: "slashingDelaySeconds",
+            docs: [
+              "Delay in seconds after halting a pool before slashing can occur. Minimum 86,400 seconds (1 day).",
+            ],
+            type: "u64",
           },
           {
             name: "isEpochFinalizing",
@@ -3187,7 +3251,7 @@ const _IDL = {
           {
             name: "newRewardCommissionRateBps",
             docs: [
-              "If set, the new commission rate will become active next epoch",
+              "If provided, the new commission rates will become active after the next epoch's reward claim for this pool",
             ],
             type: {
               option: {
@@ -3303,6 +3367,12 @@ const _IDL = {
           },
           {
             name: "operatorUnstakeDelaySeconds",
+            type: {
+              option: "u64",
+            },
+          },
+          {
+            name: "slashingDelaySeconds",
             type: {
               option: "u64",
             },

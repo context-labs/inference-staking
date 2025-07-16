@@ -42,10 +42,6 @@ pub struct SlashStake<'info> {
     )]
     pub staked_token_account: Account<'info, TokenAccount>,
 
-    // No owner validation needed as the admin is a signer
-    #[account(mut)]
-    pub destination: Account<'info, TokenAccount>,
-
     #[account(
         mut,
         seeds = [b"PoolDelegatorUsdcEarningsVault", operator_pool.key().as_ref()],
@@ -67,12 +63,20 @@ pub struct SlashStake<'info> {
     )]
     pub usdc_fee_token_account: Account<'info, TokenAccount>,
 
-    // No owner validation needed as the admin is a signer
+    // Destination for slashed tokens - must match pool_overview configuration
+    #[account(
+    mut,
+    address = pool_overview.slashing_destination_token_account,
+)]
+    pub slashing_destination_token_account: Account<'info, TokenAccount>,
+
+    // Destination for slashed USDC - must match pool_overview configuration
     #[account(
         mut,
-        constraint = destination_usdc_account.mint == USDC_MINT_PUBKEY,
+        constraint = slashing_destination_usdc_account.mint == USDC_MINT_PUBKEY,
+        address = pool_overview.slashing_destination_usdc_account,
     )]
-    pub destination_usdc_account: Account<'info, TokenAccount>,
+    pub slashing_destination_usdc_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
 
@@ -91,6 +95,32 @@ pub struct SlashStakeArgs {
 pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
     let operator_staking_record = &mut ctx.accounts.operator_staking_record;
+    let pool_overview = &ctx.accounts.pool_overview;
+
+    let shares_amount = args.shares_amount;
+    require_gt!(shares_amount, 0, ErrorCode::InvalidAmount);
+
+    // Ensure the pool is halted
+    require!(
+        operator_pool.halted_at_timestamp.is_some(),
+        ErrorCode::OperatorPoolNotHalted
+    );
+
+    require_gte!(
+        operator_staking_record.shares,
+        shares_amount,
+        ErrorCode::InvalidSlashSharesAmount
+    );
+
+    // Ensure the pool has been halted for the required delay period
+    let halted_at = operator_pool.halted_at_timestamp.unwrap();
+    let current_timestamp = Clock::get()?.unix_timestamp;
+    let elapsed_seconds = current_timestamp.saturating_sub(halted_at);
+
+    require!(
+        elapsed_seconds >= pool_overview.slashing_delay_seconds as i64,
+        ErrorCode::SlashingDelayNotMet
+    );
 
     // Store initial values for event emission
     let operator_pool_key = operator_pool.key();
@@ -99,12 +129,12 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
 
     // Slash tokens from operator pool, this will also settle any unsettled USDC
     let slashed_token_amount =
-        operator_pool.slash_tokens(operator_staking_record, args.shares_amount)?;
+        operator_pool.slash_tokens(operator_staking_record, shares_amount)?;
 
     // Decrement shares on staking record
     operator_staking_record.shares = operator_staking_record
         .shares
-        .checked_sub(args.shares_amount)
+        .checked_sub(shares_amount)
         .unwrap();
 
     // Confiscate any accrued USDC the operator may have
@@ -122,7 +152,10 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
                     from: ctx.accounts.pool_usdc_vault.to_account_info(),
-                    to: ctx.accounts.destination_usdc_account.to_account_info(),
+                    to: ctx
+                        .accounts
+                        .slashing_destination_usdc_account
+                        .to_account_info(),
                     authority: operator_pool.to_account_info(),
                 },
                 &[operator_pool_signer_seeds!(operator_pool)],
@@ -143,7 +176,10 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
                     from: ctx.accounts.reward_fee_token_account.to_account_info(),
-                    to: ctx.accounts.destination.to_account_info(),
+                    to: ctx
+                        .accounts
+                        .slashing_destination_token_account
+                        .to_account_info(),
                     authority: operator_pool.to_account_info(),
                 },
                 &[operator_pool_signer_seeds!(operator_pool)],
@@ -160,7 +196,10 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
                     from: ctx.accounts.usdc_fee_token_account.to_account_info(),
-                    to: ctx.accounts.destination_usdc_account.to_account_info(),
+                    to: ctx
+                        .accounts
+                        .slashing_destination_usdc_account
+                        .to_account_info(),
                     authority: operator_pool.to_account_info(),
                 },
                 &[operator_pool_signer_seeds!(operator_pool)],
@@ -175,7 +214,10 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
             ctx.accounts.token_program.to_account_info(),
             Transfer {
                 from: ctx.accounts.staked_token_account.to_account_info(),
-                to: ctx.accounts.destination.to_account_info(),
+                to: ctx
+                    .accounts
+                    .slashing_destination_token_account
+                    .to_account_info(),
                 authority: operator_pool.to_account_info(),
             },
             &[operator_pool_signer_seeds!(operator_pool)],
@@ -191,9 +233,9 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
         operator_pool: operator_pool_key,
         operator_staking_record: operator_staking_record_key,
         authority: authority_key,
-        destination: ctx.accounts.destination.key(),
-        destination_usdc: ctx.accounts.destination_usdc_account.key(),
-        shares_slashed: args.shares_amount,
+        destination: ctx.accounts.slashing_destination_token_account.key(),
+        destination_usdc: ctx.accounts.slashing_destination_usdc_account.key(),
+        shares_slashed: shares_amount,
         token_amount_slashed: slashed_token_amount,
         usdc_confiscated,
         reward_commission_confiscated: available_reward_commission,

@@ -286,6 +286,8 @@ export const setStakingHalted = async ({
       poolOverview: setup.poolOverview,
       programAdmin: setup.poolOverviewAdminKp.publicKey,
       registrationFeePayoutWallet: null,
+      slashingDestinationTokenAccount: null,
+      slashingDestinationUsdcAccount: null,
     })
     .signers([setup.poolOverviewAdminKp])
     .rpc();

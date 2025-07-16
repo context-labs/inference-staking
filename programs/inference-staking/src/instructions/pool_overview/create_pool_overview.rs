@@ -1,7 +1,11 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-use crate::{constants, error::ErrorCode, PoolOverview};
+use crate::{
+    constants::{self, MIN_SLASHING_DELAY_SECONDS},
+    error::ErrorCode,
+    PoolOverview,
+};
 
 #[derive(Accounts)]
 pub struct CreatePoolOverview<'info> {
@@ -12,6 +16,12 @@ pub struct CreatePoolOverview<'info> {
 
     /// CHECK: This is the wallet address that receives the operator pool registration fees.
     pub registration_fee_payout_wallet: UncheckedAccount<'info>,
+
+    /// CHECK: This is the wallet address that receives the slashed tokens.
+    pub slashing_destination_token_account: UncheckedAccount<'info>,
+
+    /// CHECK: This is the wallet address that receives the slashed USDC.
+    pub slashing_destination_usdc_account: UncheckedAccount<'info>,
 
     #[account(
         init,
@@ -63,6 +73,11 @@ pub fn handler(ctx: Context<CreatePoolOverview>) -> Result<()> {
     pool_overview.program_admin = ctx.accounts.program_admin.key();
     pool_overview.registration_fee_payout_wallet =
         ctx.accounts.registration_fee_payout_wallet.key();
+    pool_overview.slashing_destination_token_account =
+        ctx.accounts.slashing_destination_token_account.key();
+    pool_overview.slashing_destination_usdc_account =
+        ctx.accounts.slashing_destination_usdc_account.key();
+    pool_overview.slashing_delay_seconds = MIN_SLASHING_DELAY_SECONDS;
 
     Ok(())
 }

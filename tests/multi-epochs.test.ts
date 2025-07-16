@@ -417,6 +417,7 @@ describe("multi-epoch lifecycle tests", () => {
   const isStakingHalted = false;
   const isWithdrawalHalted = false;
   const isAccrueRewardHalted = false;
+  const slashingDelaySeconds = new anchor.BN(3);
 
   const trpc = new TrpcHttpClient();
 
@@ -520,8 +521,8 @@ describe("multi-epoch lifecycle tests", () => {
       );
       const activePools = pools.filter(
         (pool) =>
-          pool.operatorPool.closedAt == null ||
-          pool.operatorPool.closedAt.toNumber() === currentCompletedEpoch
+          pool.operatorPool.closedAtEpoch == null ||
+          pool.operatorPool.closedAtEpoch.toNumber() === currentCompletedEpoch
       );
       const rewards = generateRewardsForEpoch(
         activePools.map((pool) => pool.pool),
@@ -831,6 +832,8 @@ describe("multi-epoch lifecycle tests", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         usdcMint: setup.usdcTokenMint,
         usdcTokenAccount: setup.usdcTokenAccount,
+        slashingDestinationTokenAccount: setup.slashingDestinationTokenAccount,
+        slashingDestinationUsdcAccount: setup.slashingDestinationUsdcAccount,
         systemProgram: SystemProgram.programId,
         registrationFeePayoutWallet: setup.registrationFeePayoutWallet,
       })
@@ -865,11 +868,14 @@ describe("multi-epoch lifecycle tests", () => {
         delegatorUnstakeDelaySeconds,
         operatorUnstakeDelaySeconds,
         operatorPoolRegistrationFee,
+        slashingDelaySeconds,
       })
       .accountsStrict({
         programAdmin: setup.poolOverviewAdmin,
         poolOverview: setup.poolOverview,
         registrationFeePayoutWallet: null,
+        slashingDestinationTokenAccount: null,
+        slashingDestinationUsdcAccount: null,
       })
       .signers([setup.poolOverviewAdminKp])
       .rpc();
@@ -1004,8 +1010,8 @@ describe("multi-epoch lifecycle tests", () => {
       assert(operatorPool.totalStakedAmount.isZero());
       assert(operatorPool.totalShares.isZero());
       assert(operatorPool.totalUnstaking.isZero());
-      assert.isNull(operatorPool.closedAt);
-      assert(!operatorPool.isHalted);
+      assert.isNull(operatorPool.closedAtEpoch);
+      assert.isNull(operatorPool.haltedAtTimestamp);
       assert(operatorPool.rewardLastClaimedEpoch.eqn(0));
       assert(operatorPool.accruedRewards.isZero());
       assert(operatorPool.accruedRewardCommission.isZero());
@@ -1817,7 +1823,9 @@ describe("multi-epoch lifecycle tests", () => {
       ]);
 
       assert(
-        operatorPool.closedAt?.eq(poolOverview.completedRewardEpoch.addn(1)),
+        operatorPool.closedAtEpoch?.eq(
+          poolOverview.completedRewardEpoch.addn(1)
+        ),
         "Operator pool closedAt should match the completed reward epoch"
       );
 

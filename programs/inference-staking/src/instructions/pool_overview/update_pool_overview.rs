@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{error::ErrorCode, PoolOverview};
+use crate::{constants::MIN_SLASHING_DELAY_SECONDS, error::ErrorCode, PoolOverview};
 
 #[derive(Accounts)]
 pub struct UpdatePoolOverview<'info> {
@@ -16,6 +16,12 @@ pub struct UpdatePoolOverview<'info> {
 
     /// CHECK: This is the wallet address that receives the operator pool registration fees.
     pub registration_fee_payout_wallet: Option<UncheckedAccount<'info>>,
+
+    /// CHECK: This is the destination account for slashed USDC tokens.
+    pub slashing_destination_usdc_account: Option<UncheckedAccount<'info>>,
+
+    /// CHECK: This is the destination account for slashed tokens.
+    pub slashing_destination_token_account: Option<UncheckedAccount<'info>>,
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
@@ -28,6 +34,7 @@ pub struct UpdatePoolOverviewArgs {
     pub min_operator_token_stake: Option<u64>,
     pub delegator_unstake_delay_seconds: Option<u64>,
     pub operator_unstake_delay_seconds: Option<u64>,
+    pub slashing_delay_seconds: Option<u64>,
 }
 
 /// Instruction to update settings on PoolOverview.
@@ -41,6 +48,7 @@ pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -
         min_operator_token_stake,
         delegator_unstake_delay_seconds,
         operator_unstake_delay_seconds,
+        slashing_delay_seconds,
     } = args;
 
     let pool_overview = &mut ctx.accounts.pool_overview;
@@ -77,9 +85,27 @@ pub fn handler(ctx: Context<UpdatePoolOverview>, args: UpdatePoolOverviewArgs) -
         pool_overview.operator_unstake_delay_seconds = operator_unstake_delay_seconds;
     }
 
+    if let Some(slashing_delay_seconds) = slashing_delay_seconds {
+        require!(
+            slashing_delay_seconds >= MIN_SLASHING_DELAY_SECONDS,
+            ErrorCode::InvalidSlashingDelay
+        );
+        pool_overview.slashing_delay_seconds = slashing_delay_seconds;
+    }
+
     let registration_fee_payout_wallet = &ctx.accounts.registration_fee_payout_wallet;
     if let Some(registration_fee_payout_wallet) = registration_fee_payout_wallet {
         pool_overview.registration_fee_payout_wallet = registration_fee_payout_wallet.key();
+    }
+
+    let slashing_destination_usdc_account = &ctx.accounts.slashing_destination_usdc_account;
+    if let Some(slashing_destination_usdc_account) = slashing_destination_usdc_account {
+        pool_overview.slashing_destination_usdc_account = slashing_destination_usdc_account.key();
+    }
+
+    let slashing_destination_token_account = &ctx.accounts.slashing_destination_token_account;
+    if let Some(slashing_destination_token_account) = slashing_destination_token_account {
+        pool_overview.slashing_destination_token_account = slashing_destination_token_account.key();
     }
 
     Ok(())

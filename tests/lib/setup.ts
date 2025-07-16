@@ -93,6 +93,7 @@ export async function setupTests() {
     REWARD_DISTRIBUTION_AUTHORITY_KEYPAIR ?? new Keypair();
   const haltingAuthorityKp = HALTING_AUTHORITY_KEYPAIR ?? new Keypair();
   const slashingAuthorityKp = SLASHING_AUTHORITY_KEYPAIR ?? new Keypair();
+  const slashingDestinationWalletKp = new Keypair();
   const admin1Kp = new Keypair();
   const admin2Kp = new Keypair();
   const admin3Kp = new Keypair();
@@ -200,6 +201,21 @@ export async function setupTests() {
     6,
     Keypair.generate()
   );
+
+  const slashingDestinationTokenAccount =
+    await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      payerKp,
+      tokenMint,
+      slashingDestinationWalletKp.publicKey
+    );
+  const slashingDestinationUsdcAccount =
+    await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      payerKp,
+      usdcTokenMint,
+      slashingDestinationWalletKp.publicKey
+    );
 
   await confirmTransaction(
     provider.connection,
@@ -373,6 +389,10 @@ export async function setupTests() {
     haltingAuthority: haltingAuthorityKp.publicKey,
     slashingAuthorityKp,
     slashingAuthority: slashingAuthorityKp.publicKey,
+    slashingDestinationWalletKp,
+    slashingDestinationWallet: slashingDestinationWalletKp.publicKey,
+    slashingDestinationTokenAccount: slashingDestinationTokenAccount.address,
+    slashingDestinationUsdcAccount: slashingDestinationUsdcAccount.address,
     tokenHolderKp,
     tokenHolder: tokenHolderKp.publicKey,
     signerKp: signerKp,
