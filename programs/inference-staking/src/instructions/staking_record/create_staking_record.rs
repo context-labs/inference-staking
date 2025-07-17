@@ -10,7 +10,7 @@ pub struct CreateStakingRecord<'info> {
     pub owner: Signer<'info>,
 
     #[account(
-        seeds = [b"OperatorPool".as_ref(), operator_pool.initial_pool_admin.as_ref()],
+        seeds = [OperatorPool::SEED, operator_pool.initial_pool_admin.as_ref()],
         bump,
     )]
     pub operator_pool: Box<Account<'info, OperatorPool>>,
@@ -18,7 +18,7 @@ pub struct CreateStakingRecord<'info> {
     #[account(
         init,
         seeds = [
-            b"StakingRecord".as_ref(),
+            StakingRecord::SEED,
             operator_pool.key().as_ref(),
             owner.key().as_ref()
         ],

@@ -8,7 +8,7 @@ pub struct MarkEpochIsFinalizing<'info> {
 
     #[account(
         mut,
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
         constraint = pool_overview.reward_distribution_authorities.contains(authority.key)
             @ ErrorCode::InvalidRewardDistributionAuthority,

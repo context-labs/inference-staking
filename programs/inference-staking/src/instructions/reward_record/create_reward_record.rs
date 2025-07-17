@@ -14,7 +14,7 @@ pub struct CreateRewardRecord<'info> {
 
     #[account(
         mut,
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
         constraint = pool_overview.reward_distribution_authorities.contains(authority.key)
             @ ErrorCode::InvalidRewardDistributionAuthority,
@@ -25,7 +25,7 @@ pub struct CreateRewardRecord<'info> {
     #[account(
         init,
         seeds = [
-            b"RewardRecord".as_ref(),
+            RewardRecord::SEED,
             &(pool_overview.completed_reward_epoch + 1).to_le_bytes()
         ],
         bump,
@@ -35,13 +35,13 @@ pub struct CreateRewardRecord<'info> {
     pub reward_record: Box<Account<'info, RewardRecord>>,
 
     #[account(
-        seeds = [b"GlobalTokenRewardVault".as_ref()],
+        seeds = [PoolOverview::GLOBAL_TOKEN_REWARD_VAULT_SEED],
         bump,
     )]
     pub reward_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
-        seeds = [b"GlobalUsdcEarningsVault".as_ref()],
+        seeds = [PoolOverview::GLOBAL_USDC_EARNINGS_VAULT_SEED],
         bump,
     )]
     pub usdc_token_account: Box<Account<'info, TokenAccount>>,

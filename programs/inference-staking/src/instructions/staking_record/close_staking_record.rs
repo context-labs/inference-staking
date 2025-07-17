@@ -18,7 +18,7 @@ pub struct CloseStakingRecord<'info> {
         mut,
         close = receiver,
         seeds = [
-            b"StakingRecord".as_ref(),
+            StakingRecord::SEED,
             owner_staking_record.operator_pool.as_ref(),
             owner.key().as_ref()
         ],
@@ -28,7 +28,7 @@ pub struct CloseStakingRecord<'info> {
     pub owner_staking_record: Account<'info, StakingRecord>,
 
     #[account(
-        seeds = [b"OperatorPool".as_ref(), operator_pool.initial_pool_admin.as_ref()],
+        seeds = [OperatorPool::SEED, operator_pool.initial_pool_admin.as_ref()],
         bump = operator_pool.bump,
     )]
     pub operator_pool: Account<'info, OperatorPool>,

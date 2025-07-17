@@ -117,6 +117,24 @@ impl OperatorPool {
     /// Version of the OperatorPool account.
     pub const VERSION: u8 = 1;
 
+    /// PDA seed for OperatorPool account.
+    pub const SEED: &'static [u8] = b"OperatorPool";
+
+    /// PDA seed for operator pool staked token vault.
+    pub const POOL_STAKED_TOKEN_VAULT_SEED: &'static [u8] = b"PoolStakedTokenVault";
+
+    /// PDA seed for operator pool reward commission token vault.
+    pub const POOL_REWARD_COMMISSION_TOKEN_VAULT_SEED: &'static [u8] =
+        b"PoolRewardCommissionTokenVault";
+
+    /// PDA seed for operator pool USDC commission token vault.
+    pub const POOL_USDC_COMMISSION_TOKEN_VAULT_SEED: &'static [u8] =
+        b"PoolUsdcCommissionTokenVault";
+
+    /// PDA seed for operator pool delegator USDC earnings vault.
+    pub const POOL_DELEGATOR_USDC_EARNINGS_VAULT_SEED: &'static [u8] =
+        b"PoolDelegatorUsdcEarningsVault";
+
     /// Reserved padding space for future upgrades.
     pub const PADDING: usize = 512;
 }
@@ -248,7 +266,7 @@ impl OperatorPool {
             .checked_div(USDC_PRECISION_FACTOR)
             .unwrap();
 
-        // Add to accrued balance
+        // Add to accrued USDC earnings balance
         staking_record.accrued_usdc_earnings = staking_record
             .accrued_usdc_earnings
             .checked_add(earned_usdc as u64)
@@ -265,12 +283,12 @@ impl OperatorPool {
         &self,
         staking_record: &crate::state::StakingRecord,
     ) -> bool {
-        // Check accrued balance
+        // Check accrued USDC earnings balance
         if staking_record.accrued_usdc_earnings > 0 {
             return true;
         }
 
-        // Check unsettled rewards
+        // Check unsettled USDC earnings
         let usdc_per_share_settlement_delta = self
             .cumulative_usdc_per_share
             .saturating_sub(staking_record.last_settled_usdc_per_share);
@@ -301,6 +319,7 @@ impl OperatorPool {
         }
     }
 
+    /// Checks if the operator pool is fully empty (no shares, no staked tokens, no unstaking).
     pub fn is_empty(&self) -> bool {
         self.total_shares == 0 && self.total_staked_amount == 0 && self.total_unstaking == 0
     }

@@ -12,7 +12,7 @@ pub struct ChangeOperatorAdmin<'info> {
     pub new_admin: Signer<'info>,
 
     #[account(
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
         constraint = !pool_overview.is_epoch_finalizing @ ErrorCode::EpochMustNotBeFinalizing,
     )]
@@ -21,7 +21,7 @@ pub struct ChangeOperatorAdmin<'info> {
     #[account(
         mut,
         seeds = [
-          b"OperatorPool".as_ref(),
+                      OperatorPool::SEED,
           operator_pool.initial_pool_admin.as_ref(),
         ],
         bump = operator_pool.bump,

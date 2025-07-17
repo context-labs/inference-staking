@@ -15,13 +15,13 @@ pub struct ClaimUsdcEarnings<'info> {
     pub owner: Signer<'info>,
 
     #[account(
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
 
     #[account(
-        seeds = [b"OperatorPool".as_ref(), operator_pool.initial_pool_admin.as_ref()],
+        seeds = [OperatorPool::SEED, operator_pool.initial_pool_admin.as_ref()],
         bump = operator_pool.bump,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
@@ -35,7 +35,7 @@ pub struct ClaimUsdcEarnings<'info> {
 
     #[account(
         mut,
-        seeds = [b"PoolDelegatorUsdcEarningsVault", operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_DELEGATOR_USDC_EARNINGS_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
     )]
     pub pool_usdc_vault: Account<'info, TokenAccount>,

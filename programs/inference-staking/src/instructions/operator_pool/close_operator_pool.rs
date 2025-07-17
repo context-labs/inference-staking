@@ -10,7 +10,7 @@ pub struct CloseOperatorPool<'info> {
     pub admin: Signer<'info>,
 
     #[account(
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,

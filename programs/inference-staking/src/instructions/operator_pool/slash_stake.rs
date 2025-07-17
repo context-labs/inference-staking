@@ -15,7 +15,7 @@ pub struct SlashStake<'info> {
     pub authority: Signer<'info>,
 
     #[account(
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
         constraint = pool_overview.slashing_authorities.contains(authority.key)
           @ ErrorCode::InvalidSlashingAuthority,
@@ -24,7 +24,7 @@ pub struct SlashStake<'info> {
 
     #[account(
         mut,
-        seeds = [b"OperatorPool".as_ref(), operator_pool.initial_pool_admin.as_ref()],
+        seeds = [OperatorPool::SEED, operator_pool.initial_pool_admin.as_ref()],
         bump = operator_pool.bump,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
@@ -37,28 +37,28 @@ pub struct SlashStake<'info> {
 
     #[account(
         mut,
-        seeds = [b"PoolStakedTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_STAKED_TOKEN_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
     )]
     pub staked_token_account: Account<'info, TokenAccount>,
 
     #[account(
         mut,
-        seeds = [b"PoolDelegatorUsdcEarningsVault", operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_DELEGATOR_USDC_EARNINGS_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
     )]
     pub pool_usdc_vault: Account<'info, TokenAccount>,
 
     #[account(
         mut,
-        seeds = [b"PoolRewardCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_REWARD_COMMISSION_TOKEN_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
     )]
     pub reward_fee_token_account: Account<'info, TokenAccount>,
 
     #[account(
         mut,
-        seeds = [b"PoolUsdcCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_USDC_COMMISSION_TOKEN_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
     )]
     pub usdc_fee_token_account: Account<'info, TokenAccount>,

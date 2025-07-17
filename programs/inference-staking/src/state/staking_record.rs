@@ -32,6 +32,9 @@ impl StakingRecord {
     /// Version of the StakingRecord account.
     pub const VERSION: u8 = 1;
 
+    /// PDA seed for StakingRecord account.
+    pub const SEED: &'static [u8] = b"StakingRecord";
+
     /// Reserved padding space for future upgrades.
     pub const PADDING: usize = 256;
 }

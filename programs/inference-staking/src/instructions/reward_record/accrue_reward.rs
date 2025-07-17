@@ -12,7 +12,7 @@ use crate::state::{OperatorPool, PoolOverview, RewardRecord, StakingRecord};
 pub struct AccrueReward<'info> {
     #[account(
         mut,
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
         constraint = !pool_overview.is_accrue_reward_halted @ ErrorCode::AccrueRewardHalted,
     )]
@@ -20,7 +20,7 @@ pub struct AccrueReward<'info> {
 
     #[account(
         seeds = [
-            b"RewardRecord".as_ref(),
+            RewardRecord::SEED,
             &reward_record.epoch.to_le_bytes()
         ],
         bump,
@@ -31,7 +31,7 @@ pub struct AccrueReward<'info> {
     #[account(
         mut,
         seeds = [
-            b"OperatorPool".as_ref(),
+            OperatorPool::SEED,
             operator_pool.initial_pool_admin.as_ref(),
         ],
         bump = operator_pool.bump,
@@ -47,42 +47,42 @@ pub struct AccrueReward<'info> {
 
     #[account(
         mut,
-        seeds = [b"GlobalTokenRewardVault".as_ref()],
+        seeds = [PoolOverview::GLOBAL_TOKEN_REWARD_VAULT_SEED],
         bump,
     )]
     pub reward_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [b"GlobalUsdcEarningsVault".as_ref()],
+        seeds = [PoolOverview::GLOBAL_USDC_EARNINGS_VAULT_SEED],
         bump,
     )]
     pub usdc_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [b"PoolStakedTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_STAKED_TOKEN_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
     )]
     pub staked_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [b"PoolRewardCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_REWARD_COMMISSION_TOKEN_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
     )]
     pub reward_fee_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [b"PoolUsdcCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_USDC_COMMISSION_TOKEN_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
     )]
     pub usdc_fee_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [b"PoolDelegatorUsdcEarningsVault", operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_DELEGATOR_USDC_EARNINGS_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
     )]
     pub pool_usdc_vault: Box<Account<'info, TokenAccount>>,
@@ -235,7 +235,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
                         to: ctx.accounts.reward_fee_token_account.to_account_info(),
                         authority: ctx.accounts.pool_overview.to_account_info(),
                     },
-                    &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],
+                    &[&[PoolOverview::SEED, &[pool_overview.bump]]],
                 ),
                 operator_pool.accrued_reward_commission,
             )?;
@@ -250,7 +250,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
                     to: ctx.accounts.staked_token_account.to_account_info(),
                     authority: ctx.accounts.pool_overview.to_account_info(),
                 },
-                &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],
+                &[&[PoolOverview::SEED, &[pool_overview.bump]]],
             ),
             amount_to_staked_account,
         )?;
@@ -265,7 +265,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
                         to: ctx.accounts.usdc_fee_token_account.to_account_info(),
                         authority: ctx.accounts.pool_overview.to_account_info(),
                     },
-                    &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],
+                    &[&[PoolOverview::SEED, &[pool_overview.bump]]],
                 ),
                 total_operator_usdc_to_transfer,
             )?;
@@ -281,7 +281,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
                         to: ctx.accounts.pool_usdc_vault.to_account_info(),
                         authority: ctx.accounts.pool_overview.to_account_info(),
                     },
-                    &[&[b"PoolOverview".as_ref(), &[pool_overview.bump]]],
+                    &[&[PoolOverview::SEED, &[pool_overview.bump]]],
                 ),
                 total_delegator_usdc_to_transfer,
             )?;

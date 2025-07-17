@@ -16,7 +16,7 @@ pub struct ChangeOperatorStakingRecord<'info> {
     pub owner: Signer<'info>,
 
     #[account(
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
@@ -24,7 +24,7 @@ pub struct ChangeOperatorStakingRecord<'info> {
     #[account(
         mut,
         seeds = [
-            b"OperatorPool".as_ref(),
+            OperatorPool::SEED,
             operator_pool.initial_pool_admin.as_ref(),
         ],
         bump = operator_pool.bump,
@@ -39,7 +39,7 @@ pub struct ChangeOperatorStakingRecord<'info> {
     pub operator_staking_record: Account<'info, StakingRecord>,
 
     #[account(
-        seeds = [b"StakingRecord".as_ref(), operator_pool.key().as_ref(), owner.key().as_ref()],
+        seeds = [StakingRecord::SEED, operator_pool.key().as_ref(), owner.key().as_ref()],
         bump,
         has_one = owner,
         has_one = operator_pool,

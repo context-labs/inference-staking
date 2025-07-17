@@ -9,7 +9,7 @@ pub struct AccrueRewardEmergencyBypass<'info> {
     pub admin: Signer<'info>,
 
     #[account(
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
     )]
     pub pool_overview: Box<Account<'info, PoolOverview>>,
@@ -17,7 +17,7 @@ pub struct AccrueRewardEmergencyBypass<'info> {
     #[account(
         mut,
         seeds = [
-            b"OperatorPool".as_ref(),
+            OperatorPool::SEED,
             operator_pool.initial_pool_admin.as_ref(),
         ],
         bump = operator_pool.bump,
@@ -30,7 +30,7 @@ pub struct AccrueRewardEmergencyBypass<'info> {
     /// The current reward record that should have been claimed (at reward_last_claimed_epoch + 1)
     #[account(
         seeds = [
-            b"RewardRecord".as_ref(),
+            RewardRecord::SEED,
             &current_pool_reward_record.epoch.to_le_bytes()
         ],
         bump,
@@ -41,7 +41,7 @@ pub struct AccrueRewardEmergencyBypass<'info> {
     /// The next reward record that we're bypassing to (at reward_last_claimed_epoch + 2)
     #[account(
         seeds = [
-            b"RewardRecord".as_ref(),
+            RewardRecord::SEED,
             &next_pool_reward_record.epoch.to_le_bytes()
         ],
         bump,

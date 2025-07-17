@@ -14,13 +14,13 @@ pub struct WithdrawOperatorRewardCommission<'info> {
     pub admin: Signer<'info>,
 
     #[account(
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
 
     #[account(
-        seeds = [b"OperatorPool".as_ref(), operator_pool.initial_pool_admin.as_ref()],
+        seeds = [OperatorPool::SEED, operator_pool.initial_pool_admin.as_ref()],
         bump = operator_pool.bump,
         // Admin must sign to invoke this instruction
         has_one = admin,
@@ -29,7 +29,7 @@ pub struct WithdrawOperatorRewardCommission<'info> {
 
     #[account(
         mut,
-        seeds = [b"PoolRewardCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_REWARD_COMMISSION_TOKEN_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
     )]
     pub reward_fee_token_account: Account<'info, TokenAccount>,

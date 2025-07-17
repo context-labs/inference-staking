@@ -8,7 +8,7 @@ pub struct UpdatePoolOverviewAuthorities<'info> {
 
     #[account(
         mut,
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
         has_one = program_admin @ ErrorCode::InvalidProgramAdmin
     )]

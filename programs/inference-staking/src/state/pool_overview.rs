@@ -78,6 +78,15 @@ pub struct PoolOverview {
 }
 
 impl PoolOverview {
+    /// PDA seed for PoolOverview account.
+    pub const SEED: &'static [u8] = b"PoolOverview";
+
+    /// PDA seed for global token reward vault.
+    pub const GLOBAL_TOKEN_REWARD_VAULT_SEED: &'static [u8] = b"GlobalTokenRewardVault";
+
+    /// PDA seed for global USDC earnings vault.
+    pub const GLOBAL_USDC_EARNINGS_VAULT_SEED: &'static [u8] = b"GlobalUsdcEarningsVault";
+
     /// Reserved padding space for future upgrades.
     pub const PADDING: usize = 1024;
 }

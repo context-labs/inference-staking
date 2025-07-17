@@ -19,7 +19,7 @@ pub struct CreateOperatorPool<'info> {
     #[account(
         init,
         seeds = [
-            b"OperatorPool".as_ref(),
+            OperatorPool::SEED,
             admin.key().as_ref(),
         ],
         bump,
@@ -31,7 +31,7 @@ pub struct CreateOperatorPool<'info> {
     #[account(
         init,
         seeds = [
-            b"StakingRecord".as_ref(),
+            StakingRecord::SEED,
             operator_pool.key().as_ref(),
             admin.key().as_ref()
         ],
@@ -43,7 +43,7 @@ pub struct CreateOperatorPool<'info> {
 
     #[account(
         mut,
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
         has_one = mint,
         constraint = pool_overview.allow_pool_creation @ ErrorCode::PoolCreationDisabled,
@@ -52,7 +52,7 @@ pub struct CreateOperatorPool<'info> {
 
     #[account(
         init,
-        seeds = [b"PoolStakedTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_STAKED_TOKEN_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
         payer = payer,
         token::mint = mint,
@@ -62,7 +62,7 @@ pub struct CreateOperatorPool<'info> {
 
     #[account(
         init,
-        seeds = [b"PoolRewardCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_REWARD_COMMISSION_TOKEN_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
         payer = payer,
         token::mint = mint,
@@ -72,7 +72,7 @@ pub struct CreateOperatorPool<'info> {
 
     #[account(
         init,
-        seeds = [b"PoolUsdcCommissionTokenVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_USDC_COMMISSION_TOKEN_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
         payer = payer,
         token::mint = usdc_mint,
@@ -82,7 +82,7 @@ pub struct CreateOperatorPool<'info> {
 
     #[account(
         init,
-        seeds = [b"PoolDelegatorUsdcEarningsVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_DELEGATOR_USDC_EARNINGS_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
         payer = payer,
         token::mint = usdc_mint,

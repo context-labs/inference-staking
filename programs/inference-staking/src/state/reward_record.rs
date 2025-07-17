@@ -30,6 +30,9 @@ impl RewardRecord {
     /// Version of the RewardRecord account.
     pub const VERSION: u8 = 1;
 
+    /// PDA seed for RewardRecord account.
+    pub const SEED: &'static [u8] = b"RewardRecord";
+
     /// Reserved padding space for future upgrades.
     pub const PADDING: usize = 256;
 }

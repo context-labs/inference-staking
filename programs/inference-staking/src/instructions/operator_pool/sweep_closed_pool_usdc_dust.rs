@@ -27,7 +27,7 @@ pub struct SweepClosedPoolUsdcDust<'info> {
     #[account(
         mut,
         // This is the vault we are sweeping.
-        seeds = [b"PoolDelegatorUsdcEarningsVault".as_ref(), operator_pool.key().as_ref()],
+        seeds = [OperatorPool::POOL_DELEGATOR_USDC_EARNINGS_VAULT_SEED, operator_pool.key().as_ref()],
         bump,
     )]
     pub operator_usdc_vault: Account<'info, TokenAccount>,
@@ -40,7 +40,7 @@ pub struct SweepClosedPoolUsdcDust<'info> {
     pub admin_usdc_account: Account<'info, TokenAccount>,
 
     #[account(
-        seeds = [b"PoolOverview".as_ref()],
+        seeds = [PoolOverview::SEED],
         bump = pool_overview.bump,
     )]
     pub pool_overview: Account<'info, PoolOverview>,
