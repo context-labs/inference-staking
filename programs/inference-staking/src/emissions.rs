@@ -3,22 +3,18 @@ use anchor_lang::prelude::*;
 use crate::error::ErrorCode;
 
 /// Number of epochs per super epoch
-pub const EPOCHS_PER_SUPER_EPOCH: u64 = 1_000;
+/// 5 super epochs at 300 days = 1500 days = 4.1 years
+pub const EPOCHS_PER_SUPER_EPOCH: u64 = 300;
 
 /// Keep in sync with off-chain SDK utils in `token-emissions.utils.ts`.
 /// Token rewards emissions schedule by super epoch (in token denomination with 9 decimals)
+/// Total = 15.0% of 10 billion
 pub const TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH: &[u64] = &[
-    200_000_000_000_000_000, // super epoch 1 = 2.0% of 10 billion
-    180_000_000_000_000_000, // super epoch 2 = 1.8% of 10 billion
-    160_000_000_000_000_000, // super epoch 3 ... etc.
-    140_000_000_000_000_000,
-    120_000_000_000_000_000,
-    100_000_000_000_000_000,
-    80_000_000_000_000_000,
-    60_000_000_000_000_000,
-    40_000_000_000_000_000,
-    20_000_000_000_000_000,
-    10_000_000_000_000_000,
+    500_000_000_000_000_000, // super epoch 1 = 5.0% of 10 billion
+    400_000_000_000_000_000, // super epoch 2 = 4.0% of 10 billion
+    300_000_000_000_000_000, // super epoch 3 = 3.0% of 10 billion
+    200_000_000_000_000_000, // super epoch 4 = 2.0% of 10 billion
+    100_000_000_000_000_000, // super epoch 5 = 1.0% of 10 billion
 ];
 
 /// Calculate the expected reward emissions for a given epoch based on the emission schedule.
@@ -61,48 +57,74 @@ mod tests {
 
     #[test]
     fn test_get_expected_reward_emissions_for_epoch() {
-        // Test epoch 1 (first epoch of first super epoch)
-        // 200_000_000_000_000_000 / 1000 = 200_000_000_000_000
+        // Test epoch 1 (first epoch of first super epoch) - may get dust
+        let first_super_epoch_total = TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH[0];
+        let base_reward = first_super_epoch_total / EPOCHS_PER_SUPER_EPOCH;
+        let dust = first_super_epoch_total % EPOCHS_PER_SUPER_EPOCH;
+        let first_epoch_reward = if dust > 0 {
+            base_reward + 1
+        } else {
+            base_reward
+        };
+
         let result = get_expected_reward_emissions_for_epoch(1).unwrap();
-        assert_eq!(result, 200_000_000_000_000);
+        assert_eq!(result, first_epoch_reward);
 
-        // Test epoch 1000 (last epoch of first super epoch)
-        let result = get_expected_reward_emissions_for_epoch(1_000).unwrap();
-        assert_eq!(result, 200_000_000_000_000);
+        // Test last epoch of first super epoch - gets base reward (no dust)
+        let last_epoch_first_super = EPOCHS_PER_SUPER_EPOCH;
+        let result = get_expected_reward_emissions_for_epoch(last_epoch_first_super).unwrap();
+        assert_eq!(result, base_reward);
 
-        // Test epoch 1001 (first epoch of second super epoch)
-        // 180_000_000_000_000_000 / 1000 = 180_000_000_000_000
-        let result = get_expected_reward_emissions_for_epoch(1_001).unwrap();
-        assert_eq!(result, 180_000_000_000_000);
+        // Test first epoch of second super epoch (if it exists)
+        if TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH.len() > 1 {
+            let second_super_epoch_total = TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH[1];
+            let second_base_reward = second_super_epoch_total / EPOCHS_PER_SUPER_EPOCH;
+            let second_dust = second_super_epoch_total % EPOCHS_PER_SUPER_EPOCH;
+            let second_first_epoch_reward = if second_dust > 0 {
+                second_base_reward + 1
+            } else {
+                second_base_reward
+            };
 
-        // Test epoch 2000 (last epoch of second super epoch)
-        let result = get_expected_reward_emissions_for_epoch(2_000).unwrap();
-        assert_eq!(result, 180_000_000_000_000);
+            let first_epoch_second_super = EPOCHS_PER_SUPER_EPOCH + 1;
+            let result = get_expected_reward_emissions_for_epoch(first_epoch_second_super).unwrap();
+            assert_eq!(result, second_first_epoch_reward);
 
-        // Test epoch 10001 (first epoch of 11th super epoch)
-        // 10_000_000_000_000_000 / 1000 = 10_000_000_000_000
-        let result = get_expected_reward_emissions_for_epoch(10_001).unwrap();
-        assert_eq!(result, 10_000_000_000_000);
+            // Test last epoch of second super epoch
+            let last_epoch_second_super = EPOCHS_PER_SUPER_EPOCH * 2;
+            let result = get_expected_reward_emissions_for_epoch(last_epoch_second_super).unwrap();
+            assert_eq!(result, second_base_reward);
+        }
 
         // Test epoch beyond defined schedule (should return 0)
-        let result = get_expected_reward_emissions_for_epoch(12_000).unwrap();
+        let beyond_schedule_epoch = (TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH.len() as u64
+            * EPOCHS_PER_SUPER_EPOCH)
+            + 1;
+        let result = get_expected_reward_emissions_for_epoch(beyond_schedule_epoch).unwrap();
         assert_eq!(result, 0);
     }
 
     #[test]
     fn test_epoch_dust_distribution() {
-        // For super epoch rewards that don't divide evenly by 1000,
+        // For super epoch rewards that don't divide evenly by EPOCHS_PER_SUPER_EPOCH,
         // the dust should be distributed to earlier epochs
 
-        // With 200_000_000_000_000_000 tokens for super epoch 1:
-        // Base reward = 200_000_000_000_000_000 / 1000 = 200_000_000_000_000
-        // Dust = 200_000_000_000_000_000 % 1000 = 0
-        // So all epochs get exactly 200_000_000_000_000
+        let first_super_epoch_total = TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH[0];
+        let base_reward = first_super_epoch_total / EPOCHS_PER_SUPER_EPOCH;
+        let dust = first_super_epoch_total % EPOCHS_PER_SUPER_EPOCH;
 
-        // Test that all epochs in first super epoch get the same amount (no dust)
-        for epoch in 1..=1_000 {
+        // Test reward distribution for all epochs in first super epoch
+        for epoch in 1..=EPOCHS_PER_SUPER_EPOCH {
             let result = get_expected_reward_emissions_for_epoch(epoch).unwrap();
-            assert_eq!(result, 200_000_000_000_000);
+
+            // Earlier epochs get 1 extra token unit if there's dust
+            let expected_reward = if (epoch - 1) < dust {
+                base_reward + 1
+            } else {
+                base_reward
+            };
+
+            assert_eq!(result, expected_reward);
         }
     }
 
@@ -116,48 +138,53 @@ mod tests {
     #[test]
     fn test_all_super_epochs() {
         // Test first epoch of each super epoch matches expected schedule
-        // Each value is the super epoch total / 1000
-        let expected_amounts = vec![
-            200_000_000_000_000, // 200_000_000_000_000_000 / 1000
-            180_000_000_000_000, // 180_000_000_000_000_000 / 1000
-            160_000_000_000_000, // etc.
-            140_000_000_000_000,
-            120_000_000_000_000,
-            100_000_000_000_000,
-            80_000_000_000_000,
-            60_000_000_000_000,
-            40_000_000_000_000,
-            20_000_000_000_000,
-            10_000_000_000_000,
-        ];
+        // First epoch gets base reward + 1 if there's dust, otherwise just base reward
+        for (super_epoch_index, &total) in TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH
+            .iter()
+            .enumerate()
+        {
+            let base_reward = total / EPOCHS_PER_SUPER_EPOCH;
+            let dust = total % EPOCHS_PER_SUPER_EPOCH;
+            let expected_first_epoch_reward = if dust > 0 {
+                base_reward + 1
+            } else {
+                base_reward
+            };
 
-        for (super_epoch_index, expected_amount) in expected_amounts.iter().enumerate() {
-            let epoch = (super_epoch_index as u64 * 1_000) + 1;
+            let epoch = (super_epoch_index as u64 * EPOCHS_PER_SUPER_EPOCH) + 1;
             let result = get_expected_reward_emissions_for_epoch(epoch).unwrap();
-            assert_eq!(result, *expected_amount);
+            assert_eq!(
+                result,
+                expected_first_epoch_reward,
+                "First epoch of super epoch {} should get base reward plus dust",
+                super_epoch_index + 1
+            );
         }
     }
 
     #[test]
     fn test_total_emissions_per_super_epoch() {
         // Verify that the sum of all epochs in a super epoch equals the expected total
-        let expected_totals = vec![
-            200_000_000_000_000_000u64, // Full super epoch 1 total
-            180_000_000_000_000_000u64, // Full super epoch 2 total
-            160_000_000_000_000_000u64, // Full super epoch 3 total
-        ];
-
-        for (super_epoch_index, expected_total) in expected_totals.iter().enumerate() {
+        // Test all defined super epochs from the emissions schedule
+        for (super_epoch_index, &expected_total) in TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH
+            .iter()
+            .enumerate()
+        {
             let mut total = 0u64;
-            let start_epoch = (super_epoch_index as u64 * 1_000) + 1;
-            let end_epoch = start_epoch + 999;
+            let start_epoch = (super_epoch_index as u64 * EPOCHS_PER_SUPER_EPOCH) + 1;
+            let end_epoch = start_epoch + EPOCHS_PER_SUPER_EPOCH - 1;
 
             for epoch in start_epoch..=end_epoch {
                 let reward = get_expected_reward_emissions_for_epoch(epoch).unwrap();
                 total += reward;
             }
 
-            assert_eq!(total, *expected_total);
+            assert_eq!(
+                total,
+                expected_total,
+                "Super epoch {} total emissions should match schedule",
+                super_epoch_index + 1
+            );
         }
     }
 }

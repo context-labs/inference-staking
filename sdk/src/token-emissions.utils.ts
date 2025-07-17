@@ -4,33 +4,29 @@
  * Keep in sync with emissions.rs.
  ******************************************************************************* */
 
-export const INFERENCE_TOKEN_DECIMALS = 9;
+const INFERENCE_TOKEN_DECIMALS = 9;
+
 const INFERENCE_TOKEN_CONVERSION_FACTOR = BigInt(
   10 ** INFERENCE_TOKEN_DECIMALS
 );
 
-function convertToTokenDenomination(amount: bigint): bigint {
+function convertToBozemans(amount: bigint): bigint {
   return amount * INFERENCE_TOKEN_CONVERSION_FACTOR;
 }
 
 export type TokenRewardsEmissionsSchedule = bigint[];
 
-const EPOCHS_PER_SUPER_EPOCH = 1_000n;
+const EPOCHS_PER_SUPER_EPOCH = 300n;
 
+// Total = 15.0% of 10 billion
 const TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH: TokenRewardsEmissionsSchedule =
   [
-    200_000_000n, // super epoch 1 = 2.0% of 10 billion
-    180_000_000n, // super epoch 2 = 1.8% of 10 billion
-    160_000_000n, // super epoch 3 ... etc.
-    140_000_000n,
-    120_000_000n,
-    100_000_000n,
-    80_000_000n,
-    60_000_000n,
-    40_000_000n,
-    20_000_000n,
-    10_000_000n,
-  ].map((amount) => convertToTokenDenomination(amount));
+    500_000_000n, // super epoch 1 = 5.0% of 10 billion
+    400_000_000n, // super epoch 2 = 4.0% of 10 billion
+    300_000_000n, // super epoch 3 = 3.0% of 10 billion
+    200_000_000n, // super epoch 4 = 2.0% of 10 billion
+    100_000_000n, // super epoch 5 = 1.0% of 10 billion
+  ].map((amount) => convertToBozemans(amount));
 
 /** ******************************************************************************
  *  Uptime Rewards Buckets
