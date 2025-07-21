@@ -44,6 +44,12 @@ type EpochRewardEmissions = {
   totalRewards: bigint;
 };
 
+/**
+ * This function spreads out any dust across the epochs in the super epoch.
+ *
+ * For example, if the super epoch emissions are 10 and there are 3 epochs in the super epoch,
+ * the final result will be [4, 3, 3]. 1 unit of dust will be allocated to the first epoch.
+ */
 function getEpochRewardsInclusiveOfDust(superEpochEmissions: bigint): bigint[] {
   const base = superEpochEmissions / EPOCHS_PER_SUPER_EPOCH;
   const dust = superEpochEmissions % EPOCHS_PER_SUPER_EPOCH;
@@ -51,6 +57,12 @@ function getEpochRewardsInclusiveOfDust(superEpochEmissions: bigint): bigint[] {
     { length: Number(EPOCHS_PER_SUPER_EPOCH) },
     (_, i) => base + (BigInt(i) < dust ? 1n : 0n)
   );
+  const total = final.reduce((acc, curr) => acc + curr, 0n);
+  if (total !== superEpochEmissions) {
+    throw new Error(
+      `Invalid total epoch rewards, received: ${total}, expected: ${superEpochEmissions}`
+    );
+  }
   return final;
 }
 
