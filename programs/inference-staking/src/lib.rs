@@ -68,12 +68,12 @@ pub mod inference_staking {
         create_staking_record::handler(ctx)
     }
 
-    pub fn stake(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
-        stake::handler(ctx, token_amount)
+    pub fn stake(ctx: Context<Stake>, args: StakeArgs) -> Result<()> {
+        stake::handler(ctx, args)
     }
 
-    pub fn unstake(ctx: Context<Unstake>, share_amount: u64) -> Result<()> {
-        unstake::handler(ctx, share_amount)
+    pub fn unstake(ctx: Context<Unstake>, args: UnstakeArgs) -> Result<()> {
+        unstake::handler(ctx, args)
     }
 
     pub fn claim_unstake(ctx: Context<ClaimUnstake>) -> Result<()> {

@@ -266,7 +266,7 @@ describe("Reward creation and accrual tests", () => {
       setup.pool1.admin
     );
     await program.methods
-      .stake(new anchor.BN(150_000))
+      .stake({ tokenAmount: new anchor.BN(150_000) })
       .accountsStrict({
         owner: setup.pool1.admin,
         poolOverview: setup.poolOverview,
@@ -294,7 +294,7 @@ describe("Reward creation and accrual tests", () => {
       .rpc();
 
     await program.methods
-      .stake(new anchor.BN(400_000))
+      .stake({ tokenAmount: new anchor.BN(400_000) })
       .accountsStrict({
         owner: setup.delegator1,
         poolOverview: setup.poolOverview,

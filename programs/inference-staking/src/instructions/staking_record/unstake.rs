@@ -47,8 +47,14 @@ pub struct Unstake<'info> {
     pub instructions: AccountInfo<'info>,
 }
 
+#[derive(AnchorDeserialize, AnchorSerialize)]
+pub struct UnstakeArgs {
+    /// Amount of shares to unstake.
+    pub shares_amount: u64,
+}
+
 /// Instruction to initiate unstaking of tokens from an OperatorPool.
-pub fn handler(ctx: Context<Unstake>, shares_amount: u64) -> Result<()> {
+pub fn handler(ctx: Context<Unstake>, args: UnstakeArgs) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
     let pool_overview = &ctx.accounts.pool_overview;
     let operator_staking_record = &ctx.accounts.operator_staking_record;
@@ -60,6 +66,7 @@ pub fn handler(ctx: Context<Unstake>, shares_amount: u64) -> Result<()> {
     let staking_record_key = ctx.accounts.owner_staking_record.key();
     let owner_key = ctx.accounts.owner.key();
 
+    let shares_amount = args.shares_amount;
     require_gt!(shares_amount, 0, ErrorCode::InvalidAmount);
 
     // Check that operator is not unstaking when pool is halted.

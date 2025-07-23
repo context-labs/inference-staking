@@ -64,12 +64,19 @@ pub struct Stake<'info> {
     pub instructions: AccountInfo<'info>,
 }
 
+#[derive(AnchorDeserialize, AnchorSerialize)]
+pub struct StakeArgs {
+    /// Amount of tokens to stake.
+    pub token_amount: u64,
+}
+
 /// Instruction to stake tokens to an OperatorPool.
-pub fn handler(ctx: Context<Stake>, token_amount: u64) -> Result<()> {
+pub fn handler(ctx: Context<Stake>, args: StakeArgs) -> Result<()> {
     let operator_pool = &mut ctx.accounts.operator_pool;
     let pool_overview = &ctx.accounts.pool_overview;
     let operator_staking_record = &ctx.accounts.operator_staking_record;
 
+    let token_amount = args.token_amount;
     require_gt!(token_amount, 0, ErrorCode::InvalidAmount);
 
     // Check that delegation is enabled or operator is staking.

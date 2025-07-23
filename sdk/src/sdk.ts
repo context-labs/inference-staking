@@ -31,7 +31,6 @@ import type {
   InferenceStakingErrors,
   DecodedStakingProgramInstruction,
   InferenceStakingInstructions,
-  InstructionArgsMap,
   InstructionAccountsMap,
   OperatorPoolAccountStruct,
   PoolOverviewAccountStruct,
@@ -40,6 +39,7 @@ import type {
   AccountMetaWithName,
   InferenceStakingAccountName,
   InferenceStakingAccountStructName,
+  RawInstructionArgsMap,
 } from "./types";
 import {
   assertUnreachable,
@@ -657,8 +657,8 @@ export class InferenceStakingProgramSdk {
 
           const name = decodedIx.name as InferenceStakingInstructions;
 
-          const args =
-            decodedIx.data as InstructionArgsMap[InferenceStakingInstructions];
+          const { args } =
+            decodedIx.data as RawInstructionArgsMap[InferenceStakingInstructions];
 
           const accountsMeta: AccountMeta[] = instruction.accounts.map(
             (idx) => {

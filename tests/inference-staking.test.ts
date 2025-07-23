@@ -889,7 +889,7 @@ describe("inference-staking program tests", () => {
         setup.delegator1
       );
       await program.methods
-        .stake(new anchor.BN(400_000))
+        .stake({ tokenAmount: new anchor.BN(400_000) })
         .accountsStrict({
           owner: setup.delegator1,
           poolOverview: setup.poolOverview,
@@ -924,7 +924,7 @@ describe("inference-staking program tests", () => {
 
     try {
       await program.methods
-        .stake(stakeAmount)
+        .stake({ tokenAmount: stakeAmount })
         .accountsStrict({
           owner: setup.pool1.admin,
           poolOverview: setup.poolOverview,
@@ -958,7 +958,7 @@ describe("inference-staking program tests", () => {
     const stakeAmount = new anchor.BN(150_000);
 
     await program.methods
-      .stake(stakeAmount)
+      .stake({ tokenAmount: stakeAmount })
       .accountsStrict({
         owner: setup.pool1.admin,
         poolOverview: setup.poolOverview,
@@ -1034,7 +1034,7 @@ describe("inference-staking program tests", () => {
 
     try {
       await program.methods
-        .stake(new anchor.BN(400_000))
+        .stake({ tokenAmount: new anchor.BN(400_000) })
         .accountsStrict({
           owner: setup.delegator1,
           poolOverview: setup.poolOverview,
@@ -1059,7 +1059,7 @@ describe("inference-staking program tests", () => {
 
   it("Stake for operator successfully even when delegation is disabled", async () => {
     await program.methods
-      .stake(new anchor.BN(100))
+      .stake({ tokenAmount: new anchor.BN(100) })
       .accountsStrict({
         owner: setup.pool1.admin,
         poolOverview: setup.poolOverview,
@@ -1099,7 +1099,7 @@ describe("inference-staking program tests", () => {
 
     try {
       await program.methods
-        .stake(new anchor.BN(0))
+        .stake({ tokenAmount: new anchor.BN(0) })
         .accountsStrict({
           owner: setup.delegator1,
           poolOverview: setup.poolOverview,
@@ -1136,7 +1136,7 @@ describe("inference-staking program tests", () => {
       ]);
 
     await program.methods
-      .stake(stakeAmount)
+      .stake({ tokenAmount: stakeAmount })
       .accountsStrict({
         owner: setup.delegator1,
         poolOverview: setup.poolOverview,
@@ -1225,7 +1225,7 @@ describe("inference-staking program tests", () => {
 
     try {
       await program.methods
-        .unstake(stakingRecord.shares)
+        .unstake({ sharesAmount: stakingRecord.shares })
         .accountsStrict({
           owner: setup.delegator1,
           poolOverview: setup.poolOverview,
@@ -1255,7 +1255,7 @@ describe("inference-staking program tests", () => {
 
     try {
       await program.methods
-        .unstake(stakingRecord.shares.addn(1))
+        .unstake({ sharesAmount: stakingRecord.shares.addn(1) })
         .accountsStrict({
           owner: setup.delegator1,
           poolOverview: setup.poolOverview,
@@ -1290,7 +1290,7 @@ describe("inference-staking program tests", () => {
 
     try {
       await program.methods
-        .unstake(new anchor.BN(1))
+        .unstake({ sharesAmount: new anchor.BN(1) })
         .accountsStrict({
           owner: setup.delegator1,
           poolOverview: setup.poolOverview,
@@ -1340,7 +1340,7 @@ describe("inference-staking program tests", () => {
 
     try {
       await program.methods
-        .unstake(new anchor.BN(1))
+        .unstake({ sharesAmount: new anchor.BN(1) })
         .accountsStrict({
           owner: setup.pool1.admin,
           poolOverview: setup.poolOverview,
@@ -1366,7 +1366,7 @@ describe("inference-staking program tests", () => {
 
     // Expect unstaking to be successful even when operator falls below min. share.
     await program.methods
-      .unstake(unstakeAmount)
+      .unstake({ sharesAmount: unstakeAmount })
       .accountsStrict({
         owner: setup.delegator1,
         poolOverview: setup.poolOverview,
@@ -1435,7 +1435,7 @@ describe("inference-staking program tests", () => {
     );
 
     await program.methods
-      .unstake(unstakeAmount)
+      .unstake({ sharesAmount: unstakeAmount })
       .accountsStrict({
         owner: setup.pool1.admin,
         poolOverview: setup.poolOverview,
@@ -1536,7 +1536,7 @@ describe("inference-staking program tests", () => {
 
     // Resume unstaking
     await program.methods
-      .unstake(expectedShares)
+      .unstake({ sharesAmount: expectedShares })
       .accountsStrict({
         owner: setup.pool1.admin,
         poolOverview: setup.poolOverview,
@@ -1872,7 +1872,7 @@ describe("inference-staking program tests", () => {
         setup.delegator1
       );
       await program.methods
-        .stake(new anchor.BN(400_000))
+        .stake({ tokenAmount: new anchor.BN(400_000) })
         .accountsStrict({
           owner: setup.delegator1,
           poolOverview: setup.poolOverview,
@@ -1895,7 +1895,7 @@ describe("inference-staking program tests", () => {
   it("Fail to unstake before rewards are claimed", async () => {
     try {
       await program.methods
-        .unstake(new anchor.BN(1))
+        .unstake({ sharesAmount: new anchor.BN(1) })
         .accountsStrict({
           owner: setup.pool1.admin,
           poolOverview: setup.poolOverview,
@@ -2486,7 +2486,7 @@ describe("inference-staking program tests", () => {
   it("Fail to unstake for Operator when pool is halted", async () => {
     try {
       await program.methods
-        .unstake(new anchor.BN(1))
+        .unstake({ sharesAmount: new anchor.BN(1) })
         .accountsStrict({
           owner: setup.pool1.admin,
           poolOverview: setup.poolOverview,
@@ -2511,7 +2511,7 @@ describe("inference-staking program tests", () => {
         setup.delegator1
       );
       await program.methods
-        .stake(new anchor.BN(400_000))
+        .stake({ tokenAmount: new anchor.BN(400_000) })
         .accountsStrict({
           owner: setup.delegator1,
           poolOverview: setup.poolOverview,
@@ -3129,7 +3129,7 @@ describe("inference-staking program tests", () => {
       setup.pool1.delegatorStakingRecord
     );
     await program.methods
-      .unstake(stakingRecordPre.shares)
+      .unstake({ sharesAmount: stakingRecordPre.shares })
       .accountsStrict({
         owner: setup.delegator1,
         poolOverview: setup.poolOverview,
@@ -3251,7 +3251,7 @@ describe("inference-staking program tests", () => {
         setup.delegator1
       );
       await program.methods
-        .stake(new anchor.BN(400_000))
+        .stake({ tokenAmount: new anchor.BN(400_000) })
         .accountsStrict({
           owner: setup.delegator1,
           poolOverview: setup.poolOverview,
@@ -3283,7 +3283,7 @@ describe("inference-staking program tests", () => {
 
     // Expect unstaking of all shares to be successful.
     await program.methods
-      .unstake(stakingRecordPre.shares)
+      .unstake({ sharesAmount: stakingRecordPre.shares })
       .accountsStrict({
         owner: setup.pool1.admin,
         poolOverview: setup.poolOverview,

@@ -663,7 +663,7 @@ describe("multi-epoch lifecycle tests", () => {
       ]);
 
       await program.methods
-        .stake(stakeAmount)
+        .stake({ tokenAmount: stakeAmount })
         .accountsStrict({
           owner: pool.admin,
           poolOverview: setup.poolOverview,
@@ -769,7 +769,7 @@ describe("multi-epoch lifecycle tests", () => {
       );
 
       await program.methods
-        .stake(stakeAmount)
+        .stake({ tokenAmount: stakeAmount })
         .accountsStrict({
           owner: delegatorKp.publicKey,
           poolOverview: setup.poolOverview,
@@ -1401,7 +1401,7 @@ describe("multi-epoch lifecycle tests", () => {
 
       // Unstake all shares for this delegator
       await program.methods
-        .unstake(stakingRecordPre.shares)
+        .unstake({ sharesAmount: stakingRecordPre.shares })
         .accountsStrict({
           owner: delegatorKp.publicKey,
           poolOverview: setup.poolOverview,
@@ -1864,7 +1864,7 @@ describe("multi-epoch lifecycle tests", () => {
 
       // Unstake all shares for this operator
       await program.methods
-        .unstake(stakingRecordPre.shares)
+        .unstake({ sharesAmount: stakingRecordPre.shares })
         .accountsStrict({
           owner: pool.admin,
           poolOverview: setup.poolOverview,

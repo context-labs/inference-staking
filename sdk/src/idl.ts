@@ -1487,8 +1487,12 @@ const _IDL = {
       ],
       args: [
         {
-          name: "tokenAmount",
-          type: "u64",
+          name: "args",
+          type: {
+            defined: {
+              name: "stakeArgs",
+            },
+          },
         },
       ],
     },
@@ -1636,8 +1640,12 @@ const _IDL = {
       ],
       args: [
         {
-          name: "shareAmount",
-          type: "u64",
+          name: "args",
+          type: {
+            defined: {
+              name: "unstakeArgs",
+            },
+          },
         },
       ],
     },
@@ -3096,6 +3104,19 @@ const _IDL = {
       },
     },
     {
+      name: "stakeArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "tokenAmount",
+            docs: ["Amount of tokens to stake."],
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
       name: "stakeEvent",
       type: {
         kind: "struct",
@@ -3198,6 +3219,19 @@ const _IDL = {
           },
           {
             name: "usdcAmountSwept",
+            type: "u64",
+          },
+        ],
+      },
+    },
+    {
+      name: "unstakeArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "sharesAmount",
+            docs: ["Amount of shares to unstake."],
             type: "u64",
           },
         ],

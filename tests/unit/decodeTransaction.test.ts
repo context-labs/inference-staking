@@ -460,6 +460,8 @@ describe("InferenceStakingProgramSdk decodeTransaction", () => {
       // @ts-expect-error - the following should type error!
       const caller = ix.accounts.stakingRecord;
       expect(caller).not.toBeDefined();
+      const tokenAmount = ix.args.tokenAmount;
+      expect(tokenAmount).toBeDefined();
     }
 
     expect("tokenAmount" in ix.args).toBe(true);
