@@ -24,6 +24,7 @@ export type AccrueRewardEventData = {
 export type CancelUnstakeEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   stakingRecord: PublicKey;
   owner: PublicKey;
   isOperator: boolean;
@@ -34,6 +35,7 @@ export type CancelUnstakeEventData = {
 export type ChangeOperatorAdminEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   oldAdmin: PublicKey;
   newAdmin: PublicKey;
 };
@@ -41,6 +43,7 @@ export type ChangeOperatorAdminEventData = {
 export type ChangeOperatorStakingRecordEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   admin: PublicKey;
   oldStakingRecord: PublicKey;
   newStakingRecord: PublicKey;
@@ -49,6 +52,7 @@ export type ChangeOperatorStakingRecordEventData = {
 export type ClaimUnstakeEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   stakingRecord: PublicKey;
   owner: PublicKey;
   isOperator: boolean;
@@ -58,6 +62,7 @@ export type ClaimUnstakeEventData = {
 export type ClaimUsdcEarningsEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   stakingRecord: PublicKey;
   owner: PublicKey;
   isOperator: boolean;
@@ -68,6 +73,7 @@ export type ClaimUsdcEarningsEventData = {
 export type SlashStakeEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   operatorStakingRecord: PublicKey;
   authority: PublicKey;
   destination: PublicKey;
@@ -82,6 +88,7 @@ export type SlashStakeEventData = {
 export type StakeEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   stakingRecord: PublicKey;
   owner: PublicKey;
   isOperator: boolean;
@@ -92,6 +99,7 @@ export type StakeEventData = {
 export type OperatorAutoStakeEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   stakingRecord: PublicKey;
   owner: PublicKey;
   isOperator: boolean;
@@ -102,6 +110,7 @@ export type OperatorAutoStakeEventData = {
 export type SweepClosedPoolUsdcDustEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   admin: PublicKey;
   usdcAmountSwept: BN;
 };
@@ -109,6 +118,7 @@ export type SweepClosedPoolUsdcDustEventData = {
 export type UnstakeEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   stakingRecord: PublicKey;
   owner: PublicKey;
   isOperator: boolean;
@@ -117,9 +127,16 @@ export type UnstakeEventData = {
   unstakeAtTimestamp: BN;
 };
 
+export type UpdateOperatorPoolEventData = {
+  instructionIndex: number;
+  operatorPool: PublicKey;
+  epoch: BN;
+};
+
 export type WithdrawOperatorRewardCommissionEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   admin: PublicKey;
   destination: PublicKey;
   rewardAmountWithdrawn: BN;
@@ -128,6 +145,7 @@ export type WithdrawOperatorRewardCommissionEventData = {
 export type WithdrawOperatorUsdcCommissionEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
+  epoch: BN;
   admin: PublicKey;
   destination: PublicKey;
   usdcAmountWithdrawn: BN;
@@ -145,6 +163,7 @@ export type EventDataMap = {
   operatorAutoStakeEvent: OperatorAutoStakeEventData;
   sweepClosedPoolUsdcDustEvent: SweepClosedPoolUsdcDustEventData;
   unstakeEvent: UnstakeEventData;
+  updateOperatorPoolEvent: UpdateOperatorPoolEventData;
   withdrawOperatorRewardCommissionEvent: WithdrawOperatorRewardCommissionEventData;
   withdrawOperatorUsdcCommissionEvent: WithdrawOperatorUsdcCommissionEventData;
 };

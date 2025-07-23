@@ -8,6 +8,9 @@ pub struct CancelUnstakeEvent {
     // Operator pool this cancel unstake event instruction was executed for
     pub operator_pool: Pubkey,
 
+    // Epoch this cancel unstake event instruction was executed for
+    pub epoch: u64,
+
     // Staking record that unstaking was cancelled for
     pub staking_record: Pubkey,
 

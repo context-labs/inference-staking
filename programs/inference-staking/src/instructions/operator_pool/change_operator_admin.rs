@@ -47,6 +47,7 @@ pub fn handler(ctx: Context<ChangeOperatorAdmin>) -> Result<()> {
     emit!(ChangeOperatorAdminEvent {
         instruction_index,
         operator_pool: operator_pool.key(),
+        epoch: ctx.accounts.pool_overview.completed_reward_epoch + 1,
         old_admin,
         new_admin,
     });

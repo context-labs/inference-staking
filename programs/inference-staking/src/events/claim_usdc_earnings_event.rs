@@ -8,6 +8,9 @@ pub struct ClaimUsdcEarningsEvent {
     // Operator pool this claim USDC earnings event instruction was executed for
     pub operator_pool: Pubkey,
 
+    // Epoch this claim USDC earnings event instruction was executed for
+    pub epoch: u64,
+
     // Staking record that USDC earnings were claimed from
     pub staking_record: Pubkey,
 

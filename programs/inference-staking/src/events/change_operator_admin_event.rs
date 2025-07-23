@@ -8,6 +8,9 @@ pub struct ChangeOperatorAdminEvent {
     // Operator pool that had its admin changed
     pub operator_pool: Pubkey,
 
+    // Epoch this change operator admin event instruction was executed for
+    pub epoch: u64,
+
     // Previous admin of the operator pool
     pub old_admin: Pubkey,
 

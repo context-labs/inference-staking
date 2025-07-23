@@ -8,6 +8,9 @@ pub struct SweepClosedPoolUsdcDustEvent {
     // Operator pool that had its USDC dust swept
     pub operator_pool: Pubkey,
 
+    // Epoch this sweep closed pool USDC dust event instruction was executed for
+    pub epoch: u64,
+
     // Admin who swept the dust
     pub admin: Pubkey,
 

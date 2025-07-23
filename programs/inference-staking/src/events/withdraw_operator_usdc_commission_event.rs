@@ -8,6 +8,9 @@ pub struct WithdrawOperatorUsdcCommissionEvent {
     // Operator pool that USDC commission was withdrawn from
     pub operator_pool: Pubkey,
 
+    // Epoch this withdraw operator USDC commission event instruction was executed for
+    pub epoch: u64,
+
     // Admin who withdrew the commission
     pub admin: Pubkey,
 

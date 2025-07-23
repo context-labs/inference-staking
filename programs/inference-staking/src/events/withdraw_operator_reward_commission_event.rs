@@ -8,6 +8,9 @@ pub struct WithdrawOperatorRewardCommissionEvent {
     // Operator pool that reward commission was withdrawn from
     pub operator_pool: Pubkey,
 
+    // Epoch this withdraw operator reward commission event instruction was executed for
+    pub epoch: u64,
+
     // Admin who withdrew the commission
     pub admin: Pubkey,
 

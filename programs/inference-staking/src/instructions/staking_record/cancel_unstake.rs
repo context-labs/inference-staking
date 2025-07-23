@@ -67,6 +67,7 @@ pub fn handler(ctx: Context<CancelUnstake>) -> Result<()> {
     emit!(CancelUnstakeEvent {
         instruction_index,
         operator_pool: operator_pool_key,
+        epoch: pool_overview.completed_reward_epoch + 1,
         staking_record: staking_record_key,
         owner: owner_key,
         is_operator: is_operator_cancelling,

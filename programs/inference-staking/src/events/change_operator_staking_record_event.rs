@@ -8,6 +8,9 @@ pub struct ChangeOperatorStakingRecordEvent {
     // Operator pool that had its staking record changed
     pub operator_pool: Pubkey,
 
+    // Epoch this change operator staking record event instruction was executed for
+    pub epoch: u64,
+
     // Admin who authorized the change
     pub admin: Pubkey,
 

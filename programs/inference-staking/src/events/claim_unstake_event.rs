@@ -8,6 +8,9 @@ pub struct ClaimUnstakeEvent {
     // Operator pool this claim unstake event instruction was executed for
     pub operator_pool: Pubkey,
 
+    // Epoch this claim unstake event instruction was executed for
+    pub epoch: u64,
+
     // Staking record that tokens were claimed from
     pub staking_record: Pubkey,
 

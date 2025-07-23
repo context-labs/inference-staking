@@ -149,6 +149,7 @@ pub fn handler(ctx: Context<Stake>, args: StakeArgs) -> Result<()> {
     emit!(StakeEvent {
         instruction_index,
         operator_pool: operator_pool.key(),
+        epoch: pool_overview.completed_reward_epoch + 1,
         staking_record: ctx.accounts.owner_staking_record.key(),
         owner: ctx.accounts.owner.key(),
         is_operator: is_operator_staking,

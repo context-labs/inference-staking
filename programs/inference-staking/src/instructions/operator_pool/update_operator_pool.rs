@@ -1,10 +1,18 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 
-use crate::state::OperatorPool;
+use crate::events::UpdateOperatorPoolEvent;
+use crate::state::{OperatorPool, PoolOverview};
 
 #[derive(Accounts)]
 pub struct UpdateOperatorPool<'info> {
     pub admin: Signer<'info>,
+
+    #[account(
+        seeds = [PoolOverview::SEED],
+        bump = pool_overview.bump,
+    )]
+    pub pool_overview: Account<'info, PoolOverview>,
 
     #[account(
         mut,
@@ -16,6 +24,10 @@ pub struct UpdateOperatorPool<'info> {
         has_one = admin,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
@@ -96,6 +108,15 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
     }
 
     operator_pool.validate_pool_profile_fields()?;
+
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
+    emit!(UpdateOperatorPoolEvent {
+        instruction_index,
+        operator_pool: operator_pool.key(),
+        epoch: ctx.accounts.pool_overview.completed_reward_epoch + 1,
+    });
 
     Ok(())
 }

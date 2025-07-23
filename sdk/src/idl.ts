@@ -1659,6 +1659,19 @@ const _IDL = {
           relations: ["operatorPool"],
         },
         {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
+        },
+        {
           name: "operatorPool",
           writable: true,
           pda: {
@@ -1676,6 +1689,10 @@ const _IDL = {
               },
             ],
           },
+        },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
         },
       ],
       args: [
@@ -1991,6 +2008,10 @@ const _IDL = {
     {
       name: "unstakeEvent",
       discriminator: [162, 104, 137, 228, 81, 3, 79, 197],
+    },
+    {
+      name: "updateOperatorPoolEvent",
+      discriminator: [222, 183, 216, 37, 100, 98, 220, 18],
     },
     {
       name: "withdrawOperatorRewardCommissionEvent",
@@ -2346,6 +2367,10 @@ const _IDL = {
             type: "pubkey",
           },
           {
+            name: "epoch",
+            type: "u64",
+          },
+          {
             name: "stakingRecord",
             type: "pubkey",
           },
@@ -2382,6 +2407,10 @@ const _IDL = {
             type: "pubkey",
           },
           {
+            name: "epoch",
+            type: "u64",
+          },
+          {
             name: "oldAdmin",
             type: "pubkey",
           },
@@ -2404,6 +2433,10 @@ const _IDL = {
           {
             name: "operatorPool",
             type: "pubkey",
+          },
+          {
+            name: "epoch",
+            type: "u64",
           },
           {
             name: "admin",
@@ -2432,6 +2465,10 @@ const _IDL = {
           {
             name: "operatorPool",
             type: "pubkey",
+          },
+          {
+            name: "epoch",
+            type: "u64",
           },
           {
             name: "stakingRecord",
@@ -2464,6 +2501,10 @@ const _IDL = {
           {
             name: "operatorPool",
             type: "pubkey",
+          },
+          {
+            name: "epoch",
+            type: "u64",
           },
           {
             name: "stakingRecord",
@@ -2604,6 +2645,10 @@ const _IDL = {
           {
             name: "operatorPool",
             type: "pubkey",
+          },
+          {
+            name: "epoch",
+            type: "u64",
           },
           {
             name: "stakingRecord",
@@ -3065,6 +3110,10 @@ const _IDL = {
             type: "pubkey",
           },
           {
+            name: "epoch",
+            type: "u64",
+          },
+          {
             name: "operatorStakingRecord",
             type: "pubkey",
           },
@@ -3128,6 +3177,10 @@ const _IDL = {
           {
             name: "operatorPool",
             type: "pubkey",
+          },
+          {
+            name: "epoch",
+            type: "u64",
           },
           {
             name: "stakingRecord",
@@ -3214,6 +3267,10 @@ const _IDL = {
             type: "pubkey",
           },
           {
+            name: "epoch",
+            type: "u64",
+          },
+          {
             name: "admin",
             type: "pubkey",
           },
@@ -3249,6 +3306,10 @@ const _IDL = {
           {
             name: "operatorPool",
             type: "pubkey",
+          },
+          {
+            name: "epoch",
+            type: "u64",
           },
           {
             name: "stakingRecord",
@@ -3348,6 +3409,26 @@ const _IDL = {
                 vec: "pubkey",
               },
             },
+          },
+        ],
+      },
+    },
+    {
+      name: "updateOperatorPoolEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "instructionIndex",
+            type: "u16",
+          },
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "epoch",
+            type: "u64",
           },
         ],
       },
@@ -3460,6 +3541,10 @@ const _IDL = {
             type: "pubkey",
           },
           {
+            name: "epoch",
+            type: "u64",
+          },
+          {
             name: "admin",
             type: "pubkey",
           },
@@ -3486,6 +3571,10 @@ const _IDL = {
           {
             name: "operatorPool",
             type: "pubkey",
+          },
+          {
+            name: "epoch",
+            type: "u64",
           },
           {
             name: "admin",

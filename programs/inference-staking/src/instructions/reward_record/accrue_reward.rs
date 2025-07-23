@@ -219,6 +219,7 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
             emit!(OperatorAutoStakeEvent {
                 instruction_index,
                 operator_pool: operator_pool.key(),
+                epoch: pool_overview.completed_reward_epoch + 1,
                 staking_record: operator_staking_record.key(),
                 shares_amount: new_shares,
                 owner: operator_staking_record.owner,

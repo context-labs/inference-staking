@@ -8,6 +8,9 @@ pub struct OperatorAutoStakeEvent {
     // Operator pool this stake event instruction was executed for
     pub operator_pool: Pubkey,
 
+    // Epoch this operator auto stake event instruction was executed for
+    pub epoch: u64,
+
     // Staking record that was staked to
     pub staking_record: Pubkey,
 

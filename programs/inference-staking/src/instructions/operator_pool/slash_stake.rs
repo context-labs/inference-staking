@@ -231,6 +231,7 @@ pub fn handler(ctx: Context<SlashStake>, args: SlashStakeArgs) -> Result<()> {
     emit!(SlashStakeEvent {
         instruction_index,
         operator_pool: operator_pool_key,
+        epoch: pool_overview.completed_reward_epoch + 1,
         operator_staking_record: operator_staking_record_key,
         authority: authority_key,
         destination: ctx.accounts.slashing_destination_token_account.key(),

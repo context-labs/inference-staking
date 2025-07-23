@@ -103,6 +103,7 @@ pub fn handler(ctx: Context<SweepClosedPoolUsdcDust>) -> Result<()> {
     emit!(SweepClosedPoolUsdcDustEvent {
         instruction_index,
         operator_pool: operator_pool.key(),
+        epoch: ctx.accounts.pool_overview.completed_reward_epoch + 1,
         admin: ctx.accounts.admin.key(),
         usdc_amount_swept: remaining_balance,
     });

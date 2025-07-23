@@ -8,6 +8,9 @@ pub struct UnstakeEvent {
     // Operator pool this unstake event instruction was executed for
     pub operator_pool: Pubkey,
 
+    // Epoch this unstake event instruction was executed for
+    pub epoch: u64,
+
     // Staking record that was unstaked from
     pub staking_record: Pubkey,
 

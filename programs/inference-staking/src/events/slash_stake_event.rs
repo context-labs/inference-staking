@@ -8,6 +8,9 @@ pub struct SlashStakeEvent {
     // Operator pool where the stake was slashed
     pub operator_pool: Pubkey,
 
+    // Epoch this slash stake event instruction was executed for
+    pub epoch: u64,
+
     // Operator staking record that was slashed
     pub operator_staking_record: Pubkey,
 

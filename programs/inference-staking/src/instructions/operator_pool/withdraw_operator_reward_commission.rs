@@ -79,6 +79,7 @@ pub fn handler(ctx: Context<WithdrawOperatorRewardCommission>) -> Result<()> {
     emit!(WithdrawOperatorRewardCommissionEvent {
         instruction_index,
         operator_pool: ctx.accounts.operator_pool.key(),
+        epoch: ctx.accounts.pool_overview.completed_reward_epoch + 1,
         admin: ctx.accounts.admin.key(),
         destination: ctx.accounts.destination.key(),
         reward_amount_withdrawn: fees_amount,
