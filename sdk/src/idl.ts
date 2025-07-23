@@ -1222,6 +1222,10 @@ const _IDL = {
             ],
           },
         },
+        {
+          name: "instructions",
+          address: "Sysvar1nstructions1111111111111111111111111",
+        },
       ],
       args: [
         {
@@ -1992,6 +1996,10 @@ const _IDL = {
     {
       name: "operatorAutoStakeEvent",
       discriminator: [33, 144, 180, 33, 20, 44, 4, 71],
+    },
+    {
+      name: "setHaltStatusEvent",
+      discriminator: [177, 172, 145, 169, 40, 114, 225, 48],
     },
     {
       name: "slashStakeEvent",
@@ -3078,6 +3086,30 @@ const _IDL = {
           {
             name: "isHalted",
             docs: ["Whether the OperatorPool should be halted."],
+            type: "bool",
+          },
+        ],
+      },
+    },
+    {
+      name: "setHaltStatusEvent",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "instructionIndex",
+            type: "u16",
+          },
+          {
+            name: "operatorPool",
+            type: "pubkey",
+          },
+          {
+            name: "epoch",
+            type: "u64",
+          },
+          {
+            name: "isHalted",
             type: "bool",
           },
         ],

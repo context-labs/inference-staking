@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 
 use crate::{
     error::ErrorCode,
+    events::SetHaltStatusEvent,
     state::{OperatorPool, PoolOverview},
 };
 
@@ -23,6 +25,10 @@ pub struct SetHaltStatus<'info> {
         bump = operator_pool.bump,
     )]
     pub operator_pool: Account<'info, OperatorPool>,
+
+    /// CHECK: This is a system account that is used to get the current instruction index.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
@@ -39,6 +45,16 @@ pub fn handler(ctx: Context<SetHaltStatus>, args: SetHaltStatusArgs) -> Result<(
     } else {
         operator_pool.halted_at_timestamp = None;
     }
+
+    let instructions = ctx.accounts.instructions.to_account_info();
+    let instruction_index = load_current_index_checked(&instructions)?;
+
+    emit!(SetHaltStatusEvent {
+        instruction_index,
+        operator_pool: operator_pool.key(),
+        epoch: ctx.accounts.pool_overview.completed_reward_epoch + 1,
+        is_halted: args.is_halted,
+    });
 
     Ok(())
 }

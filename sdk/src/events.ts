@@ -70,6 +70,24 @@ export type ClaimUsdcEarningsEventData = {
   usdcAmount: BN;
 };
 
+export type OperatorAutoStakeEventData = {
+  instructionIndex: number;
+  operatorPool: PublicKey;
+  epoch: BN;
+  stakingRecord: PublicKey;
+  owner: PublicKey;
+  isOperator: boolean;
+  tokenAmount: BN;
+  sharesAmount: BN;
+};
+
+export type SetHaltStatusEventData = {
+  instructionIndex: number;
+  operatorPool: PublicKey;
+  epoch: BN;
+  isHalted: boolean;
+};
+
 export type SlashStakeEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
@@ -86,17 +104,6 @@ export type SlashStakeEventData = {
 };
 
 export type StakeEventData = {
-  instructionIndex: number;
-  operatorPool: PublicKey;
-  epoch: BN;
-  stakingRecord: PublicKey;
-  owner: PublicKey;
-  isOperator: boolean;
-  tokenAmount: BN;
-  sharesAmount: BN;
-};
-
-export type OperatorAutoStakeEventData = {
   instructionIndex: number;
   operatorPool: PublicKey;
   epoch: BN;
@@ -158,9 +165,10 @@ export type EventDataMap = {
   changeOperatorStakingRecordEvent: ChangeOperatorStakingRecordEventData;
   claimUnstakeEvent: ClaimUnstakeEventData;
   claimUsdcEarningsEvent: ClaimUsdcEarningsEventData;
+  operatorAutoStakeEvent: OperatorAutoStakeEventData;
+  setHaltStatusEvent: SetHaltStatusEventData;
   slashStakeEvent: SlashStakeEventData;
   stakeEvent: StakeEventData;
-  operatorAutoStakeEvent: OperatorAutoStakeEventData;
   sweepClosedPoolUsdcDustEvent: SweepClosedPoolUsdcDustEventData;
   unstakeEvent: UnstakeEventData;
   updateOperatorPoolEvent: UpdateOperatorPoolEventData;

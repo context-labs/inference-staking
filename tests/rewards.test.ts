@@ -1580,6 +1580,7 @@ describe("Reward creation and accrual tests", () => {
         authority: setup.haltingAuthority,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool3.pool,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.haltingAuthorityKp])
       .rpc();

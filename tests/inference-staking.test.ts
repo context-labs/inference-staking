@@ -2307,6 +2307,7 @@ describe("inference-staking program tests", () => {
         authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.haltingAuthorityKp])
       .rpc();
@@ -2343,6 +2344,7 @@ describe("inference-staking program tests", () => {
         authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.haltingAuthorityKp])
       .rpc();
@@ -2439,6 +2441,7 @@ describe("inference-staking program tests", () => {
           authority: setup.pool1.adminKp.publicKey,
           poolOverview: setup.poolOverview,
           operatorPool: setup.pool1.pool,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -2492,6 +2495,7 @@ describe("inference-staking program tests", () => {
         authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.haltingAuthorityKp])
       .rpc();
@@ -2603,6 +2607,7 @@ describe("inference-staking program tests", () => {
         authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.haltingAuthorityKp])
       .rpc();
@@ -2626,6 +2631,7 @@ describe("inference-staking program tests", () => {
         authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.haltingAuthorityKp])
       .rpc();
@@ -2874,6 +2880,7 @@ describe("inference-staking program tests", () => {
         authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool1.pool,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.haltingAuthorityKp])
       .rpc();
@@ -3850,6 +3857,7 @@ describe("inference-staking program tests", () => {
         authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool2.pool,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.haltingAuthorityKp])
       .rpc();
@@ -3924,6 +3932,7 @@ describe("inference-staking program tests", () => {
         authority: setup.haltingAuthorityKp.publicKey,
         poolOverview: setup.poolOverview,
         operatorPool: setup.pool2.pool,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.haltingAuthorityKp])
       .rpc();
