@@ -327,6 +327,8 @@ describe("Reward creation and accrual tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
+        poolOverview: setup.poolOverview,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();

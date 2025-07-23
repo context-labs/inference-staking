@@ -507,6 +507,8 @@ describe("inference-staking program tests", () => {
     const accounts = {
       admin: setup.pool1.admin,
       operatorPool: setup.pool1.pool,
+      poolOverview: setup.poolOverview,
+      instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
     } as const;
 
     const signers = [setup.pool1.adminKp];
@@ -605,6 +607,8 @@ describe("inference-staking program tests", () => {
         .accountsStrict({
           admin: setup.pool1.admin,
           operatorPool: setup.pool1.pool,
+          poolOverview: setup.poolOverview,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -638,6 +642,8 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
+        poolOverview: setup.poolOverview,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -679,6 +685,8 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
+        poolOverview: setup.poolOverview,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -717,6 +725,8 @@ describe("inference-staking program tests", () => {
         .accountsStrict({
           admin: setup.pool1.admin,
           operatorPool: setup.pool1.pool,
+          poolOverview: setup.poolOverview,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -740,6 +750,8 @@ describe("inference-staking program tests", () => {
         .accountsStrict({
           admin: setup.pool1.admin,
           operatorPool: setup.pool1.pool,
+          poolOverview: setup.poolOverview,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
         })
         .signers([setup.pool1.adminKp])
         .rpc();
@@ -769,6 +781,8 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
+        poolOverview: setup.poolOverview,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -816,6 +830,8 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
+        poolOverview: setup.poolOverview,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -844,6 +860,8 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
+        poolOverview: setup.poolOverview,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -1024,6 +1042,8 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
+        poolOverview: setup.poolOverview,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
@@ -1086,6 +1106,8 @@ describe("inference-staking program tests", () => {
       .accountsStrict({
         admin: setup.pool1.admin,
         operatorPool: setup.pool1.pool,
+        poolOverview: setup.poolOverview,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
       })
       .signers([setup.pool1.adminKp])
       .rpc();
