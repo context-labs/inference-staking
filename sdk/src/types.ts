@@ -39,7 +39,7 @@ type ExtractErrorNames<T> = T extends { errors: { name: infer N }[] }
   ? N
   : never;
 
-export type InferenceStakingErrors = ExtractErrorNames<typeof IDL>;
+export type InferenceStakingErrorName = ExtractErrorNames<typeof IDL>;
 
 /** ******************************************************************************
  *  Instruction Types
@@ -51,26 +51,28 @@ type ExtractInstructionNames<T> = T extends {
   ? N
   : never;
 
-export type InferenceStakingInstructions = ExtractInstructionNames<typeof IDL>;
+export type InferenceStakingInstructionName = ExtractInstructionNames<
+  typeof IDL
+>;
 
 /** ******************************************************************************
  *  Decoded Instructions - Fixed for nested args
  ******************************************************************************* */
 
 // Original args type (what the method expects)
-type RawInstructionArgs<T extends InferenceStakingInstructions> =
+type RawInstructionArgs<T extends InferenceStakingInstructionName> =
   InstructionArgs<T>;
 
 // The raw (Borsch) decoded args structure
 export type RawInstructionArgsMap = {
-  [K in InferenceStakingInstructions]: { args: RawInstructionArgs<K> };
+  [K in InferenceStakingInstructionName]: { args: RawInstructionArgs<K> };
 };
 
 export type InstructionArgsMap = {
-  [K in InferenceStakingInstructions]: RawInstructionArgs<K>;
+  [K in InferenceStakingInstructionName]: RawInstructionArgs<K>;
 };
 
-export type InstructionAccountNames<T extends InferenceStakingInstructions> =
+export type InstructionAccountNames<T extends InferenceStakingInstructionName> =
   Extract<
     InferenceStaking["instructions"][number],
     { name: T }
@@ -86,14 +88,14 @@ export type AccountMetaWithName = {
   isWritable: boolean;
 };
 
-export type InstructionAccountsMap<T extends InferenceStakingInstructions> =
+export type InstructionAccountsMap<T extends InferenceStakingInstructionName> =
   Partial<Record<InstructionAccountNames<T>, AccountMetaWithName>>;
 
 export type DecodedStakingProgramInstruction = {
-  [K in InferenceStakingInstructions]: {
+  [K in InferenceStakingInstructionName]: {
     name: K;
     accounts: InstructionAccountsMap<K>;
     args: InstructionArgsMap[K];
     instructionIndex: number;
   };
-}[InferenceStakingInstructions];
+}[InferenceStakingInstructionName];

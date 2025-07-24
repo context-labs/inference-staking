@@ -28,9 +28,9 @@ import type {
 import type { InferenceStaking } from "./idl";
 import { getIdlWithProgramId, IDL } from "./idl";
 import type {
-  InferenceStakingErrors,
+  InferenceStakingErrorName,
   DecodedStakingProgramInstruction,
-  InferenceStakingInstructions,
+  InferenceStakingInstructionName,
   InstructionAccountsMap,
   OperatorPoolAccountStruct,
   PoolOverviewAccountStruct,
@@ -506,7 +506,7 @@ export class InferenceStakingProgramSdk {
 
   static getErrorNameFromTransactionLogs(
     logs: string[]
-  ): InferenceStakingErrors | undefined {
+  ): InferenceStakingErrorName | undefined {
     for (const log of logs) {
       const errorName = IDL.errors.find(
         (e) =>
@@ -522,7 +522,7 @@ export class InferenceStakingProgramSdk {
 
   static getErrorNameFromTransactionError(
     error: unknown
-  ): InferenceStakingErrors | undefined {
+  ): InferenceStakingErrorName | undefined {
     if (error instanceof AnchorError) {
       const { errorMessage, errorCode } = error.error;
       const errorName = IDL.errors.find(
@@ -538,7 +538,7 @@ export class InferenceStakingProgramSdk {
   }
 
   static getErrorMsgFromErrorName(
-    errorName: InferenceStakingErrors | undefined
+    errorName: InferenceStakingErrorName | undefined
   ): string | undefined {
     const error = IDL.errors.find((e) => e.name === errorName);
     return error?.msg;
@@ -546,7 +546,7 @@ export class InferenceStakingProgramSdk {
 
   static getProgramErrorFromTransactionError(
     error: unknown
-  ): InferenceStakingErrors | undefined {
+  ): InferenceStakingErrorName | undefined {
     const message = error instanceof Error ? error.message : null;
     if (message == null) {
       return undefined;
@@ -655,10 +655,10 @@ export class InferenceStakingProgramSdk {
             throw new Error("Failed to decode instruction");
           }
 
-          const name = decodedIx.name as InferenceStakingInstructions;
+          const name = decodedIx.name as InferenceStakingInstructionName;
 
           const { args } =
-            decodedIx.data as RawInstructionArgsMap[InferenceStakingInstructions];
+            decodedIx.data as RawInstructionArgsMap[InferenceStakingInstructionName];
 
           const accountsMeta: AccountMeta[] = instruction.accounts.map(
             (idx) => {
@@ -679,7 +679,7 @@ export class InferenceStakingProgramSdk {
             accountsMeta
           );
 
-          const accounts: InstructionAccountsMap<InferenceStakingInstructions> =
+          const accounts: InstructionAccountsMap<InferenceStakingInstructionName> =
             {};
 
           for (const account of decodedAccounts?.accounts ?? []) {

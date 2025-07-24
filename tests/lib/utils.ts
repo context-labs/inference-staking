@@ -16,7 +16,7 @@ import { Pool } from "pg";
 
 import { TokenEmissionsUtils } from "@sdk/src";
 import type {
-  InferenceStakingErrors,
+  InferenceStakingErrorName,
   OperatorPoolAccountStruct,
   StakingRecordAccountStruct,
 } from "@sdk/src";
@@ -176,7 +176,7 @@ export const generateRewardsForEpoch = (
 
 export function assertStakingProgramError(
   error: unknown,
-  code: InferenceStakingErrors
+  code: InferenceStakingErrorName
 ) {
   const errorName =
     InferenceStakingProgramSdk.getErrorNameFromTransactionError(error);
