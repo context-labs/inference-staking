@@ -157,3 +157,7 @@ You can deploy the program with the `deploy-localnet.sh` script in the `scripts`
 # Client SDK
 
 A TypeScript client SDK is provided in the `sdk` package. The SDK provides methods to read program account state and decode program transactions/events.
+
+# Program Audits
+
+We have completed one audit with [Zellic](https://www.zellic.io/) and plan to complete another independent audit before launching on mainnet.
