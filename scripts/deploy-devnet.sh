@@ -3,7 +3,8 @@ set -e
 set -o pipefail
 
 # Constants
-DEVNET_PROGRAM_ID="stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG"
+DEVNET_PROGRAM_ID=$(solana-keygen pubkey ./keys/devnet/program-keypair.json)
+DEPLOYER_PUBKEY=$(solana-keygen pubkey ./keys/devnet/deployer-keypair.json)
 MAINNET_PROGRAM_ID="stkxmBvNyGRH6FWi4tjFtPpL9XmwnT9ZpqrQnUogvHG"
 
 # Use devnet configuration
@@ -12,6 +13,7 @@ cp scripts/anchor-configs/Anchor.dev.toml Anchor.toml
 # Replace program ID in source file
 sed -i '' "s/$MAINNET_PROGRAM_ID/$DEVNET_PROGRAM_ID/" programs/inference-staking/src/lib.rs
 
+echo -e "\n🔑 Deployer keypair: $DEPLOYER_PUBKEY"
 echo -e "\n🚀 Deploying program ID $DEVNET_PROGRAM_ID to Solana devnet.\n"
 
 anchor build -- --features devnet
