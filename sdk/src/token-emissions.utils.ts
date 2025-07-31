@@ -32,7 +32,7 @@ const TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH: TokenRewardsEmissionsSche
  *  Uptime Rewards Buckets
  ******************************************************************************* */
 
-const UPTIME_REWARDS_PERCENTAGE_PER_EPOCH = 30n; // i.e. 30% out of 100%.
+const UPTIME_REWARDS_PERCENTAGE_PER_EPOCH = 0n;
 
 /** ******************************************************************************
  *  Utils
