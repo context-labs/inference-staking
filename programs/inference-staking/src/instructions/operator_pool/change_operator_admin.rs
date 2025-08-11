@@ -21,8 +21,8 @@ pub struct ChangeOperatorAdmin<'info> {
     #[account(
         mut,
         seeds = [
-                      OperatorPool::SEED,
-          operator_pool.initial_pool_admin.as_ref(),
+            OperatorPool::SEED,
+            operator_pool.initial_pool_admin.as_ref(),
         ],
         bump = operator_pool.bump,
         has_one = admin,
