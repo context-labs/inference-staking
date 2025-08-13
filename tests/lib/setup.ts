@@ -77,6 +77,8 @@ const TEST_USDC_MINT_KEYPAIR = Keypair.fromSecretKey(
   ])
 );
 
+export const TEST_UPTIME_REWARDS_PERCENTAGE_PER_EPOCH = 30n;
+
 export async function setupTests() {
   await resetDatabaseState();
 

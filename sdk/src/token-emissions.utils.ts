@@ -29,12 +29,6 @@ const TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH: TokenRewardsEmissionsSche
   ].map((amount) => convertToBozemans(amount));
 
 /** ******************************************************************************
- *  Uptime Rewards Buckets
- ******************************************************************************* */
-
-const UPTIME_REWARDS_PERCENTAGE_PER_EPOCH = 0n;
-
-/** ******************************************************************************
  *  Utils
  ******************************************************************************* */
 
@@ -69,16 +63,22 @@ function getEpochRewardsInclusiveOfDust(superEpochEmissions: bigint): bigint[] {
 type GetTokenRewardsForEpochArgs = {
   emissionsSchedule?: TokenRewardsEmissionsSchedule;
   epoch: bigint;
-  uptimeRewardsPercentage?: bigint;
+  uptimeRewardsPercentage: bigint;
 };
 
 function getTokenRewardsForEpoch({
   emissionsSchedule = TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH,
   epoch,
-  uptimeRewardsPercentage = UPTIME_REWARDS_PERCENTAGE_PER_EPOCH,
+  uptimeRewardsPercentage,
 }: GetTokenRewardsForEpochArgs): EpochRewardEmissions {
   if (epoch < 1n) {
     throw new Error(`Invalid epoch: ${epoch}`);
+  }
+
+  if (uptimeRewardsPercentage > 50n) {
+    throw new Error(
+      `Invalid uptime rewards percentage: ${uptimeRewardsPercentage}, must be less than or equal to 50%`
+    );
   }
 
   if (emissionsSchedule.length === 0) {
@@ -123,6 +123,5 @@ function getTokenRewardsForEpoch({
 export const TokenEmissionsUtils = {
   getTokenRewardsForEpoch,
   TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH,
-  UPTIME_REWARDS_PERCENTAGE_PER_EPOCH,
   EPOCHS_PER_SUPER_EPOCH,
 };

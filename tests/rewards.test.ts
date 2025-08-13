@@ -19,7 +19,10 @@ import type {
   ConstructMerkleTreeInput,
 } from "@tests/lib/merkle";
 import type { SetupTestResult } from "@tests/lib/setup";
-import { setupTests } from "@tests/lib/setup";
+import {
+  setupTests,
+  TEST_UPTIME_REWARDS_PERCENTAGE_PER_EPOCH,
+} from "@tests/lib/setup";
 import {
   assertError,
   assertStakingProgramError,
@@ -367,6 +370,7 @@ describe("Reward creation and accrual tests", () => {
     try {
       const { totalRewards } = TokenEmissionsUtils.getTokenRewardsForEpoch({
         epoch: BigInt(2),
+        uptimeRewardsPercentage: TEST_UPTIME_REWARDS_PERCENTAGE_PER_EPOCH,
       });
       const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
       const root = MerkleUtils.getTreeRoot(merkleTree);

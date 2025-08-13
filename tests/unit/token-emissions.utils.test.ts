@@ -6,8 +6,9 @@ const {
   getTokenRewardsForEpoch,
   EPOCHS_PER_SUPER_EPOCH,
   TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH,
-  UPTIME_REWARDS_PERCENTAGE_PER_EPOCH,
 } = TokenEmissionsUtils;
+
+const UPTIME_REWARDS_PERCENTAGE_PER_EPOCH = 30n;
 
 describe("TokenEmissionsUtils", () => {
   describe("getTokenRewardsForEpoch - full emissions schedule", () => {

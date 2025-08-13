@@ -25,6 +25,7 @@ import { InferenceStakingProgramSdk } from "@sdk/src/sdk";
 
 import type { ConstructMerkleTreeInput } from "@tests/lib/merkle";
 import { MerkleUtils } from "@tests/lib/merkle";
+import { TEST_UPTIME_REWARDS_PERCENTAGE_PER_EPOCH } from "@tests/lib/setup";
 import type { SetupTestResult } from "@tests/lib/setup";
 
 export function sleep(ms: number): Promise<void> {
@@ -124,6 +125,7 @@ export const generateRewardsForEpoch = (
   const { MIN_AMOUNT, MAX_AMOUNT } = AMOUNT_RANGES[usdcAmountRange];
   const { totalRewards } = TokenEmissionsUtils.getTokenRewardsForEpoch({
     epoch: BigInt(epoch),
+    uptimeRewardsPercentage: TEST_UPTIME_REWARDS_PERCENTAGE_PER_EPOCH,
   });
 
   const numKeys = publicKeys.length;
