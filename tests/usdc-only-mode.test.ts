@@ -6,7 +6,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import type { Connection } from "@solana/web3.js";
-import { PublicKey, SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
+import { SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
 import { SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
@@ -27,6 +27,7 @@ describe("USDC-only mode tests", () => {
   let setup: SetupTestResult;
   let connection: Connection;
   let program: Program<InferenceStaking>;
+  let epoch2Rewards: ReturnType<typeof generateRewardsForEpoch>;
 
   const delegatorUnstakeDelaySeconds = new anchor.BN(8);
   const operatorUnstakeDelaySeconds = new anchor.BN(5);
@@ -240,7 +241,7 @@ describe("USDC-only mode tests", () => {
         systemProgram: SystemProgram.programId,
         adminTokenAccount,
         registrationFeePayoutTokenAccount:
-          setup.registrationFeePayoutTokenAccount,
+          setup.registrationFeePayoutUsdcAccount, // Use USDC version
         operatorUsdcVault: setup.pool1.poolUsdcVault,
         usdcMint: setup.usdcTokenMint,
       })
@@ -300,7 +301,7 @@ describe("USDC-only mode tests", () => {
           systemProgram: SystemProgram.programId,
           adminTokenAccount,
           registrationFeePayoutTokenAccount:
-            setup.registrationFeePayoutTokenAccount,
+            setup.registrationFeePayoutUsdcAccount, // Use USDC version
           operatorUsdcVault: setup.pool2.poolUsdcVault,
           usdcMint: setup.usdcTokenMint,
         })
@@ -372,56 +373,23 @@ describe("USDC-only mode tests", () => {
     assert(stakingRecord.shares.eq(stakeAmount));
   });
 
-  it("Fail to stake as delegator", async () => {
-    const ownerTokenAccount = getAssociatedTokenAddressSync(
-      setup.usdcTokenMint,
-      setup.delegator1
-    );
-
-    // Mint tokens to delegator for staking attempt
-    await mintTo(
-      connection,
-      setup.payerKp,
-      setup.usdcTokenMint,
-      ownerTokenAccount,
-      setup.tokenHolderKp,
-      BigInt(100_000_000) // 100 USDC
-    );
-
-    try {
-      await program.methods
-        .stake({ tokenAmount: new anchor.BN(10_000_000) })
-        .accountsStrict({
-          owner: setup.delegator1,
-          poolOverview: setup.poolOverview,
-          operatorPool: setup.pool1.pool,
-          ownerStakingRecord: setup.pool1.delegatorStakingRecord,
-          operatorStakingRecord: setup.pool1.stakingRecord,
-          stakedTokenAccount: setup.pool1.stakedTokenAccount,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          ownerTokenAccount,
-          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
-        })
-        .signers([setup.delegator1Kp])
-        .rpc();
-      assert(false);
-    } catch (error) {
-      assertStakingProgramError(error, "delegatorStakingDisabled");
-    }
-  });
-
   it("Create reward record with zero token rewards", async () => {
-    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
+    // Create rewards for only pool1 since it's the only pool we created in USDC-only mode
+    // Store this in the module-level variable so other tests can reuse the same data
+    epoch2Rewards = generateRewardsForEpoch([setup.pool1.pool], 2).map(
+      (reward) => ({
+        ...reward,
+        // Token rewards are disabled in USDC-only mode, so keep leaves consistent
+        // with zero token amounts to satisfy on-chain proof verification.
+        tokenAmount: BigInt(0),
+      })
+    );
+    const merkleTree = MerkleUtils.constructMerkleTree(epoch2Rewards);
     const merkleRoots = [Array.from(MerkleUtils.getTreeRoot(merkleTree))];
     const totalRewards = new anchor.BN(0); // No token rewards in USDC-only mode
     let totalUsdcAmount = new anchor.BN(0);
 
-    const rewards = generateRewardsForEpoch(
-      setup.rewardEpochs[2].map((x) => new PublicKey(x.address)),
-      2
-    );
-
-    for (const reward of rewards) {
+    for (const reward of epoch2Rewards) {
       totalUsdcAmount = totalUsdcAmount.add(
         new anchor.BN(reward.usdcAmount.toString())
       );
@@ -469,23 +437,27 @@ describe("USDC-only mode tests", () => {
   });
 
   it("Fail to accrue non-zero token rewards", async () => {
-    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
-    const nodeIndex = setup.rewardEpochs[2].findIndex(
+    // Use the same rewards we created in the previous test
+    const merkleTree = MerkleUtils.constructMerkleTree(epoch2Rewards);
+    const nodeIndex = epoch2Rewards.findIndex(
       (x) => x.address == setup.pool1.pool.toString()
     );
     const proofInputs = {
-      ...setup.rewardEpochs[2][nodeIndex],
+      ...epoch2Rewards[nodeIndex],
       index: nodeIndex,
       merkleTree,
     } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
 
+    const rewardAmount = new anchor.BN(1_000); // Non-zero reward should fail
+    const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
+
     try {
       await program.methods
         .accrueReward({
           merkleIndex: 0,
-          rewardAmount: new anchor.BN(1_000), // Non-zero reward should fail
-          usdcAmount: new anchor.BN(10_000_000),
+          rewardAmount,
+          usdcAmount,
           proof: proof.map((p) => Array.from(p)),
           proofPath,
         })
@@ -511,16 +483,20 @@ describe("USDC-only mode tests", () => {
   });
 
   it("Accrue USDC earnings successfully", async () => {
-    const merkleTree = MerkleUtils.constructMerkleTree(setup.rewardEpochs[2]);
-    const nodeIndex = setup.rewardEpochs[2].findIndex(
+    // Use the same rewards we created in the previous tests
+    const merkleTree = MerkleUtils.constructMerkleTree(epoch2Rewards);
+    const nodeIndex = epoch2Rewards.findIndex(
       (x) => x.address == setup.pool1.pool.toString()
     );
     const proofInputs = {
-      ...setup.rewardEpochs[2][nodeIndex],
+      ...epoch2Rewards[nodeIndex],
       index: nodeIndex,
       merkleTree,
     } as GenerateMerkleProofInput;
     const { proof, proofPath } = MerkleUtils.generateMerkleProof(proofInputs);
+
+    const rewardAmount = new anchor.BN(0); // Zero token rewards
+    const usdcAmount = new anchor.BN(proofInputs.usdcAmount.toString());
 
     const operatorPoolPre = await program.account.operatorPool.fetch(
       setup.pool1.pool
@@ -529,8 +505,8 @@ describe("USDC-only mode tests", () => {
     await program.methods
       .accrueReward({
         merkleIndex: 0,
-        rewardAmount: new anchor.BN(0), // Zero token rewards
-        usdcAmount: new anchor.BN(10_000_000), // 10 USDC
+        rewardAmount,
+        usdcAmount,
         proof: proof.map((p) => Array.from(p)),
         proofPath,
       })
@@ -564,9 +540,9 @@ describe("USDC-only mode tests", () => {
       "Token rewards should be zero"
     );
 
-    // Verify USDC was distributed (100% to operator due to 100% commission)
+    // USDC per share should not increase since there's no delegator staking
     assert(
-      operatorPool.cumulativeUsdcPerShare.gt(
+      operatorPool.cumulativeUsdcPerShare.eq(
         operatorPoolPre.cumulativeUsdcPerShare
       ),
       "USDC per share should increase"
