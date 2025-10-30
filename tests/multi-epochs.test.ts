@@ -732,6 +732,7 @@ describe("multi-epoch lifecycle tests", () => {
             operatorPool: pool.pool,
             ownerStakingRecord: stakingRecord,
             systemProgram: SystemProgram.programId,
+            poolOverview: setup.poolOverview,
           })
           .signers([setup.payerKp, delegatorKp])
           .rpc();
@@ -822,7 +823,10 @@ describe("multi-epoch lifecycle tests", () => {
 
   it("Create PoolOverview successfully", async () => {
     await program.methods
-      .createPoolOverview()
+      .createPoolOverview({
+        isTokenMintUsdc: false,
+        tokenRewardsEnabled: true,
+      })
       .accountsStrict({
         payer: setup.payer,
         programAdmin: setup.poolOverviewAdmin,

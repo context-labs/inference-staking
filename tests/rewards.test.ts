@@ -60,7 +60,10 @@ describe("Reward creation and accrual tests", () => {
     connection = program.provider.connection;
 
     await program.methods
-      .createPoolOverview()
+      .createPoolOverview({
+        isTokenMintUsdc: false,
+        tokenRewardsEnabled: true,
+      })
       .accountsStrict({
         payer: setup.payer,
         programAdmin: setup.poolOverviewAdmin,
@@ -292,6 +295,7 @@ describe("Reward creation and accrual tests", () => {
         operatorPool: setup.pool1.pool,
         ownerStakingRecord: setup.pool1.delegatorStakingRecord,
         systemProgram: SystemProgram.programId,
+        poolOverview: setup.poolOverview,
       })
       .signers([setup.payerKp, setup.delegator1Kp])
       .rpc();
