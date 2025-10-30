@@ -36,8 +36,11 @@ pub mod inference_staking {
     /** -----------------------------------------------------------------------
      * PoolOverview Admin Instructions
      * ------------------------------------------------------------------------ */
-    pub fn create_pool_overview(ctx: Context<CreatePoolOverview>) -> Result<()> {
-        create_pool_overview::handler(ctx)
+    pub fn create_pool_overview(
+        ctx: Context<CreatePoolOverview>,
+        args: CreatePoolOverviewArgs,
+    ) -> Result<()> {
+        create_pool_overview::handler(ctx, args)
     }
 
     pub fn update_pool_overview(

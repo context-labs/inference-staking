@@ -71,20 +71,14 @@ pub struct CreatePoolOverviewArgs {
 }
 
 /// Instruction to setup a PoolOverview singleton. To be called after initial program deployment.
-pub fn handler(
-    ctx: Context<CreatePoolOverview>,
-    args: Option<CreatePoolOverviewArgs>,
-) -> Result<()> {
+pub fn handler(ctx: Context<CreatePoolOverview>, args: CreatePoolOverviewArgs) -> Result<()> {
     let pool_overview = &mut ctx.accounts.pool_overview;
 
     // Set defaults: is_token_mint_usdc = false, token_rewards_enabled = true
     let CreatePoolOverviewArgs {
         is_token_mint_usdc,
         token_rewards_enabled,
-    } = args.unwrap_or(CreatePoolOverviewArgs {
-        is_token_mint_usdc: false,
-        token_rewards_enabled: true,
-    });
+    } = args;
 
     // If USDC mint mode is enabled, enforce that the native token mint == USDC mint
     if is_token_mint_usdc {
