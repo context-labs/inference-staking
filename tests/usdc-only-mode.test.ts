@@ -545,7 +545,7 @@ describe("USDC-only mode tests", () => {
       operatorPool.cumulativeUsdcPerShare.eq(
         operatorPoolPre.cumulativeUsdcPerShare
       ),
-      "USDC per share should increase"
+      "USDC per share should not change"
     );
   });
 
