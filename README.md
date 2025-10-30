@@ -29,6 +29,7 @@ The Inference.net Staking System allows users to stake tokens to operator-manage
 - Efficient reward distribution with off-chain storage and on-chain merkle tree proof verification
 - On-chain encoded reward emission schedule for transparency and auditability
 - Program events for fine-grained monitoring and auditing
+- USDC-only mode for token-less revenue distribution to a group of operators
 
 ## Architecture
 

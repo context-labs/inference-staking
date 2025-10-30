@@ -595,7 +595,7 @@ describe("USDC-only mode tests", () => {
 
   it("Operator can claim unstake successfully", async () => {
     // Sleep till delay duration has elapsed
-    await sleep(operatorUnstakeDelaySeconds.toNumber() * 1_000);
+    await sleep(operatorUnstakeDelaySeconds.toNumber() * 2 * 1_000);
 
     const ownerTokenAccount = getAssociatedTokenAddressSync(
       setup.usdcTokenMint,
