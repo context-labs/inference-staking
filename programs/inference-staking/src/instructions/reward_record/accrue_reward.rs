@@ -125,6 +125,11 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
     )?;
 
     let pool_overview = &ctx.accounts.pool_overview;
+
+    // If token rewards are disabled, enforce that reward_amount is zero
+    if !pool_overview.token_rewards_enabled {
+        require_eq!(reward_amount, 0, ErrorCode::TokenRewardsDisabled);
+    }
     let operator_staking_record: &mut Box<Account<'_, StakingRecord>> =
         &mut ctx.accounts.operator_staking_record;
 

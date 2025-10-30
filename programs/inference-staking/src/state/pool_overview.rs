@@ -36,6 +36,16 @@ pub struct PoolOverview {
     /// Whether the current epoch is in the finalizing state.
     pub is_epoch_finalizing: bool,
 
+    /// Set on account creation and then immutable. Defines if the token mint is USDC. If it is,
+    /// then the protocol is effectively running in "USDC-only" mode where it functions as a
+    /// USDC revenue distribution proof-of-stake system.
+    pub is_token_mint_usdc: bool,
+
+    /// Set on account creation and then immutable. Defines if token rewards are enabled for the
+    /// protocol deployment. If not, token rewards must be zero, operator pool commission rates
+    /// must 100%, and delegator staking is not allowed.
+    pub token_rewards_enabled: bool,
+
     /// Halts all staking instructions when true. Used as a security backstop.
     pub is_staking_halted: bool,
 

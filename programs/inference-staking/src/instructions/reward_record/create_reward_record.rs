@@ -69,13 +69,18 @@ pub fn handler(ctx: Context<CreateRewardRecord>, args: CreateRewardRecordArgs) -
 
     let epoch = pool_overview.completed_reward_epoch.checked_add(1).unwrap();
 
+    // If token rewards are disabled, enforce that total_rewards is zero
+    if !pool_overview.token_rewards_enabled {
+        require_eq!(total_rewards, 0, ErrorCode::TokenRewardsDisabled);
+    }
+
     // If no merkle roots are provided then reward amounts must be zero.
     if merkle_roots.is_empty() {
         require_eq!(total_rewards, 0);
         require_eq!(total_usdc_payout, 0);
     } else {
         // If merkle roots are provided, verify that total_rewards matches expected emissions
-        let expected_rewards = get_expected_reward_emissions_for_epoch(epoch)?;
+        let expected_rewards = get_expected_reward_emissions_for_epoch(epoch, pool_overview)?;
         require_eq!(
             total_rewards,
             expected_rewards,

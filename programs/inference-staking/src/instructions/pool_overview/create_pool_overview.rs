@@ -64,9 +64,35 @@ pub struct CreatePoolOverview<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct CreatePoolOverviewArgs {
+    pub is_token_mint_usdc: bool,
+    pub token_rewards_enabled: bool,
+}
+
 /// Instruction to setup a PoolOverview singleton. To be called after initial program deployment.
-pub fn handler(ctx: Context<CreatePoolOverview>) -> Result<()> {
+pub fn handler(
+    ctx: Context<CreatePoolOverview>,
+    args: Option<CreatePoolOverviewArgs>,
+) -> Result<()> {
     let pool_overview = &mut ctx.accounts.pool_overview;
+
+    // Set defaults: is_token_mint_usdc = false, token_rewards_enabled = true
+    let CreatePoolOverviewArgs {
+        is_token_mint_usdc,
+        token_rewards_enabled,
+    } = args.unwrap_or(CreatePoolOverviewArgs {
+        is_token_mint_usdc: false,
+        token_rewards_enabled: true,
+    });
+
+    // If USDC mint mode is enabled, enforce that the native token mint == USDC mint
+    if is_token_mint_usdc {
+        require!(
+            ctx.accounts.mint.key() == ctx.accounts.usdc_mint.key(),
+            ErrorCode::InvalidMintForUsdcMode
+        );
+    }
 
     pool_overview.bump = ctx.bumps.pool_overview;
     pool_overview.mint = ctx.accounts.mint.key();
@@ -78,6 +104,8 @@ pub fn handler(ctx: Context<CreatePoolOverview>) -> Result<()> {
     pool_overview.slashing_destination_usdc_account =
         ctx.accounts.slashing_destination_usdc_account.key();
     pool_overview.slashing_delay_seconds = MIN_SLASHING_DELAY_SECONDS;
+    pool_overview.is_token_mint_usdc = is_token_mint_usdc;
+    pool_overview.token_rewards_enabled = token_rewards_enabled;
 
     Ok(())
 }

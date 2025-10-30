@@ -149,6 +149,28 @@ pub fn handler(ctx: Context<CreateOperatorPool>, args: CreateOperatorPoolArgs) -
 
     let pool_overview = &mut ctx.accounts.pool_overview;
 
+    // If USDC mint mode is enabled, enforce that the mint matches USDC
+    if pool_overview.is_token_mint_usdc {
+        require!(
+            ctx.accounts.mint.key() == ctx.accounts.usdc_mint.key(),
+            ErrorCode::InvalidMintForUsdcMode
+        );
+    }
+
+    // If token rewards are disabled, enforce both commission rates are 100%
+    if !pool_overview.token_rewards_enabled {
+        require_eq!(
+            reward_commission_rate_bps,
+            10000,
+            ErrorCode::InvalidCommissionRateForDisabledRewards
+        );
+        require_eq!(
+            usdc_commission_rate_bps,
+            10000,
+            ErrorCode::InvalidCommissionRateForDisabledRewards
+        );
+    }
+
     // Transfer registration fee if it's set above zero.
     let registration_fee = pool_overview.operator_pool_registration_fee;
     if registration_fee > 0 {
