@@ -11,12 +11,14 @@ PATTERN1="^test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/regist
 PATTERN2="^# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/\*\*/inference-staking.test.ts\"$"
 PATTERN3="^# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/\*\*/rewards.test.ts\"$"
 PATTERN4="^# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/\*\*/constraints.test.ts\"$"
+PATTERN5="^# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/\*\*/usdc-only-mode.test.ts\"$"
 
 # Check if the file is in the expected state
 if ! grep -q "$PATTERN1" "$FILE_PATH" || \
    ! grep -q "$PATTERN2" "$FILE_PATH" || \
    ! grep -q "$PATTERN3" "$FILE_PATH" || \
-   ! grep -q "$PATTERN4" "$FILE_PATH"; then
+   ! grep -q "$PATTERN4" "$FILE_PATH" || \
+   ! grep -q "$PATTERN5" "$FILE_PATH"; then
     echo "❌ Error: Anchor.toml is not in the expected initial state."
     echo "Please ensure the file has the following test configuration:"
     echo ""
@@ -24,6 +26,7 @@ if ! grep -q "$PATTERN1" "$FILE_PATH" || \
     echo "# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/inference-staking.test.ts\""
     echo "# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/rewards.test.ts\""
     echo "# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/constraints.test.ts\""
+    echo "# test = \"bun run ts-mocha -p ./tsconfig.json -r tsconfig-paths/register -t 1000000 tests/**/usdc-only-mode.test.ts\""
     echo ""
     exit 1
 fi
@@ -69,6 +72,17 @@ echo ""
 sed -i'.bak' \
     -e 's/^test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 1000000 tests\/\*\*\/rewards.test.ts"$/# test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 1000000 tests\/\*\*\/rewards.test.ts"/' \
     -e 's/^# test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 1000000 tests\/\*\*\/constraints.test.ts"$/test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 1000000 tests\/\*\*\/constraints.test.ts"/' \
+    $FILE_PATH
+
+bun run test
+
+echo ""
+echo "Running USDC-only mode tests..."
+echo ""
+
+sed -i'.bak' \
+    -e 's/^test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 1000000 tests\/\*\*\/constraints.test.ts"$/# test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 1000000 tests\/\*\*\/constraints.test.ts"/' \
+    -e 's/^# test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 1000000 tests\/\*\*\/usdc-only-mode.test.ts"$/test = "bun run ts-mocha -p .\/tsconfig.json -r tsconfig-paths\/register -t 1000000 tests\/\*\*\/usdc-only-mode.test.ts"/' \
     $FILE_PATH
 
 bun run test
