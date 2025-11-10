@@ -2,6 +2,8 @@
 
 At [Inference.net](https://inference.net/?utm_source=github&utm_medium=readme&utm_campaign=overview), we provide developers and enterprises with access to top-performing large language models (LLMs) through our efficient and cost-effective inference platform. Our backend is powered by a global, distributed GPU network which is coordinated by this on-chain staking program.
 
+You can find the full [technical protocol whitepaper here](docs/whitepaper.pdf).
+
 # Inference.net Staking Program
 
 An on-chain Solana program that manages staking and unstaking of tokens to operator managed pools, custodies delegated tokens, distributes rewards and USDC earnings, and ensures Inference.net network security via halting and slashing mechanisms.
