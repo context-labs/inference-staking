@@ -102,4 +102,12 @@ pub enum ErrorCode {
     InvalidAmount,
     #[msg("Invalid shares amount provided - cannot be greater than total operator shares")]
     InvalidSlashSharesAmount,
+    #[msg("Token rewards are disabled for this protocol deployment")]
+    TokenRewardsDisabled,
+    #[msg("Delegator staking is not allowed when token rewards are disabled")]
+    DelegatorStakingDisabled,
+    #[msg("Invalid mint for USDC-only mode - mint must match USDC")]
+    InvalidMintForUsdcMode,
+    #[msg("Invalid commission rate - must be 100% when token rewards are disabled")]
+    InvalidCommissionRateForDisabledRewards,
 }

@@ -33,7 +33,10 @@ describe("Additional tests for instruction constraints", () => {
   it("Fail to create PoolOverview with an invalid USDC mint", async () => {
     try {
       await program.methods
-        .createPoolOverview()
+        .createPoolOverview({
+          isTokenMintUsdc: false,
+          tokenRewardsEnabled: true,
+        })
         .accountsStrict({
           payer: setup.payer,
           programAdmin: setup.signer,
@@ -58,7 +61,10 @@ describe("Additional tests for instruction constraints", () => {
 
   it("Create PoolOverview and update with a valid admin", async () => {
     await program.methods
-      .createPoolOverview()
+      .createPoolOverview({
+        isTokenMintUsdc: false,
+        tokenRewardsEnabled: true,
+      })
       .accountsStrict({
         payer: setup.payer,
         programAdmin: setup.poolOverviewAdmin,

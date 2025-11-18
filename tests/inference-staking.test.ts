@@ -54,7 +54,10 @@ describe("inference-staking program tests", () => {
 
   it("Create PoolOverview successfully", async () => {
     await program.methods
-      .createPoolOverview()
+      .createPoolOverview({
+        isTokenMintUsdc: false,
+        tokenRewardsEnabled: true,
+      })
       .accountsStrict({
         payer: setup.payer,
         programAdmin: setup.poolOverviewAdmin,
@@ -886,6 +889,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         ownerStakingRecord: setup.pool1.delegatorStakingRecord,
         systemProgram: SystemProgram.programId,
+        poolOverview: setup.poolOverview,
       })
       .signers([setup.payerKp, setup.delegator1Kp])
       .rpc();
@@ -3208,6 +3212,7 @@ describe("inference-staking program tests", () => {
         operatorPool: setup.pool1.pool,
         ownerStakingRecord: delegator2StakingRecord,
         systemProgram: SystemProgram.programId,
+        poolOverview: setup.poolOverview,
       })
       .signers([setup.payerKp, setup.delegator2Kp])
       .rpc();

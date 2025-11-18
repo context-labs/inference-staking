@@ -113,8 +113,15 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         usdc_amount,
     } = args;
 
+    let pool_overview = &ctx.accounts.pool_overview;
     let reward_record = &ctx.accounts.reward_record;
     let operator_pool = &mut ctx.accounts.operator_pool;
+
+    // If token rewards are disabled, enforce that reward_amount is zero
+    if !pool_overview.token_rewards_enabled {
+        require_eq!(reward_amount, 0, ErrorCode::TokenRewardsDisabled);
+    }
+
     reward_record.verify_proof(
         merkle_index,
         operator_pool.key(),
@@ -124,7 +131,6 @@ pub fn handler(ctx: Context<AccrueReward>, args: AccrueRewardArgs) -> Result<()>
         usdc_amount,
     )?;
 
-    let pool_overview = &ctx.accounts.pool_overview;
     let operator_staking_record: &mut Box<Account<'_, StakingRecord>> =
         &mut ctx.accounts.operator_staking_record;
 

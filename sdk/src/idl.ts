@@ -1002,7 +1002,16 @@ const _IDL = {
           address: "11111111111111111111111111111111",
         },
       ],
-      args: [],
+      args: [
+        {
+          name: "args",
+          type: {
+            defined: {
+              name: "createPoolOverviewArgs",
+            },
+          },
+        },
+      ],
     },
     {
       name: "createRewardRecord",
@@ -1097,6 +1106,19 @@ const _IDL = {
         {
           name: "owner",
           signer: true,
+        },
+        {
+          name: "poolOverview",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  80, 111, 111, 108, 79, 118, 101, 114, 118, 105, 101, 119,
+                ],
+              },
+            ],
+          },
         },
         {
           name: "operatorPool",
@@ -2281,6 +2303,26 @@ const _IDL = {
       name: "invalidSlashSharesAmount",
       msg: "Invalid shares amount provided - cannot be greater than total operator shares",
     },
+    {
+      code: 6050,
+      name: "tokenRewardsDisabled",
+      msg: "Token rewards are disabled for this protocol deployment",
+    },
+    {
+      code: 6051,
+      name: "delegatorStakingDisabled",
+      msg: "Delegator staking is not allowed when token rewards are disabled",
+    },
+    {
+      code: 6052,
+      name: "invalidMintForUsdcMode",
+      msg: "Invalid mint for USDC-only mode - mint must match USDC",
+    },
+    {
+      code: 6053,
+      name: "invalidCommissionRateForDisabledRewards",
+      msg: "Invalid commission rate - must be 100% when token rewards are disabled",
+    },
   ],
   types: [
     {
@@ -2587,6 +2629,22 @@ const _IDL = {
           {
             name: "usdcCommissionRateBps",
             type: "u16",
+          },
+        ],
+      },
+    },
+    {
+      name: "createPoolOverviewArgs",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "isTokenMintUsdc",
+            type: "bool",
+          },
+          {
+            name: "tokenRewardsEnabled",
+            type: "bool",
           },
         ],
       },
@@ -2948,6 +3006,24 @@ const _IDL = {
           {
             name: "isEpochFinalizing",
             docs: ["Whether the current epoch is in the finalizing state."],
+            type: "bool",
+          },
+          {
+            name: "isTokenMintUsdc",
+            docs: [
+              "Set on account creation and then immutable. Defines if the token mint is USDC. If it is,",
+              'then the protocol is effectively running in "USDC-only" mode where it functions as a',
+              "USDC revenue distribution proof-of-stake system.",
+            ],
+            type: "bool",
+          },
+          {
+            name: "tokenRewardsEnabled",
+            docs: [
+              "Set on account creation and then immutable. Defines if token rewards are enabled for the",
+              "protocol deployment. If not, token rewards must be zero, operator pool commission rates",
+              "must 100%, and delegator staking is not allowed.",
+            ],
             type: "bool",
           },
           {

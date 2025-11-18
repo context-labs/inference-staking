@@ -6,7 +6,9 @@ You can find the full [technical protocol whitepaper here](docs/whitepaper.pdf).
 
 # Inference.net Staking Program
 
-An on-chain Solana program that manages staking and unstaking of tokens to operator managed pools, custodies delegated tokens, distributes rewards and USDC earnings, and ensures Inference.net network security via halting and slashing mechanisms.
+A general-purpose proof-of-stake system implemented on Solana for coordinating off-chain services with a fully on-chain accounting and reward distribution system.
+
+The protocol supports staking and unstaking of tokens to operator managed pools, token delegation, rewards/revenue distribution, and security via halting and slashing mechanisms.
 
 View staking program documentation [here](https://docs.devnet.inference.net/devnet-epoch-3/staking-protocol).
 
@@ -29,6 +31,7 @@ The Inference.net Staking System allows users to stake tokens to operator-manage
 - Efficient reward distribution with off-chain storage and on-chain merkle tree proof verification
 - On-chain encoded reward emission schedule for transparency and auditability
 - Program events for fine-grained monitoring and auditing
+- USDC-only mode for token-less revenue distribution to a group of operators
 
 ## Architecture
 

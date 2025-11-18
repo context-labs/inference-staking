@@ -373,6 +373,14 @@ export async function setupTests() {
       registrationFeePayoutWalletKp.publicKey
     );
 
+  const registrationFeePayoutUsdcAccount =
+    await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      payerKp,
+      usdcTokenMint,
+      registrationFeePayoutWalletKp.publicKey
+    );
+
   debug(`- Test setup complete\n`);
 
   return {
@@ -385,6 +393,7 @@ export async function setupTests() {
     registrationFeePayoutWallet: registrationFeePayoutWalletKp.publicKey,
     registrationFeePayoutTokenAccount:
       registrationFeePayoutTokenAccount.address,
+    registrationFeePayoutUsdcAccount: registrationFeePayoutUsdcAccount.address,
     rewardDistributionAuthorityKp,
     rewardDistributionAuthority: rewardDistributionAuthorityKp.publicKey,
     haltingAuthorityKp,

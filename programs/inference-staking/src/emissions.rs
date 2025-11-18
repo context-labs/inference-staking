@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
+use crate::state::PoolOverview;
 
 /// Number of epochs per super epoch
 /// 5 super epochs at 300 days = 1500 days = 4.1 years
@@ -18,8 +19,16 @@ pub const TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH: &[u64] = &[
 ];
 
 /// Calculate the expected reward emissions for a given epoch based on the emission schedule.
-pub fn get_expected_reward_emissions_for_epoch(epoch: u64) -> Result<u64> {
+pub fn get_expected_reward_emissions_for_epoch(
+    epoch: u64,
+    pool_overview: &PoolOverview,
+) -> Result<u64> {
     require!(epoch >= 1, ErrorCode::InvalidEpoch);
+
+    // If token rewards are disabled, return zero emissions
+    if !pool_overview.token_rewards_enabled {
+        return Ok(0);
+    }
 
     let emissions_schedule = TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH;
 
@@ -55,8 +64,40 @@ pub fn get_expected_reward_emissions_for_epoch(epoch: u64) -> Result<u64> {
 mod tests {
     use super::*;
 
+    fn create_mock_pool_overview(token_rewards_enabled: bool) -> PoolOverview {
+        PoolOverview {
+            mint: Pubkey::default(),
+            bump: 0,
+            program_admin: Pubkey::default(),
+            reward_distribution_authorities: vec![],
+            halt_authorities: vec![],
+            slashing_authorities: vec![],
+            slashing_destination_usdc_account: Pubkey::default(),
+            slashing_destination_token_account: Pubkey::default(),
+            slashing_delay_seconds: 0,
+            is_epoch_finalizing: false,
+            is_token_mint_usdc: false,
+            token_rewards_enabled,
+            is_staking_halted: false,
+            is_withdrawal_halted: false,
+            is_accrue_reward_halted: false,
+            allow_pool_creation: false,
+            operator_pool_registration_fee: 0,
+            registration_fee_payout_wallet: Pubkey::default(),
+            min_operator_token_stake: 0,
+            delegator_unstake_delay_seconds: 0,
+            operator_unstake_delay_seconds: 0,
+            total_pools: 0,
+            completed_reward_epoch: 0,
+            unclaimed_rewards: 0,
+            unclaimed_usdc: 0,
+        }
+    }
+
     #[test]
     fn test_get_expected_reward_emissions_for_epoch() {
+        let pool_overview = create_mock_pool_overview(true);
+
         // Test epoch 1 (first epoch of first super epoch) - may get dust
         let first_super_epoch_total = TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH[0];
         let base_reward = first_super_epoch_total / EPOCHS_PER_SUPER_EPOCH;
@@ -67,12 +108,12 @@ mod tests {
             base_reward
         };
 
-        let result = get_expected_reward_emissions_for_epoch(1).unwrap();
+        let result = get_expected_reward_emissions_for_epoch(1, &pool_overview).unwrap();
         assert_eq!(result, first_epoch_reward);
 
         // Test last epoch of first super epoch - gets base reward (no dust)
         let last_epoch_first_super = EPOCHS_PER_SUPER_EPOCH;
-        let result = get_expected_reward_emissions_for_epoch(last_epoch_first_super).unwrap();
+        let result = get_expected_reward_emissions_for_epoch(last_epoch_first_super, &pool_overview).unwrap();
         assert_eq!(result, base_reward);
 
         // Test first epoch of second super epoch (if it exists)
@@ -87,12 +128,12 @@ mod tests {
             };
 
             let first_epoch_second_super = EPOCHS_PER_SUPER_EPOCH + 1;
-            let result = get_expected_reward_emissions_for_epoch(first_epoch_second_super).unwrap();
+            let result = get_expected_reward_emissions_for_epoch(first_epoch_second_super, &pool_overview).unwrap();
             assert_eq!(result, second_first_epoch_reward);
 
             // Test last epoch of second super epoch
             let last_epoch_second_super = EPOCHS_PER_SUPER_EPOCH * 2;
-            let result = get_expected_reward_emissions_for_epoch(last_epoch_second_super).unwrap();
+            let result = get_expected_reward_emissions_for_epoch(last_epoch_second_super, &pool_overview).unwrap();
             assert_eq!(result, second_base_reward);
         }
 
@@ -100,7 +141,22 @@ mod tests {
         let beyond_schedule_epoch = (TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH.len() as u64
             * EPOCHS_PER_SUPER_EPOCH)
             + 1;
-        let result = get_expected_reward_emissions_for_epoch(beyond_schedule_epoch).unwrap();
+        let result = get_expected_reward_emissions_for_epoch(beyond_schedule_epoch, &pool_overview).unwrap();
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn test_get_expected_reward_emissions_when_disabled() {
+        let pool_overview = create_mock_pool_overview(false);
+
+        // When token rewards are disabled, all epochs should return 0
+        let result = get_expected_reward_emissions_for_epoch(1, &pool_overview).unwrap();
+        assert_eq!(result, 0);
+
+        let result = get_expected_reward_emissions_for_epoch(100, &pool_overview).unwrap();
+        assert_eq!(result, 0);
+
+        let result = get_expected_reward_emissions_for_epoch(1000, &pool_overview).unwrap();
         assert_eq!(result, 0);
     }
 
@@ -108,6 +164,7 @@ mod tests {
     fn test_epoch_dust_distribution() {
         // For super epoch rewards that don't divide evenly by EPOCHS_PER_SUPER_EPOCH,
         // the dust should be distributed to earlier epochs
+        let pool_overview = create_mock_pool_overview(true);
 
         let first_super_epoch_total = TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH[0];
         let base_reward = first_super_epoch_total / EPOCHS_PER_SUPER_EPOCH;
@@ -115,7 +172,7 @@ mod tests {
 
         // Test reward distribution for all epochs in first super epoch
         for epoch in 1..=EPOCHS_PER_SUPER_EPOCH {
-            let result = get_expected_reward_emissions_for_epoch(epoch).unwrap();
+            let result = get_expected_reward_emissions_for_epoch(epoch, &pool_overview).unwrap();
 
             // Earlier epochs get 1 extra token unit if there's dust
             let expected_reward = if (epoch - 1) < dust {
@@ -131,7 +188,8 @@ mod tests {
     #[test]
     fn test_invalid_epoch() {
         // Test epoch 0 (invalid)
-        let result = get_expected_reward_emissions_for_epoch(0);
+        let pool_overview = create_mock_pool_overview(true);
+        let result = get_expected_reward_emissions_for_epoch(0, &pool_overview);
         assert!(result.is_err());
     }
 
@@ -139,6 +197,8 @@ mod tests {
     fn test_all_super_epochs() {
         // Test first epoch of each super epoch matches expected schedule
         // First epoch gets base reward + 1 if there's dust, otherwise just base reward
+        let pool_overview = create_mock_pool_overview(true);
+
         for (super_epoch_index, &total) in TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH
             .iter()
             .enumerate()
@@ -152,7 +212,7 @@ mod tests {
             };
 
             let epoch = (super_epoch_index as u64 * EPOCHS_PER_SUPER_EPOCH) + 1;
-            let result = get_expected_reward_emissions_for_epoch(epoch).unwrap();
+            let result = get_expected_reward_emissions_for_epoch(epoch, &pool_overview).unwrap();
             assert_eq!(
                 result,
                 expected_first_epoch_reward,
@@ -166,6 +226,8 @@ mod tests {
     fn test_total_emissions_per_super_epoch() {
         // Verify that the sum of all epochs in a super epoch equals the expected total
         // Test all defined super epochs from the emissions schedule
+        let pool_overview = create_mock_pool_overview(true);
+
         for (super_epoch_index, &expected_total) in TOKEN_REWARDS_EMISSIONS_SCHEDULE_BY_SUPER_EPOCH
             .iter()
             .enumerate()
@@ -175,7 +237,7 @@ mod tests {
             let end_epoch = start_epoch + EPOCHS_PER_SUPER_EPOCH - 1;
 
             for epoch in start_epoch..=end_epoch {
-                let reward = get_expected_reward_emissions_for_epoch(epoch).unwrap();
+                let reward = get_expected_reward_emissions_for_epoch(epoch, &pool_overview).unwrap();
                 total += reward;
             }
 

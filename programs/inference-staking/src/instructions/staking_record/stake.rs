@@ -87,6 +87,11 @@ pub fn handler(ctx: Context<Stake>, args: StakeArgs) -> Result<()> {
         ErrorCode::StakingNotAllowed
     );
 
+    // If token rewards are disabled, only operators can stake
+    if !pool_overview.token_rewards_enabled {
+        require!(is_operator_staking, ErrorCode::DelegatorStakingDisabled);
+    }
+
     // Check that pool is not closed or halted.
     require!(
         operator_pool.closed_at_epoch.is_none(),

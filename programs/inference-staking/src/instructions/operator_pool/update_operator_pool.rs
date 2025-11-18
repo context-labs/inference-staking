@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::sysvar::instructions::load_current_index_checked;
 
+use crate::error::ErrorCode;
 use crate::events::UpdateOperatorPoolEvent;
 use crate::state::{OperatorPool, PoolOverview};
 
@@ -88,9 +89,20 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
         operator_pool.auto_stake_fees = auto_stake_fees;
     }
 
+    let pool_overview = &ctx.accounts.pool_overview;
+
     if let Some(new_reward_rate_setting) = new_reward_commission_rate_bps {
         if let Some(new_commission_rate_bps) = new_reward_rate_setting.rate_bps {
             OperatorPool::validate_commission_rate(new_commission_rate_bps)?;
+
+            // If token rewards are disabled, enforce commission rate is 100%
+            if !pool_overview.token_rewards_enabled {
+                require_eq!(
+                    new_commission_rate_bps,
+                    10000,
+                    ErrorCode::InvalidCommissionRateForDisabledRewards
+                );
+            }
         }
         operator_pool.new_reward_commission_rate_bps = new_reward_rate_setting.rate_bps;
     }
@@ -98,6 +110,15 @@ pub fn handler(ctx: Context<UpdateOperatorPool>, args: UpdateOperatorPoolArgs) -
     if let Some(new_usdc_rate_setting) = new_usdc_commission_rate_bps {
         if let Some(new_usdc_rate_bps) = new_usdc_rate_setting.rate_bps {
             OperatorPool::validate_commission_rate(new_usdc_rate_bps)?;
+
+            // If token rewards are disabled, enforce commission rate is 100%
+            if !pool_overview.token_rewards_enabled {
+                require_eq!(
+                    new_usdc_rate_bps,
+                    10000,
+                    ErrorCode::InvalidCommissionRateForDisabledRewards
+                );
+            }
         }
         operator_pool.new_usdc_commission_rate_bps = new_usdc_rate_setting.rate_bps;
     }
